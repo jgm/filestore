@@ -13,19 +13,21 @@ module Data.FileStore
            , Revision(..)
            , Contents(..)
            , History
-           , TimeRange
+           , TimeRange(..)
+           , MergeInfo(..)
            , FileStoreError(..)
            , FileStore(..)
+           , SearchResult(..)
            , DateTime ) 
 where
+
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.DateTime (DateTime)
 import Data.Typeable
 import Control.Exception
 
-type RevisionId = String
-
+type RevisionId   = String
 type ResourceName = String
 
 data Author =
@@ -56,16 +58,18 @@ instance Contents String where
 
 type History = [(ResourceName, Revision)]
 
-type TimeRange = (Maybe DateTime, Maybe DateTime)
+data TimeRange =
+  TimeRange {
+    trFrom :: Maybe DateTime
+  , trTo   :: Maybe DateTime
+  } deriving (Show, Read, Eq)
 
 data FileStoreError = Merged Revision Bool String  -- latest revision conflicts? merged-text
                     | AlreadyExists
                     | NotFound
                     | Unchanged
                     | UnknownError String
-                    deriving (Show, Typeable)
-
-instance Exception FileStoreError
+                    deriving (Show)
 
 data FileStore =
   FileStore {

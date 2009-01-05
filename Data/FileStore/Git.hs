@@ -85,17 +85,21 @@ gitModify repo name originalRevId author logMsg contents = do
 
 gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Revision, Bool, String)
 gitMerge repo name originalRevId latestRevId contents = do
-  (_, originalContents) <- gitRetrieve repo name (Just originalRevId)
-  (latestRev, latestContents) <- gitRetrieve repo name (Just latestRevId)
-  let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
-  B.writeFile (repo </> editedTmp)  contents
-  B.writeFile (repo </> originalTmp) originalContents
-  B.writeFile (repo </> latestTmp) latestContents
-  (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp
-  mapM removeFile $ map (repo </>) [editedTmp, originalTmp, latestTmp]
-  if conflicts == -1 -- error
-     then throwIO $ UnknownError $ "Error in git merge-file:\n" ++ mergedText
-     else return (latestRev, (conflicts > 0), mergedText)
+  originalRes <- gitRetrieve repo name (Just originalRevId)
+  latestRes   <- gitRetrieve repo name (Just latestRevId)
+  case (originalRes, latestRes) of
+       (Left err, _)                  -> return err
+       (_, Left err)                  -> return err
+       (Right (_, originalContents), Right (latestRev, latestContents)) -> do
+          let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
+          B.writeFile (repo </> editedTmp)  contents
+          B.writeFile (repo </> originalTmp) originalContents
+          B.writeFile (repo </> latestTmp) latestContents
+          (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp
+          mapM removeFile $ map (repo </>) [editedTmp, originalTmp, latestTmp]
+          if conflicts == -1 -- error
+             then return $ UnknownError $ "Error in git merge-file: " ++ mergedText
+             else return $ Merged latestRev (conflicts > 0) mergedText
 
 gitCommit :: FilePath -> ResourceName -> (String, String) -> String -> IO ()
 gitCommit repo name (author, email) logMsg = do
@@ -140,7 +144,8 @@ gitMove :: FilePath -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
 
 gitHistory :: FilePath -> [ResourceName] -> TimeRange -> IO History
-gitHistory repo names (mbSince, mbUntil) = liftM (concatMap logEntryToHistory) $ gitLog repo names (mbSince, mbUntil)
+gitHistory repo names (TimeRange mbSince mbUntil) = liftM (concatMap logEntryToHistory)
+  $ gitLog repo names (TimeRange mbSince mbUntil)
 
 logEntryToHistory :: LogEntry -> History
 logEntryToHistory entry =
@@ -156,7 +161,7 @@ logEntryToHistory entry =
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
 gitLog :: FilePath -> [ResourceName] -> TimeRange -> IO [LogEntry]
-gitLog repo names (mbSince, mbUntil) = do
+gitLog repo names (TimeRange mbSince mbUntil) = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
                            ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n"] ++
                            (case mbSince of
