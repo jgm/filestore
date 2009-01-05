@@ -14,7 +14,7 @@ import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
 import Data.ByteString.Lazy.UTF8 (fromString, toString)
 import Data.Maybe (mapMaybe, isNothing, fromJust)
-import Data.List (nub, isSuffixOf)
+import Data.List (nub, isSuffixOf, isPrefixOf)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString)
@@ -51,6 +51,12 @@ toByteString :: Contents -> B.ByteString
 toByteString (Text c)   = fromString c
 toByteString (Binary c) = c
 
+-- | Returns True if the revision ids match -- that is, if one
+-- is a sublist of the other.  Note that git allows prefixes of complete sha1
+-- hashes to be used as identifiers.
+matches :: RevisionId -> RevisionId -> Bool
+matches r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
+
 gitCreate :: FilePath -> ResourceName -> Author -> String -> Contents -> IO (Either FileStoreError ())
 gitCreate repo name author logMsg contents = do
   let filename = repo </> name
@@ -78,7 +84,7 @@ gitModify repo name originalRevId author logMsg contents = do
      else do
        let latestRev = fromJust mbLatestRev
        let latestRevId = revId latestRev
-       if originalRevId == latestRevId
+       if originalRevId `matches` latestRevId
           then do
             B.writeFile (repo </> name) $ toByteString contents
             gitCommit repo name (authorName author, authorEmail author) logMsg
@@ -283,8 +289,8 @@ gitSearch repo patterns = do
   if status == ExitSuccess
      then let matchLines = map parseMatchLine $ lines $ toString output
               matchedFiles = nub $ filter (".page" `isSuffixOf`) $ map fst matchLines
-              matches = map (\f -> (f, mapMaybe (\(a,b) -> if a == f then Just b else Nothing) matchLines)) matchedFiles
-          in  return matches   
+              matches' = map (\f -> (f, mapMaybe (\(a,b) -> if a == f then Just b else Nothing) matchLines)) matchedFiles
+          in  return matches'
      else error $ "git grep returned error status.\n" ++ errOutput
 
 -- Auxiliary function for searchResults
