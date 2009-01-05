@@ -69,11 +69,7 @@ gitCreate repo name author logMsg contents = do
        B.writeFile filename $ toByteString contents
        (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
        if statusAdd == ExitSuccess
-          then do (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", authorName author ++ " <" ++
-                                                    authorEmail author ++ ">", "-m", logMsg]
-                  if statusCommit == ExitSuccess
-                     then return $ Right ()
-                     else return $ Left $ UnknownError $ "Could not git commit " ++ name ++ "\n" ++ errCommit
+          then gitCommit repo name (authorName author, authorEmail author) logMsg
           else return $ Left $ UnknownError $ "Could not git add " ++ name ++ "\n" ++ errAdd
 
 gitModify :: FilePath -> ResourceName -> RevisionId -> Author -> String -> Contents -> IO (Either FileStoreError ())
@@ -114,7 +110,9 @@ gitCommit repo name (author, email) logMsg = do
                                     email ++ ">", "-m", logMsg, name]
   if statusCommit == ExitSuccess
      then return $ Right ()
-     else return $ Left $ UnknownError $ "Could not git commit '" ++ name ++ "': " ++ errCommit
+     else return $ Left $ if null errCommit
+                             then Unchanged
+                             else UnknownError $ "Could not git commit '" ++ name ++ "': " ++ errCommit
 
 -- | returns (n, s), where s is merged text and n is number of conflicts, or -1 for error.
 gitMergeFile :: FilePath -> FilePath -> FilePath -> FilePath -> IO (Int, String)
@@ -140,11 +138,7 @@ gitDelete :: FilePath -> ResourceName -> Author -> String -> IO (Either FileStor
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
-     then do (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", authorName author ++ " <" ++
-                                               authorEmail author ++ ">", "-m", logMsg]
-             if statusCommit == ExitSuccess
-                then return $ Right ()
-                else return $ Left $ UnknownError $ "Could not git commit " ++ name ++ "\n" ++ errCommit
+     then gitCommit repo name (authorName author, authorEmail author) logMsg
      else return $ Left $ UnknownError $ "Could not git rm " ++ name ++ "\n" ++ errRm
 
 
