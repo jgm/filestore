@@ -47,17 +47,13 @@ runGitCommand repo command args = do
   (status, err, out) <- runProgCommand repo env "git" command args
   return (status, toString err, out)
 
-toByteString :: Contents -> B.ByteString
-toByteString (Text c)   = fromString c
-toByteString (Binary c) = c
-
 -- | Returns True if the revision ids match -- that is, if one
 -- is a sublist of the other.  Note that git allows prefixes of complete sha1
 -- hashes to be used as identifiers.
 matches :: RevisionId -> RevisionId -> Bool
 matches r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
-gitCreate :: FilePath -> ResourceName -> Author -> String -> Contents -> IO (Either FileStoreError ())
+gitCreate :: FilePath -> ResourceName -> Author -> String -> B.ByteString -> IO (Either FileStoreError ())
 gitCreate repo name author logMsg contents = do
   let filename = repo </> name
   exists <- doesFileExist filename
@@ -66,13 +62,13 @@ gitCreate repo name author logMsg contents = do
      else do
        let dir' = takeDirectory filename
        createDirectoryIfMissing True dir'
-       B.writeFile filename $ toByteString contents
+       B.writeFile filename contents
        (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
        if statusAdd == ExitSuccess
           then gitCommit repo name (authorName author, authorEmail author) logMsg
           else return $ Left $ UnknownError $ "Could not git add " ++ name ++ "\n" ++ errAdd
 
-gitModify :: FilePath -> ResourceName -> RevisionId -> Author -> String -> Contents -> IO (Either FileStoreError ())
+gitModify :: FilePath -> ResourceName -> RevisionId -> Author -> String -> B.ByteString -> IO (Either FileStoreError ())
 gitModify repo name originalRevId author logMsg contents = do
   mbLatestRev <- gitLatest repo name
   if isNothing mbLatestRev
@@ -82,11 +78,11 @@ gitModify repo name originalRevId author logMsg contents = do
        let latestRevId = revId latestRev
        if originalRevId `matches` latestRevId
           then do
-            B.writeFile (repo </> name) $ toByteString contents
+            B.writeFile (repo </> name) contents
             gitCommit repo name (authorName author, authorEmail author) logMsg
           else liftM Left $ gitMerge repo name originalRevId latestRevId contents
         
-gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> Contents -> IO FileStoreError
+gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO FileStoreError
 gitMerge repo name originalRevId latestRevId contents = do
   originalRes <- gitRetrieve repo name originalRevId 
   latestRes   <- gitRetrieve repo name latestRevId
@@ -95,7 +91,7 @@ gitMerge repo name originalRevId latestRevId contents = do
        (_, Left err)                  -> return err
        (Right (_, originalContents), Right (latestRev, latestContents)) -> do
           let [editedTmp, originalTmp, latestTmp] = map (name ++) [".edited",".original",".latest"]
-          B.writeFile (repo </> editedTmp) $ toByteString contents
+          B.writeFile (repo </> editedTmp) contents
           B.writeFile (repo </> originalTmp) originalContents
           B.writeFile (repo </> latestTmp) latestContents
           (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp

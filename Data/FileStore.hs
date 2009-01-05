@@ -13,7 +13,6 @@ module Data.FileStore
            , History
            , TimeRange
            , FileStoreError(..)
-           , Contents(..)
            , FileStore(..)
            , DateTime ) 
 where
@@ -49,14 +48,10 @@ data FileStoreError = Merged Revision Bool String  -- latest revision conflicts?
                     | UnknownError String
                     deriving (Show)
 
-data Contents = Text String
-              | Binary ByteString
-              deriving (Show, Read, Eq)
-
 data FileStore =
   FileStore {
-    create         :: ResourceName -> Author -> String -> Contents -> IO (Either FileStoreError ())
-  , modify         :: ResourceName -> RevisionId -> Author -> String -> Contents -> IO (Either FileStoreError ())
+    create         :: ResourceName -> Author -> String -> ByteString -> IO (Either FileStoreError ())
+  , modify         :: ResourceName -> RevisionId -> Author -> String -> ByteString -> IO (Either FileStoreError ())
   , retrieve       :: ResourceName -> RevisionId -> IO (Either FileStoreError (Revision, ByteString))
   , delete         :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
   , move           :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
