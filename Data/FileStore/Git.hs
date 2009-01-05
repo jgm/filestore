@@ -12,7 +12,7 @@ import Data.FileStore
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
-import Data.ByteString.Lazy.UTF8 (fromString, toString)
+import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Maybe (mapMaybe, isNothing, fromJust, fromMaybe)
 import Data.List (nub, isSuffixOf, isPrefixOf)
 import qualified Data.ByteString.Lazy as B
