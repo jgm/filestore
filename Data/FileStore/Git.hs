@@ -20,8 +20,8 @@ import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString)
 import Data.Char (chr)
 import Control.Monad (liftM)
-import System.FilePath ((</>))
-import System.Directory (doesFileExist, removeFile)
+import System.FilePath ((</>), takeDirectory)
+import System.Directory (doesFileExist, removeFile, createDirectoryIfMissing)
 
 gitFileStore :: FilePath   -- ^ directory containing the git repo
              -> FileStore
@@ -58,6 +58,8 @@ gitCreate repo name author logMsg contents = do
   if exists
      then return $ Left $ AlreadyExists
      else do
+       let dir' = takeDirectory filename
+       createDirectoryIfMissing True dir'
        B.writeFile filename $ toByteString contents
        (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
        if statusAdd == ExitSuccess
