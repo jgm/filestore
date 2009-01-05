@@ -45,6 +45,7 @@ type TimeRange = (Maybe DateTime, Maybe DateTime)
 data FileStoreError = Merged Revision Bool String  -- latest revision conflicts? merged-text
                     | AlreadyExists
                     | NotFound
+                    | Unchanged
                     | UnknownError String
                     deriving (Show)
 
