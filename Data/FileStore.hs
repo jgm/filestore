@@ -52,7 +52,7 @@ data FileStore =
   FileStore {
     create         :: ResourceName -> Author -> String -> ByteString -> IO (Either FileStoreError ())
   , modify         :: ResourceName -> RevisionId -> Author -> String -> ByteString -> IO (Either FileStoreError ())
-  , retrieve       :: ResourceName -> RevisionId -> IO (Either FileStoreError (Revision, ByteString))
+  , retrieve       :: ResourceName -> Maybe RevisionId -> IO (Either FileStoreError (Revision, ByteString))
   , delete         :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
   , move           :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
   , history        :: [ResourceName] -> TimeRange -> IO History

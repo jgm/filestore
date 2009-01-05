@@ -13,7 +13,7 @@ import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
 import Data.ByteString.Lazy.UTF8 (fromString, toString)
-import Data.Maybe (mapMaybe, isNothing, fromJust)
+import Data.Maybe (mapMaybe, isNothing, fromJust, fromMaybe)
 import Data.List (nub, isSuffixOf, isPrefixOf)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -84,8 +84,8 @@ gitModify repo name originalRevId author logMsg contents = do
         
 gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO FileStoreError
 gitMerge repo name originalRevId latestRevId contents = do
-  originalRes <- gitRetrieve repo name originalRevId 
-  latestRes   <- gitRetrieve repo name latestRevId
+  originalRes <- gitRetrieve repo name (Just originalRevId)
+  latestRes   <- gitRetrieve repo name (Just latestRevId)
   case (originalRes, latestRes) of
        (Left err, _)                  -> return err
        (_, Left err)                  -> return err
@@ -119,8 +119,9 @@ gitMergeFile repo edited original latest' = do
                ExitFailure n | n >= 0  -> (n, toString out)
                _                       -> (-1, err)
         
-gitRetrieve :: FilePath -> ResourceName -> RevisionId -> IO (Either FileStoreError (Revision, B.ByteString))
-gitRetrieve repo name revid = do
+gitRetrieve :: FilePath -> ResourceName -> Maybe RevisionId -> IO (Either FileStoreError (Revision, B.ByteString))
+gitRetrieve repo name mbRevId = do
+  let revid = fromMaybe "HEAD" mbRevId
   mbRevision <- gitGetRevision repo name revid
   case mbRevision of
        Nothing       -> return $ Left NotFound
