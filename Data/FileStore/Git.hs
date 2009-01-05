@@ -100,7 +100,7 @@ gitMerge repo name originalRevId latestRevId contents = do
           mapM removeFile $ map (repo </>) [editedTmp, originalTmp, latestTmp]
           if conflicts == -1 -- error
              then return $ UnknownError $ "Error in git merge-file: " ++ mergedText
-             else return $ Merged latestRev conflicts mergedText
+             else return $ Merged latestRev (conflicts > 0) mergedText
 
 gitCommit :: FilePath -> ResourceName -> (String, String) -> String -> IO (Either FileStoreError ())
 gitCommit repo name (author, email) logMsg = do
