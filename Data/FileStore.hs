@@ -69,15 +69,14 @@ instance Exception FileStoreError
 
 data FileStore =
   FileStore {
-    create         :: Contents a => ResourceName -> Author -> String -> a -> IO (Either FileStoreError ())
-  , modify         :: Contents a => ResourceName -> RevisionId -> Author -> String -> a -> IO (Either FileStoreError ())
-  , retrieve       :: Contents a => ResourceName -> Maybe RevisionId -> IO (Either FileStoreError (Revision, a))
-  , delete         :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
-  , move           :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
+    create         :: Contents a => ResourceName -> Author -> String -> a -> IO ()
+  , modify         :: Contents a => ResourceName -> RevisionId -> Author -> String -> a -> IO ()
+  , retrieve       :: Contents a => ResourceName -> Maybe RevisionId -> IO (Revision, a)
+  , delete         :: ResourceName -> Author -> String -> IO ()
+  , move           :: ResourceName -> Author -> String -> IO ()
   , history        :: [ResourceName] -> TimeRange -> IO History
   , latest         :: ResourceName -> IO (Maybe Revision)
   , index          :: IO [ResourceName]
   , search         :: [String] -> IO [(ResourceName, [String])]
-  , diff           :: ResourceName -> RevisionId -> RevisionId -> IO (Either FileStoreError String)
+  , diff           :: ResourceName -> RevisionId -> RevisionId -> IO String
   }
-

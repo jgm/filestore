@@ -11,7 +11,7 @@ Category:            Data
 License:             BSD3
 Author:              John MacFarlane
 Maintainer:          jgm@berkeley.edu
-Build-depends:       base, bytestring, utf8-string, filepath, directory, datetime,
+Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
                      parsec >= 2 && < 3, process, time
 Exposed-modules:     Data.FileStore, Data.FileStore.Git, Data.FileStore.Utils
 Hs-Source-Dirs:      .
