@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, Rank2Types #-}
+{-# LANGUAGE TypeSynonymInstances, Rank2Types, DeriveDataTypeable #-}
 {- Abstract interface to a versioned file store, which could be
 -  implemented using a VCS or a database.
 
@@ -21,6 +21,8 @@ where
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.DateTime (DateTime)
+import Data.Typeable
+import Control.Exception
 
 type RevisionId = String
 
@@ -38,7 +40,7 @@ data Revision =
   , revDateTime    :: DateTime
   , revAuthor      :: Author
   , revDescription :: String
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Read, Eq, Typeable)
 
 class Contents a where
   fromByteString :: ByteString -> a
@@ -61,7 +63,9 @@ data FileStoreError = Merged Revision Bool String  -- latest revision conflicts?
                     | NotFound
                     | Unchanged
                     | UnknownError String
-                    deriving (Show)
+                    deriving (Show, Typeable)
+
+instance Exception FileStoreError
 
 data FileStore =
   FileStore {
