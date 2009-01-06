@@ -233,12 +233,14 @@ gitGetRevision repo name revid = do
   if status == ExitSuccess
      then do
        let resources = case P.parse parseGitLog "" (toString output) of
-                               Left err'      -> error $ show err'
-                               Right [parsed] -> logEntryToHistory (parsed { logFiles = [name] })
-                               _              -> error "git rev-list --max-count=1 returned more than one result"
+                               Left err'   -> error $ show err'
+                               Right [x]   -> logEntryToHistory x{logFiles = [name]}
+                               Right []    -> error "git rev-list returned no results"
+                               Right xs    -> error $ "git rev-list returned more than one result: " ++ show xs
        let revision = case resources of
-                            [(_,r)]  -> r
-                            _        -> error $ "gitLogToRevisions did not return a one-member list."
+                            xs -> case lookup name xs of
+                                       Just r  -> r
+                                       Nothing -> error $ "logEntryToHistory results do not include an entry for '" ++ name ++ "'"
        return $ Just revision
      else return Nothing
 
