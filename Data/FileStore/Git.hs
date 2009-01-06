@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances #-}
 {- A git instance of the abstract filestore defined in
 -  Data.FileStore.  Derived from Gitit's git functions.
 
@@ -12,7 +13,7 @@ import Data.FileStore
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
-import Data.ByteString.Lazy.UTF8 (toString)
+import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.Maybe (mapMaybe, isNothing, fromJust, fromMaybe)
 import Data.List (nub, isSuffixOf, isPrefixOf)
 import qualified Data.ByteString.Lazy as B
@@ -39,6 +40,14 @@ gitFileStore repo =
   , diff       = gitDiff repo
   }
 
+instance Contents String where
+  toByteString = fromString
+  fromByteString = toString
+
+instance Contents B.ByteString where
+  toByteString = id
+  fromByteString = id
+
 -- | Run git command and return error status, error output, standard output.  The repository
 -- is used as working directory.
 runGitCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
@@ -53,7 +62,7 @@ runGitCommand repo command args = do
 matches :: RevisionId -> RevisionId -> Bool
 matches r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
-gitCreate :: FilePath -> ResourceName -> Author -> String -> B.ByteString -> IO (Either FileStoreError ())
+gitCreate :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO (Either FileStoreError ())
 gitCreate repo name author logMsg contents = do
   let filename = repo </> name
   exists <- doesFileExist filename
@@ -62,13 +71,13 @@ gitCreate repo name author logMsg contents = do
      else do
        let dir' = takeDirectory filename
        createDirectoryIfMissing True dir'
-       B.writeFile filename contents
+       B.writeFile filename $ toByteString contents
        (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
        if statusAdd == ExitSuccess
           then gitCommit repo name (authorName author, authorEmail author) logMsg
           else return $ Left $ UnknownError $ "Could not git add " ++ name ++ "\n" ++ errAdd
 
-gitModify :: FilePath -> ResourceName -> RevisionId -> Author -> String -> B.ByteString -> IO (Either FileStoreError ())
+gitModify :: Contents a => FilePath -> ResourceName -> RevisionId -> Author -> String -> a -> IO (Either FileStoreError ())
 gitModify repo name originalRevId author logMsg contents = do
   mbLatestRev <- gitLatest repo name
   if isNothing mbLatestRev
@@ -78,9 +87,9 @@ gitModify repo name originalRevId author logMsg contents = do
        let latestRevId = revId latestRev
        if originalRevId `matches` latestRevId
           then do
-            B.writeFile (repo </> name) contents
+            B.writeFile (repo </> name) $ toByteString contents
             gitCommit repo name (authorName author, authorEmail author) logMsg
-          else liftM Left $ gitMerge repo name originalRevId latestRevId contents
+          else liftM Left $ gitMerge repo name originalRevId latestRevId $ toByteString contents
         
 gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO FileStoreError
 gitMerge repo name originalRevId latestRevId contents = do
@@ -91,7 +100,7 @@ gitMerge repo name originalRevId latestRevId contents = do
        (_, Left err)                  -> return err
        (Right (_, originalContents), Right (latestRev, latestContents)) -> do
           let [editedTmp, originalTmp, latestTmp] = map (name ++) [".edited",".original",".latest"]
-          B.writeFile (repo </> editedTmp) contents
+          B.writeFile (repo </> editedTmp)  contents
           B.writeFile (repo </> originalTmp) originalContents
           B.writeFile (repo </> latestTmp) latestContents
           (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp
@@ -119,7 +128,7 @@ gitMergeFile repo edited original latest' = do
                ExitFailure n | n >= 0  -> (n, toString out)
                _                       -> (-1, err)
         
-gitRetrieve :: FilePath -> ResourceName -> Maybe RevisionId -> IO (Either FileStoreError (Revision, B.ByteString))
+gitRetrieve :: Contents a => FilePath -> ResourceName -> Maybe RevisionId -> IO (Either FileStoreError (Revision, a))
 gitRetrieve repo name mbRevId = do
   let revid = fromMaybe "HEAD" mbRevId
   mbRevision <- gitGetRevision repo name revid
@@ -128,7 +137,7 @@ gitRetrieve repo name mbRevId = do
        Just revision -> do
           (status, err, output) <- runGitCommand repo "cat-file" ["-p", revid ++ ":" ++ name]
           if status == ExitSuccess
-             then return $ Right (revision, output)
+             then return $ Right (revision, fromByteString output)
              else return $ Left $ UnknownError err
 
 gitDelete :: FilePath -> ResourceName -> Author -> String -> IO (Either FileStoreError ())

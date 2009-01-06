@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types #-}
 {- Abstract interface to a versioned file store, which could be
 -  implemented using a VCS or a database.
 
@@ -10,6 +11,7 @@ module Data.FileStore
            , ResourceName
            , Author(..)
            , Revision(..)
+           , Contents(..)
            , History
            , TimeRange
            , FileStoreError(..)
@@ -37,6 +39,10 @@ data Revision =
   , revDescription :: String
   } deriving (Show, Read, Eq)
 
+class Contents a where
+  fromByteString :: ByteString -> a
+  toByteString   :: a -> ByteString
+
 type History = [(ResourceName, Revision)]
 
 type TimeRange = (Maybe DateTime, Maybe DateTime)
@@ -50,9 +56,9 @@ data FileStoreError = Merged Revision Bool String  -- latest revision conflicts?
 
 data FileStore =
   FileStore {
-    create         :: ResourceName -> Author -> String -> ByteString -> IO (Either FileStoreError ())
-  , modify         :: ResourceName -> RevisionId -> Author -> String -> ByteString -> IO (Either FileStoreError ())
-  , retrieve       :: ResourceName -> Maybe RevisionId -> IO (Either FileStoreError (Revision, ByteString))
+    create         :: Contents a => ResourceName -> Author -> String -> a -> IO (Either FileStoreError ())
+  , modify         :: Contents a => ResourceName -> RevisionId -> Author -> String -> a -> IO (Either FileStoreError ())
+  , retrieve       :: Contents a => ResourceName -> Maybe RevisionId -> IO (Either FileStoreError (Revision, a))
   , delete         :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
   , move           :: ResourceName -> Author -> String -> IO (Either FileStoreError ())
   , history        :: [ResourceName] -> TimeRange -> IO History
