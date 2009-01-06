@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TypeSynonymInstances, Rank2Types #-}
 {- Abstract interface to a versioned file store, which could be
 -  implemented using a VCS or a database.
 
@@ -19,6 +19,7 @@ module Data.FileStore
            , DateTime ) 
 where
 import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.DateTime (DateTime)
 
 type RevisionId = String
@@ -46,6 +47,10 @@ class Contents a where
 instance Contents ByteString where
   toByteString = id
   fromByteString = id
+
+instance Contents String where
+  toByteString   = fromString
+  fromByteString = toString
 
 type History = [(ResourceName, Revision)]
 

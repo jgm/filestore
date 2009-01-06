@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances #-}
 {- A git instance of the abstract filestore defined in
 -  Data.FileStore.  Derived from Gitit's git functions.
 
