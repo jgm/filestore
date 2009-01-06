@@ -22,6 +22,7 @@ import Data.Char (chr)
 import Control.Monad (liftM)
 import System.FilePath ((</>), takeDirectory)
 import System.Directory (doesFileExist, removeFile, createDirectoryIfMissing)
+import Codec.Binary.UTF8.String (encodeString)
 
 gitFileStore :: FilePath   -- ^ directory containing the git repo
              -> FileStore
@@ -55,7 +56,7 @@ matches r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 gitCreate :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO (Either FileStoreError ())
 gitCreate repo name author logMsg contents = do
-  let filename = repo </> name
+  let filename = repo </> encodeString name
   exists <- doesFileExist filename
   if exists
      then return $ Left $ AlreadyExists
@@ -78,7 +79,7 @@ gitModify repo name originalRevId author logMsg contents = do
        let latestRevId = revId latestRev
        if originalRevId `matches` latestRevId
           then do
-            B.writeFile (repo </> name) $ toByteString contents
+            B.writeFile (repo </> encodeString name) $ toByteString contents
             gitCommit repo name (authorName author, authorEmail author) logMsg
           else liftM Left $ gitMerge repo name originalRevId latestRevId $ toByteString contents
         
@@ -90,7 +91,7 @@ gitMerge repo name originalRevId latestRevId contents = do
        (Left err, _)                  -> return err
        (_, Left err)                  -> return err
        (Right (_, originalContents), Right (latestRev, latestContents)) -> do
-          let [editedTmp, originalTmp, latestTmp] = map (name ++) [".edited",".original",".latest"]
+          let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
           B.writeFile (repo </> editedTmp)  contents
           B.writeFile (repo </> originalTmp) originalContents
           B.writeFile (repo </> latestTmp) latestContents
