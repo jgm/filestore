@@ -234,13 +234,12 @@ gitGetRevision repo name revid = do
        let resources = case P.parse parseGitLog "" (toString output) of
                                Left err'   -> error $ show err'
                                Right [x]   -> logEntryToHistory x{logFiles = [name]}
-                               Right []    -> error "git rev-list returned no results"
+                               Right []    -> []
                                Right xs    -> error $ "git rev-list returned more than one result: " ++ show xs
-       let revision = case resources of
-                            xs -> case lookup name xs of
-                                       Just r  -> r
-                                       Nothing -> error $ "logEntryToHistory results do not include an entry for '" ++ name ++ "'"
-       return $ Just revision
+       case resources of
+            xs -> case lookup name xs of
+                       Just r  -> return $ Just r
+                       Nothing -> return Nothing
      else return Nothing
 
 gitIndex :: FilePath -> IO [ResourceName]
