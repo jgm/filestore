@@ -13,7 +13,7 @@ import Data.FileStore
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
-import Data.ByteString.Lazy.UTF8 (toString, fromString)
+import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Maybe (mapMaybe, isNothing, fromJust, fromMaybe)
 import Data.List (nub, isSuffixOf, isPrefixOf)
 import qualified Data.ByteString.Lazy as B
@@ -39,14 +39,6 @@ gitFileStore repo =
   , search     = gitSearch repo
   , diff       = gitDiff repo
   }
-
-instance Contents String where
-  toByteString = fromString
-  fromByteString = toString
-
-instance Contents B.ByteString where
-  toByteString = id
-  fromByteString = id
 
 -- | Run git command and return error status, error output, standard output.  The repository
 -- is used as working directory.

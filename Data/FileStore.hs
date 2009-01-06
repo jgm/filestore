@@ -43,6 +43,10 @@ class Contents a where
   fromByteString :: ByteString -> a
   toByteString   :: a -> ByteString
 
+instance Contents ByteString where
+  toByteString = id
+  fromByteString = id
+
 type History = [(ResourceName, Revision)]
 
 type TimeRange = (Maybe DateTime, Maybe DateTime)
