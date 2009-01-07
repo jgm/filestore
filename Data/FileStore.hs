@@ -78,6 +78,7 @@ data FileStoreError =
   | AlreadyExists
   | NotFound
   | Unchanged
+  | UnsupportedOperation
   | UnknownError String
   deriving (Show, Read, Eq, Typeable)
 
