@@ -17,6 +17,7 @@ module Data.FileStore
            , MergeInfo(..)
            , FileStoreError(..)
            , FileStore(..)
+           , SearchMatch(..)
            , DateTime ) 
 where
 
@@ -80,6 +81,13 @@ data FileStoreError =
 
 instance Exception FileStoreError
 
+data SearchMatch =
+  SearchMatch {
+    matchResourceName :: ResourceName
+  , matchLineNumber   :: Integer
+  , matchLine         :: String
+  } deriving (Show, Read, Eq)
+
 data FileStore =
   FileStore {
     create         :: Contents a => ResourceName -> Author -> String -> a -> IO ()
@@ -90,6 +98,6 @@ data FileStore =
   , history        :: [ResourceName] -> TimeRange -> IO History
   , latest         :: ResourceName -> IO (Maybe Revision)
   , index          :: IO [ResourceName]
-  , search         :: [String] -> IO [(ResourceName, [Integer])]
+  , search         :: [String] -> IO [SearchMatch]
   , diff           :: ResourceName -> RevisionId -> RevisionId -> IO String
   }

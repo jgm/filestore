@@ -14,8 +14,8 @@ import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
 import Data.ByteString.Lazy.UTF8 (toString)
-import Data.Maybe (mapMaybe, isNothing, fromJust, fromMaybe)
-import Data.List (nub, isPrefixOf)
+import Data.Maybe (isNothing, fromJust, fromMaybe)
+import Data.List (isPrefixOf)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString)
@@ -273,22 +273,19 @@ pOctalChar = P.try $ do
   return $ chr num
 
 
-gitSearch :: FilePath -> [String] -> IO [(ResourceName, [Integer])]
+gitSearch :: FilePath -> [String] -> IO [SearchMatch]
 gitSearch repo patterns = do
   (status, errOutput, output) <- runGitCommand repo "grep" (["-I", "-n", "--all-match", "--ignore-case", "--word-regexp"] ++
                                    concatMap (\term -> ["-e", term]) patterns)
   if status == ExitSuccess
-     then let matchLines = map parseMatchLine $ lines $ toString output
-              matchedFiles = nub $ map fst matchLines
-              matches' = map (\f -> (f, mapMaybe (\(a,b) -> if a == f then Just b else Nothing) matchLines)) matchedFiles
-          in  return matches'
+     then return $ map parseMatchLine $ lines $ toString output
      else error $ "git grep returned error status.\n" ++ errOutput
 
 -- Auxiliary function for searchResults
-parseMatchLine :: String -> (String, Integer)
+parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
-  let (_,_,_,[fname,_,page]) = str =~ "(([^:]|:[^0-9])*):([0-9]*):" :: (String, String, String, [String])
-  in  (fname, read page)
+  let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
+  in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
 
 gitDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
 gitDiff repo name from to = do
