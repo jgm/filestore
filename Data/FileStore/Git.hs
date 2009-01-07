@@ -61,7 +61,7 @@ gitCreate :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> 
 gitCreate repo name author logMsg contents = do
   let filename = repo </> encodeString name
   exists <- doesFileExist filename
-  when exists $ throwIO AlreadyExists
+  when exists $ throwIO ResourceExists
   let dir' = takeDirectory filename
   createDirectoryIfMissing True dir'
   B.writeFile filename $ toByteString contents

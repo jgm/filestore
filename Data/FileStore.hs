@@ -75,7 +75,8 @@ data MergeInfo =
 
 data FileStoreError =
     Merged MergeInfo
-  | AlreadyExists
+  | RepositoryExists
+  | ResourceExists
   | NotFound
   | Unchanged
   | UnsupportedOperation
