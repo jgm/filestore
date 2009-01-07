@@ -86,21 +86,17 @@ gitModify repo name originalRevId author logMsg contents = do
 
 gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Revision, Bool, String)
 gitMerge repo name originalRevId latestRevId contents = do
-  originalRes <- gitRetrieve repo name (Just originalRevId)
-  latestRes   <- gitRetrieve repo name (Just latestRevId)
-  case (originalRes, latestRes) of
-       (Left err, _)                  -> return err
-       (_, Left err)                  -> return err
-       (Right (_, originalContents), Right (latestRev, latestContents)) -> do
-          let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
-          B.writeFile (repo </> editedTmp)  contents
-          B.writeFile (repo </> originalTmp) originalContents
-          B.writeFile (repo </> latestTmp) latestContents
-          (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp
-          mapM removeFile $ map (repo </>) [editedTmp, originalTmp, latestTmp]
-          if conflicts == -1 -- error
-             then return $ UnknownError $ "Error in git merge-file: " ++ mergedText
-             else return $ Merged latestRev (conflicts > 0) mergedText
+  (_, originalContents) <- gitRetrieve repo name (Just originalRevId)
+  (latestRev, latestContents) <- gitRetrieve repo name (Just latestRevId)
+  let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
+  B.writeFile (repo </> editedTmp)  contents
+  B.writeFile (repo </> originalTmp) originalContents
+  B.writeFile (repo </> latestTmp) latestContents
+  (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp
+  mapM removeFile $ map (repo </>) [editedTmp, originalTmp, latestTmp]
+  if conflicts == -1 -- error
+     then throwIO $ UnknownError $ "Error in git merge-file:\n" ++ mergedText
+     else return (latestRev, (conflicts > 0), mergedText)
 
 gitCommit :: FilePath -> ResourceName -> (String, String) -> String -> IO ()
 gitCommit repo name (author, email) logMsg = do
