@@ -273,10 +273,15 @@ pOctalChar = P.try $ do
   return $ chr num
 
 
-gitSearch :: FilePath -> [String] -> IO [SearchMatch]
-gitSearch repo patterns = do
-  (status, errOutput, output) <- runGitCommand repo "grep" (["-I", "-n", "--all-match", "--ignore-case", "--word-regexp"] ++
-                                   concatMap (\term -> ["-e", term]) patterns)
+gitSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
+gitSearch repo query = do
+  let opts = ["-I","-n"] ++
+             (if queryIgnoreCase query then ["--ignore-case"] else []) ++
+             (if queryMatchAll query then ["--all-match"] else []) ++
+             (if queryWholeWords query then ["--word-regexp"] else []) ++
+             (if queryRegex query then ["--extended-regexp"] else ["--fixed-strings"])
+  (status, errOutput, output) <- runGitCommand repo "grep" (opts ++
+                                   concatMap (\term -> ["-e", term]) (queryPatterns query))
   if status == ExitSuccess
      then return $ map parseMatchLine $ lines $ toString output
      else error $ "git grep returned error status.\n" ++ errOutput

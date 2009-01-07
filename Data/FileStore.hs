@@ -18,6 +18,8 @@ module Data.FileStore
            , FileStoreError(..)
            , FileStore(..)
            , SearchMatch(..)
+           , SearchQuery(..)
+           , defaultSearchQuery
            , DateTime ) 
 where
 
@@ -81,6 +83,24 @@ data FileStoreError =
 
 instance Exception FileStoreError
 
+data SearchQuery =
+  SearchQuery {
+    queryPatterns    :: [String] -- ^ Patterns to match
+  , queryRegex       :: Bool     -- ^ Interpret patterns as extended regexes, not strings
+  , queryWholeWords  :: Bool     -- ^ Match patterns only with whole words
+  , queryMatchAll    :: Bool     -- ^ Return matches only from files in which all patterns match
+  , queryIgnoreCase  :: Bool     -- ^ Make matches case-insensitive
+  } deriving (Show, Read, Eq)
+
+defaultSearchQuery :: SearchQuery
+defaultSearchQuery = SearchQuery {
+     queryPatterns   = []
+   , queryRegex      = True
+   , queryWholeWords = True
+   , queryMatchAll   = True
+   , queryIgnoreCase = True
+   }
+
 data SearchMatch =
   SearchMatch {
     matchResourceName :: ResourceName
@@ -98,6 +118,6 @@ data FileStore =
   , history        :: [ResourceName] -> TimeRange -> IO History
   , latest         :: ResourceName -> IO (Maybe Revision)
   , index          :: IO [ResourceName]
-  , search         :: [String] -> IO [SearchMatch]
+  , search         :: SearchQuery -> IO [SearchMatch]
   , diff           :: ResourceName -> RevisionId -> RevisionId -> IO String
   }
