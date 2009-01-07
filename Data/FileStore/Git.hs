@@ -15,7 +15,7 @@ import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Maybe (mapMaybe, isNothing, fromJust, fromMaybe)
-import Data.List (nub, isSuffixOf, isPrefixOf)
+import Data.List (nub, isPrefixOf)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString)
@@ -25,6 +25,7 @@ import System.FilePath ((</>), takeDirectory)
 import System.Directory (doesFileExist, removeFile, createDirectoryIfMissing)
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
+import Text.Regex.Posix ((=~))
 
 gitFileStore :: FilePath   -- ^ directory containing the git repo
              -> FileStore
@@ -276,23 +277,22 @@ pOctalChar = P.try $ do
   return $ chr num
 
 
-gitSearch :: FilePath -> [String] -> IO [(ResourceName, [String])]
+gitSearch :: FilePath -> [String] -> IO [(ResourceName, [Integer])]
 gitSearch repo patterns = do
-  (status, errOutput, output) <- runGitCommand repo "grep" (["--all-match", "--ignore-case", "--word-regexp"] ++
+  (status, errOutput, output) <- runGitCommand repo "grep" (["-I", "-n", "--all-match", "--ignore-case", "--word-regexp"] ++
                                    concatMap (\term -> ["-e", term]) patterns)
   if status == ExitSuccess
      then let matchLines = map parseMatchLine $ lines $ toString output
-              matchedFiles = nub $ filter (".page" `isSuffixOf`) $ map fst matchLines
+              matchedFiles = nub $ map fst matchLines
               matches' = map (\f -> (f, mapMaybe (\(a,b) -> if a == f then Just b else Nothing) matchLines)) matchedFiles
           in  return matches'
      else error $ "git grep returned error status.\n" ++ errOutput
 
 -- Auxiliary function for searchResults
-parseMatchLine :: String -> (String, String)
-parseMatchLine matchLine =
-  let (file, rest) = break (==':') matchLine
-      contents = drop 1 rest -- strip off colon
-  in  (file, contents)
+parseMatchLine :: String -> (String, Integer)
+parseMatchLine str =
+  let (_,_,_,[fname,_,page]) = str =~ "(([^:]|:[^0-9])*):([0-9]*):" :: (String, String, String, [String])
+  in  (fname, read page)
 
 gitDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
 gitDiff repo name from to = do

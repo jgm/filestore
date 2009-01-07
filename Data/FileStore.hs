@@ -90,6 +90,6 @@ data FileStore =
   , history        :: [ResourceName] -> TimeRange -> IO History
   , latest         :: ResourceName -> IO (Maybe Revision)
   , index          :: IO [ResourceName]
-  , search         :: [String] -> IO [(ResourceName, [String])]
+  , search         :: [String] -> IO [(ResourceName, [Integer])]
   , diff           :: ResourceName -> RevisionId -> RevisionId -> IO String
   }

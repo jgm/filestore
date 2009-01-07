@@ -12,7 +12,7 @@ License:             BSD3
 Author:              John MacFarlane
 Maintainer:          jgm@berkeley.edu
 Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
-                     parsec >= 2 && < 3, process, time, datetime
+                     parsec >= 2 && < 3, process, time, datetime, regex-posix
 Exposed-modules:     Data.FileStore, Data.FileStore.Git, Data.FileStore.Utils
 Hs-Source-Dirs:      .
 Ghc-Options:         -Wall -O2
