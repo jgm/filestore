@@ -17,7 +17,6 @@ module Data.FileStore
            , MergeInfo(..)
            , FileStoreError(..)
            , FileStore(..)
-           , SearchResult(..)
            , DateTime ) 
 where
 
