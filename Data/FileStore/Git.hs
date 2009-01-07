@@ -22,7 +22,7 @@ import Codec.Binary.UTF8.String (decodeString)
 import Data.Char (chr)
 import Control.Monad (liftM, when)
 import System.FilePath ((</>), takeDirectory)
-import System.Directory (doesFileExist, removeFile, createDirectoryIfMissing)
+import System.Directory (doesFileExist, doesDirectoryExist, removeFile, createDirectoryIfMissing)
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Text.Regex.Posix ((=~))
@@ -31,7 +31,8 @@ gitFileStore :: FilePath   -- ^ directory containing the git repo
              -> FileStore
 gitFileStore repo =
   FileStore {
-    create     = gitCreate repo
+    initialize = gitInit repo
+  , create     = gitCreate repo
   , modify     = gitModify repo
   , retrieve   = gitRetrieve repo
   , delete     = gitDelete repo
@@ -50,6 +51,16 @@ runGitCommand repo command args = do
   let env = Just [("GIT_DIFF_OPTS","-u100000")]
   (status, err, out) <- runProgCommand repo env "git" command args
   return (status, toString err, out)
+
+gitInit :: FilePath -> IO ()
+gitInit repo = do
+  exists <- doesDirectoryExist repo
+  when exists $ throwIO $ RepositoryExists
+  createDirectoryIfMissing True repo
+  (status, err, _) <- runGitCommand repo "init" []
+  if status == ExitSuccess
+     then return ()
+     else throwIO $ UnknownError $ "git-init failed:\n" ++ err 
 
 -- | Returns True if the revision ids match -- that is, if one
 -- is a sublist of the other.  Note that git allows prefixes of complete sha1

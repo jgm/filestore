@@ -112,7 +112,8 @@ data SearchMatch =
 
 data FileStore =
   FileStore {
-    create         :: Contents a => ResourceName -> Author -> String -> a -> IO ()
+    initialize     :: IO ()
+  , create         :: Contents a => ResourceName -> Author -> String -> a -> IO ()
   , modify         :: Contents a => ResourceName -> RevisionId -> Author -> String -> a -> IO ()
   , retrieve       :: Contents a => ResourceName -> Maybe RevisionId -> IO (Revision, a)
   , delete         :: ResourceName -> Author -> String -> IO ()
