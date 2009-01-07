@@ -81,7 +81,7 @@ gitModify repo name originalRevId author logMsg contents = do
        gitCommit repo name (authorName author, authorEmail author) logMsg
      else do
        (rev, conflicts, mergedText) <- gitMerge repo name originalRevId latestRevId $ toByteString contents
-       throwIO $ Merged rev conflicts mergedText
+       throwIO $ Merged (MergeInfo rev conflicts mergedText)
 
 gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Revision, Bool, String)
 gitMerge repo name originalRevId latestRevId contents = do

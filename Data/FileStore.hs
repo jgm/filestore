@@ -63,12 +63,22 @@ data TimeRange =
   , trTo   :: Maybe DateTime
   } deriving (Show, Read, Eq)
 
-data FileStoreError = Merged Revision Bool String  -- latest revision conflicts? merged-text
-                    | AlreadyExists
-                    | NotFound
-                    | Unchanged
-                    | UnknownError String
-                    deriving (Show)
+data MergeInfo =
+  MergeInfo {
+    mergeRevision  :: Revision
+  , mergeConflicts :: Bool
+  , mergeText      :: String
+  } deriving (Show, Read, Eq, Typeable)
+
+data FileStoreError =
+    Merged MergeInfo
+  | AlreadyExists
+  | NotFound
+  | Unchanged
+  | UnknownError String
+  deriving (Show, Read, Eq, Typeable)
+
+instance Exception FileStoreError
 
 data FileStore =
   FileStore {
