@@ -5,11 +5,21 @@
 -}
 
 module Data.FileStore.Git
-           ( gitFileStore
-           , module Data.FileStore
+           ( GitFileStore(..)
+           , gitInit
+           , gitCreate
+           , gitModify
+           , gitRetrieve
+           , gitDelete
+           , gitMove
+           , gitHistory
+           , gitGetRevision
+           , gitIndex
+           , gitSearch
+           , gitDiff
            )
 where
-import Data.FileStore
+import Data.FileStore.Types
 import System.Exit
 import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -28,36 +38,23 @@ import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Text.Regex.Posix ((=~))
 
-gitFileStore :: FilePath   -- ^ directory containing the git repo
-             -> FileStore
-gitFileStore repo =
-  FileStore {
-    initialize = gitInit repo
-  , create     = gitCreate repo
-  , modify     = gitModify repo
-  , retrieve   = gitRetrieve repo
-  , delete     = gitDelete repo
-  , move       = gitMove repo
-  , history    = gitHistory repo
-  , revision   = gitGetRevision repo
-  , index      = gitIndex repo
-  , search     = gitSearch repo
-  , diff       = gitDiff repo
-  }
+newtype GitFileStore = GitFileStore {
+                          gitRepoPath :: FilePath
+                          } deriving (Read, Eq, Show)
 
 -- | Run git command and return error status, error output, standard output.  The repository
 -- is used as working directory.
-runGitCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
+runGitCommand :: GitFileStore -> String -> [String] -> IO (ExitCode, String, B.ByteString)
 runGitCommand repo command args = do
   let env = Just [("GIT_DIFF_OPTS","-u100000")]
-  (status, err, out) <- runProgCommand repo env "git" command args
+  (status, err, out) <- runProgCommand (gitRepoPath repo) env "git" command args
   return (status, toString err, out)
 
-gitInit :: FilePath -> IO ()
+gitInit :: GitFileStore -> IO ()
 gitInit repo = do
-  exists <- doesDirectoryExist repo
+  exists <- doesDirectoryExist (gitRepoPath repo)
   when exists $ throwIO $ RepositoryExists
-  createDirectoryIfMissing True repo
+  createDirectoryIfMissing True (gitRepoPath repo)
   (status, err, _) <- runGitCommand repo "init" []
   if status == ExitSuccess
      then return ()
@@ -69,9 +66,9 @@ gitInit repo = do
 matches :: RevisionId -> RevisionId -> Bool
 matches r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
-gitCreate :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()
+gitCreate :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
 gitCreate repo name author logMsg contents = do
-  let filename = repo </> encodeString name
+  let filename = gitRepoPath repo </> encodeString name
   exists <- doesFileExist filename
   when exists $ throwIO ResourceExists
   let dir' = takeDirectory filename
@@ -82,35 +79,35 @@ gitCreate repo name author logMsg contents = do
      then gitCommit repo name (authorName author, authorEmail author) logMsg
      else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
 
-gitModify :: Contents a => FilePath -> ResourceName -> RevisionId -> Author -> String -> a -> IO ()
+gitModify :: Contents a => GitFileStore -> ResourceName -> RevisionId -> Author -> String -> a -> IO ()
 gitModify repo name originalRevId author logMsg contents = do
   latestRev <- gitGetRevision repo name Nothing
   let latestRevId = revId latestRev
   if originalRevId `matches` latestRevId
      then do
-       B.writeFile (repo </> encodeString name) $ toByteString contents
+       B.writeFile (gitRepoPath repo </> encodeString name) $ toByteString contents
        gitCommit repo name (authorName author, authorEmail author) logMsg
      else do
        (rev, conflicts, mergedText) <- gitMerge repo name originalRevId latestRevId $ toByteString contents
        throwIO $ Merged (MergeInfo rev conflicts mergedText)
 
-gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Revision, Bool, String)
+gitMerge :: GitFileStore -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Revision, Bool, String)
 gitMerge repo name originalRevId latestRevId contents = do
   originalContents <- gitRetrieve repo name (Just originalRevId)
   latestContents <- gitRetrieve repo name (Just latestRevId)
   let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
-  B.writeFile (repo </> editedTmp)  contents
-  B.writeFile (repo </> originalTmp) originalContents
-  B.writeFile (repo </> latestTmp) latestContents
+  B.writeFile (gitRepoPath repo </> editedTmp)  contents
+  B.writeFile (gitRepoPath repo </> originalTmp) originalContents
+  B.writeFile (gitRepoPath repo </> latestTmp) latestContents
   (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp
-  mapM removeFile $ map (repo </>) [editedTmp, originalTmp, latestTmp]
+  mapM removeFile $ map (gitRepoPath repo </>) [editedTmp, originalTmp, latestTmp]
   if conflicts == -1 -- error
      then throwIO $ UnknownError $ "Error in git merge-file:\n" ++ mergedText
      else do
        latestRev <- gitGetRevision repo name (Just latestRevId)
        return (latestRev, (conflicts > 0), mergedText)
 
-gitCommit :: FilePath -> ResourceName -> (String, String) -> String -> IO ()
+gitCommit :: GitFileStore -> ResourceName -> (String, String) -> String -> IO ()
 gitCommit repo name (author, email) logMsg = do
   (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", author ++ " <" ++
                                     email ++ ">", "-m", logMsg, name]
@@ -121,7 +118,7 @@ gitCommit repo name (author, email) logMsg = do
                        else UnknownError $ "Could not git commit '" ++ name ++ "'\n" ++ errCommit
 
 -- | returns (n, s), where s is merged text and n is number of conflicts, or -1 for error.
-gitMergeFile :: FilePath -> FilePath -> FilePath -> FilePath -> IO (Int, String)
+gitMergeFile :: GitFileStore -> FilePath -> FilePath -> FilePath -> IO (Int, String)
 gitMergeFile repo edited original latest' = do
   (status, err, out) <- runGitCommand repo "merge-file" ["--stdout", edited, original, latest']
   return $ case status of
@@ -129,12 +126,11 @@ gitMergeFile repo edited original latest' = do
                ExitFailure n | n >= 0  -> (n, toString out)
                _                       -> (-1, err)
         
-gitRetrieve :: Contents a => FilePath -> ResourceName -> Maybe RevisionId -> IO a
+gitRetrieve :: Contents a => GitFileStore -> ResourceName -> Maybe RevisionId -> IO a
 gitRetrieve repo name Nothing = do
   -- If called with Nothing, go straight to the file system
-  catch (liftM fromByteString $ B.readFile (repo </> name)) $
+  catch (liftM fromByteString $ B.readFile (gitRepoPath repo </> name)) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
-
 gitRetrieve repo name mbRevId = do
   rev <- gitGetRevision repo name mbRevId
   (status, err, output) <- runGitCommand repo "cat-file" ["-p", revId rev ++ ":" ++ name]
@@ -142,18 +138,17 @@ gitRetrieve repo name mbRevId = do
      then return $ fromByteString output
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
 
-gitDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
+gitDelete :: GitFileStore -> ResourceName -> Author -> String -> IO ()
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
      then gitCommit repo name (authorName author, authorEmail author) logMsg
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
-
-gitMove :: FilePath -> ResourceName -> Author -> String -> IO ()
+gitMove :: GitFileStore -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
 
-gitHistory :: FilePath -> [ResourceName] -> TimeRange -> IO History
+gitHistory :: GitFileStore -> [ResourceName] -> TimeRange -> IO History
 gitHistory repo names (TimeRange mbSince mbUntil) =
   liftM (concatMap logEntryToHistory) $ gitLog repo names (TimeRange mbSince mbUntil)
 
@@ -170,7 +165,7 @@ logEntryToHistory entry =
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-gitLog :: FilePath -> [ResourceName] -> TimeRange -> IO [LogEntry]
+gitLog :: GitFileStore -> [ResourceName] -> TimeRange -> IO [LogEntry]
 gitLog repo names (TimeRange mbSince mbUntil) = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
                            ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n"] ++
@@ -234,7 +229,7 @@ gitLogChange = do
   line <- nonblankLine
   return $ unwords $ drop 5 $ words line
 
-gitGetRevision :: FilePath -> ResourceName -> Maybe RevisionId -> IO Revision
+gitGetRevision :: GitFileStore -> ResourceName -> Maybe RevisionId -> IO Revision
 gitGetRevision repo name mbRevid = do
   let revid = fromMaybe "HEAD" mbRevid
   (status, _, output) <- runGitCommand repo "rev-list" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid, "--", name]
@@ -251,7 +246,7 @@ gitGetRevision repo name mbRevid = do
                        Nothing -> throwIO NotFound
      else throwIO NotFound
 
-gitIndex :: FilePath -> IO [ResourceName]
+gitIndex :: GitFileStore -> IO [ResourceName]
 gitIndex repo = do
   (status, errOutput, output) <- runGitCommand repo "ls-files" []
   if status == ExitSuccess
@@ -283,7 +278,7 @@ pOctalChar = P.try $ do
   return $ chr num
 
 
-gitSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
+gitSearch :: GitFileStore -> SearchQuery -> IO [SearchMatch]
 gitSearch repo query = do
   let opts = ["-I","-n"] ++
              (if queryIgnoreCase query then ["--ignore-case"] else []) ++
@@ -302,7 +297,7 @@ parseMatchLine str =
   let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
   in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
 
-gitDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
+gitDiff :: GitFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
 gitDiff repo name from to = do
   (status, _, output) <- runGitCommand repo "diff" [from, to, name]
   if status == ExitSuccess

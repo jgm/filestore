@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, Rank2Types, DeriveDataTypeable #-}
+{-# LANGUAGE Rank2Types, FlexibleContexts #-}
 {- Abstract interface to a versioned file store, which could be
 -  implemented using a VCS or a database.
 
@@ -7,120 +7,44 @@
 -}
 
 module Data.FileStore
-           ( RevisionId
-           , ResourceName
-           , Author(..)
-           , Revision(..)
-           , Contents(..)
-           , History
-           , TimeRange(..)
-           , MergeInfo(..)
-           , FileStoreError(..)
-           , FileStore(..)
-           , SearchMatch(..)
-           , SearchQuery(..)
-           , defaultSearchQuery
-           , DateTime ) 
+           ( FileStore(..)
+           , SearchableFileStore(..)
+           , module Data.FileStore.Types
+           , GitFileStore(..)
+           )
 where
 
-import Data.ByteString.Lazy (ByteString)
-import Data.ByteString.Lazy.UTF8 (toString, fromString)
-import Data.DateTime (DateTime)
-import Data.Typeable
-import Control.Exception
+import Data.FileStore.Git
+import Data.FileStore.Types
 
-type RevisionId   = String
-type ResourceName = String
+class FileStore b where
+    initialize     :: b -> IO ()
+    create         :: Contents a => b -> ResourceName -> Author -> String -> a -> IO ()
+    modify         :: Contents a => b -> ResourceName -> RevisionId -> Author -> String -> a -> IO ()
+    retrieve       :: Contents a => b -> ResourceName -> Maybe RevisionId -> IO a
+    delete         :: b -> ResourceName -> Author -> String -> IO ()
+    move           :: b -> ResourceName -> Author -> String -> IO ()
+    history        :: b -> [ResourceName] -> TimeRange -> IO History
+    revision       :: b -> ResourceName -> Maybe RevisionId -> IO Revision
+    index          :: b -> IO [ResourceName]
+    diff           :: b -> ResourceName -> RevisionId -> RevisionId -> IO String
 
-data Author =
-  Author {
-    authorName  :: String
-  , authorEmail :: String
-  } deriving (Show, Read, Eq)
+class FileStore b => SearchableFileStore b where
+    search         :: b -> SearchQuery -> IO [SearchMatch]
 
-data Revision =
-  Revision {
-    revId          :: RevisionId
-  , revDateTime    :: DateTime
-  , revAuthor      :: Author
-  , revDescription :: String
-  } deriving (Show, Read, Eq, Typeable)
+instance FileStore GitFileStore where
+    initialize = gitInit
+    create     = gitCreate
+    modify     = gitModify
+    retrieve   = gitRetrieve
+    delete     = gitDelete
+    move       = gitMove
+    history    = gitHistory
+    revision   = gitGetRevision
+    index      = gitIndex
+    diff       = gitDiff
 
-class Contents a where
-  fromByteString :: ByteString -> a
-  toByteString   :: a -> ByteString
+instance SearchableFileStore GitFileStore where 
+    search     = gitSearch
 
-instance Contents ByteString where
-  toByteString = id
-  fromByteString = id
 
-instance Contents String where
-  toByteString   = fromString
-  fromByteString = toString
-
-type History = [(ResourceName, Revision)]
-
-data TimeRange =
-  TimeRange {
-    trFrom :: Maybe DateTime
-  , trTo   :: Maybe DateTime
-  } deriving (Show, Read, Eq)
-
-data MergeInfo =
-  MergeInfo {
-    mergeRevision  :: Revision
-  , mergeConflicts :: Bool
-  , mergeText      :: String
-  } deriving (Show, Read, Eq, Typeable)
-
-data FileStoreError =
-    Merged MergeInfo
-  | RepositoryExists
-  | ResourceExists
-  | NotFound
-  | Unchanged
-  | UnsupportedOperation
-  | UnknownError String
-  deriving (Show, Read, Eq, Typeable)
-
-instance Exception FileStoreError
-
-data SearchQuery =
-  SearchQuery {
-    queryPatterns    :: [String] -- ^ Patterns to match
-  , queryRegex       :: Bool     -- ^ Interpret patterns as extended regexes, not strings
-  , queryWholeWords  :: Bool     -- ^ Match patterns only with whole words
-  , queryMatchAll    :: Bool     -- ^ Return matches only from files in which all patterns match
-  , queryIgnoreCase  :: Bool     -- ^ Make matches case-insensitive
-  } deriving (Show, Read, Eq)
-
-defaultSearchQuery :: SearchQuery
-defaultSearchQuery = SearchQuery {
-     queryPatterns   = []
-   , queryRegex      = True
-   , queryWholeWords = True
-   , queryMatchAll   = True
-   , queryIgnoreCase = True
-   }
-
-data SearchMatch =
-  SearchMatch {
-    matchResourceName :: ResourceName
-  , matchLineNumber   :: Integer
-  , matchLine         :: String
-  } deriving (Show, Read, Eq)
-
-data FileStore =
-  FileStore {
-    initialize     :: IO ()
-  , create         :: Contents a => ResourceName -> Author -> String -> a -> IO ()
-  , modify         :: Contents a => ResourceName -> RevisionId -> Author -> String -> a -> IO ()
-  , retrieve       :: Contents a => ResourceName -> Maybe RevisionId -> IO a
-  , delete         :: ResourceName -> Author -> String -> IO ()
-  , move           :: ResourceName -> Author -> String -> IO ()
-  , history        :: [ResourceName] -> TimeRange -> IO History
-  , revision       :: ResourceName -> Maybe RevisionId -> IO Revision
-  , index          :: IO [ResourceName]
-  , search         :: SearchQuery -> IO [SearchMatch]
-  , diff           :: ResourceName -> RevisionId -> RevisionId -> IO String
-  }

@@ -5,7 +5,7 @@ Invoke it with:
 
     runghc Tests.hs
 
-> import Data.FileStore.Git as Git
+> import Data.FileStore
 > import Test.HUnit
 > import System.Directory (removeDirectoryRecursive)
 > import Data.Maybe (isJust)
@@ -13,7 +13,7 @@ Invoke it with:
 > import Prelude hiding (catch)
 > import Control.Exception (catch)
 
-> testFileStore :: (FileStore, String) -> IO Counts 
+> testFileStore :: FileStore a => (a, String) -> IO Counts 
 > testFileStore (fs, fsName) = do
 >   putStrLn $ "**********************************"
 >   putStrLn $ "Testing " ++ fsName
@@ -61,7 +61,7 @@ Modify...
 Retrieve earlier version...and latest version...
 
 > main = do
->   let fileStores = [(gitFileStore "tmp/gitfs", "Data.FileStore.Git")]
+>   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
 >   forM fileStores testFileStore
 >   removeDirectoryRecursive "tmp"
 
