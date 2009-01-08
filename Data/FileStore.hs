@@ -115,11 +115,11 @@ data FileStore =
     initialize     :: IO ()
   , create         :: Contents a => ResourceName -> Author -> String -> a -> IO ()
   , modify         :: Contents a => ResourceName -> RevisionId -> Author -> String -> a -> IO ()
-  , retrieve       :: Contents a => ResourceName -> Maybe RevisionId -> IO (Revision, a)
+  , retrieve       :: Contents a => ResourceName -> Maybe RevisionId -> IO a
   , delete         :: ResourceName -> Author -> String -> IO ()
   , move           :: ResourceName -> Author -> String -> IO ()
   , history        :: [ResourceName] -> TimeRange -> IO History
-  , latest         :: ResourceName -> IO (Maybe Revision)
+  , revision       :: ResourceName -> Maybe RevisionId -> IO Revision
   , index          :: IO [ResourceName]
   , search         :: SearchQuery -> IO [SearchMatch]
   , diff           :: ResourceName -> RevisionId -> RevisionId -> IO String

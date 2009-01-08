@@ -28,10 +28,13 @@ Invoke it with:
 > testAuthor = Author "Test Suite" "suite@test.org"
 
 > testContents :: String
-> testContents = "Test contents\nSecond line."
+> testContents = "Test contents.\nSecond line.\nThird test line with some unicode αβ."
 
 > testTitle :: String
 > testTitle = "New resource.txt"
+
+Initialize a repository, check for empty index, and then try to initialize again
+in the same directory (should raise an error):
 
 > initializeTest fs = TestCase $ do
 >   initialize fs
@@ -40,19 +43,22 @@ Invoke it with:
 >   catch (initialize fs >> assertFailure "did not return error for existing repository") $
 >     \e -> assertEqual "error status from existing repository" e RepositoryExists
 
+Create a resource, and check to see that revision returns a revision for it:
+
 > createTest fs = TestCase $ do
 >   create fs testTitle testAuthor "description of change" testContents
->   mbRev <- latest fs testTitle
->   assertBool "latest returns a revision after create" (isJust mbRev) 
+>   rev <- revision fs testTitle Nothing
+>   assertBool "revision returns a revision after create" ((not . null . revId) rev)
+
+Retrieve a resource (latest version):
 
 > retrieveTest fs = TestCase $ do
->   mbRev <- latest fs testTitle
->   case mbRev of
->     Nothing     -> assertFailure "latest did not return a revision"
->     Just rev    -> do
->       (rev', cont) <- retrieve fs "New resource.txt" Nothing
->       assertEqual "revision returned by retrieve" rev rev'
->       assertEqual "contents returned by retrieve" testContents cont 
+>   cont <- retrieve fs "New resource.txt" Nothing
+>   assertEqual "contents returned by retrieve" testContents cont 
+
+Modify...
+
+Retrieve earlier version...and latest version...
 
 > main = do
 >   let fileStores = [(gitFileStore "tmp/gitfs", "Data.FileStore.Git")]

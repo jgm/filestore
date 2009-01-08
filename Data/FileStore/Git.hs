@@ -11,10 +11,11 @@ module Data.FileStore.Git
 where
 import Data.FileStore
 import System.Exit
+import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runProgCommand) 
 import Data.ByteString.Lazy.UTF8 (toString)
-import Data.Maybe (isNothing, fromJust, fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.List (isPrefixOf)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -38,7 +39,7 @@ gitFileStore repo =
   , delete     = gitDelete repo
   , move       = gitMove repo
   , history    = gitHistory repo
-  , latest     = gitLatest repo
+  , revision   = gitGetRevision repo
   , index      = gitIndex repo
   , search     = gitSearch repo
   , diff       = gitDiff repo
@@ -83,9 +84,7 @@ gitCreate repo name author logMsg contents = do
 
 gitModify :: Contents a => FilePath -> ResourceName -> RevisionId -> Author -> String -> a -> IO ()
 gitModify repo name originalRevId author logMsg contents = do
-  mbLatestRev <- gitLatest repo name
-  when (isNothing mbLatestRev) $ throwIO NotFound
-  let latestRev = fromJust mbLatestRev
+  latestRev <- gitGetRevision repo name Nothing
   let latestRevId = revId latestRev
   if originalRevId `matches` latestRevId
      then do
@@ -97,8 +96,8 @@ gitModify repo name originalRevId author logMsg contents = do
 
 gitMerge :: FilePath -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Revision, Bool, String)
 gitMerge repo name originalRevId latestRevId contents = do
-  (_, originalContents) <- gitRetrieve repo name (Just originalRevId)
-  (latestRev, latestContents) <- gitRetrieve repo name (Just latestRevId)
+  originalContents <- gitRetrieve repo name (Just originalRevId)
+  latestContents <- gitRetrieve repo name (Just latestRevId)
   let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
   B.writeFile (repo </> editedTmp)  contents
   B.writeFile (repo </> originalTmp) originalContents
@@ -107,7 +106,9 @@ gitMerge repo name originalRevId latestRevId contents = do
   mapM removeFile $ map (repo </>) [editedTmp, originalTmp, latestTmp]
   if conflicts == -1 -- error
      then throwIO $ UnknownError $ "Error in git merge-file:\n" ++ mergedText
-     else return (latestRev, (conflicts > 0), mergedText)
+     else do
+       latestRev <- gitGetRevision repo name (Just latestRevId)
+       return (latestRev, (conflicts > 0), mergedText)
 
 gitCommit :: FilePath -> ResourceName -> (String, String) -> String -> IO ()
 gitCommit repo name (author, email) logMsg = do
@@ -128,17 +129,18 @@ gitMergeFile repo edited original latest' = do
                ExitFailure n | n >= 0  -> (n, toString out)
                _                       -> (-1, err)
         
-gitRetrieve :: Contents a => FilePath -> ResourceName -> Maybe RevisionId -> IO (Revision, a)
+gitRetrieve :: Contents a => FilePath -> ResourceName -> Maybe RevisionId -> IO a
+gitRetrieve repo name Nothing = do
+  -- If called with Nothing, go straight to the file system
+  catch (liftM fromByteString $ B.readFile (repo </> name)) $
+    \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
+
 gitRetrieve repo name mbRevId = do
-  let revid = fromMaybe "HEAD" mbRevId
-  mbRevision <- gitGetRevision repo name revid
-  case mbRevision of
-       Nothing       -> throwIO NotFound
-       Just revision -> do
-          (status, err, output) <- runGitCommand repo "cat-file" ["-p", revid ++ ":" ++ name]
-          if status == ExitSuccess
-             then return (revision, fromByteString output)
-             else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
+  rev <- gitGetRevision repo name mbRevId
+  (status, err, output) <- runGitCommand repo "cat-file" ["-p", revId rev ++ ":" ++ name]
+  if status == ExitSuccess
+     then return $ fromByteString output
+     else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
 
 gitDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
 gitDelete repo name author logMsg = do
@@ -152,19 +154,19 @@ gitMove :: FilePath -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
 
 gitHistory :: FilePath -> [ResourceName] -> TimeRange -> IO History
-gitHistory repo names (TimeRange mbSince mbUntil) = liftM (concatMap logEntryToHistory)
-  $ gitLog repo names (TimeRange mbSince mbUntil)
+gitHistory repo names (TimeRange mbSince mbUntil) =
+  liftM (concatMap logEntryToHistory) $ gitLog repo names (TimeRange mbSince mbUntil)
 
 logEntryToHistory :: LogEntry -> History
 logEntryToHistory entry =
   let names = logFiles entry
       stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
-      revision = Revision {
-                   revId          = logRevision entry
-                 , revDateTime    = posixSecondsToUTCTime $ realToFrac $ (read $ logDate entry :: Integer)
-                 , revAuthor      = Author { authorName = logAuthor entry, authorEmail = logEmail entry }
-                 , revDescription = stripTrailingNewlines $ logSubject entry  }
-  in  map (\name -> (name, revision)) names
+      rev = Revision {
+               revId          = logRevision entry
+             , revDateTime    = posixSecondsToUTCTime $ realToFrac $ (read $ logDate entry :: Integer)
+             , revAuthor      = Author { authorName = logAuthor entry, authorEmail = logEmail entry }
+             , revDescription = stripTrailingNewlines $ logSubject entry  }
+  in  map (\name -> (name, rev)) names
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
@@ -232,25 +234,22 @@ gitLogChange = do
   line <- nonblankLine
   return $ unwords $ drop 5 $ words line
 
--- | Return SHA1 hash of last commit for filename.
-gitLatest :: FilePath -> ResourceName -> IO (Maybe Revision)
-gitLatest repo name = gitGetRevision repo name "HEAD"
-
-gitGetRevision :: FilePath -> ResourceName -> RevisionId -> IO (Maybe Revision)
-gitGetRevision repo name revid = do
+gitGetRevision :: FilePath -> ResourceName -> Maybe RevisionId -> IO Revision
+gitGetRevision repo name mbRevid = do
+  let revid = fromMaybe "HEAD" mbRevid
   (status, _, output) <- runGitCommand repo "rev-list" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid, "--", name]
   if status == ExitSuccess
      then do
-       let resources = case P.parse parseGitLog "" (toString output) of
-                               Left err'   -> error $ show err'
-                               Right [x]   -> logEntryToHistory x{logFiles = [name]}
-                               Right []    -> []
-                               Right xs    -> error $ "git rev-list returned more than one result: " ++ show xs
+       resources <- case P.parse parseGitLog "" (toString output) of
+                           Left err'   -> throwIO $ UnknownError $ "error parsing git log: " ++ show err'
+                           Right [x]   -> return $ logEntryToHistory x{logFiles = [name]}
+                           Right []    -> return []
+                           Right xs    -> throwIO $ UnknownError $ "git rev-list returned more than one result: " ++ show xs
        case resources of
             xs -> case lookup name xs of
-                       Just r  -> return $ Just r
-                       Nothing -> return Nothing
-     else return Nothing
+                       Just r  -> return r
+                       Nothing -> throwIO NotFound
+     else throwIO NotFound
 
 gitIndex :: FilePath -> IO [ResourceName]
 gitIndex repo = do
