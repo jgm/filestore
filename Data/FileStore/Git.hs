@@ -23,7 +23,7 @@ import Data.FileStore.Types
 import System.Exit
 import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (runProgCommand) 
+import Data.FileStore.Utils (runShellCommand, mergeContents) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Maybe (fromMaybe)
 import Data.List (isPrefixOf)
@@ -33,7 +33,7 @@ import Codec.Binary.UTF8.String (decodeString)
 import Data.Char (chr)
 import Control.Monad (liftM, when)
 import System.FilePath ((</>), takeDirectory)
-import System.Directory (doesFileExist, doesDirectoryExist, removeFile, createDirectoryIfMissing)
+import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Text.Regex.Posix ((=~))
@@ -47,7 +47,7 @@ newtype GitFileStore = GitFileStore {
 runGitCommand :: GitFileStore -> String -> [String] -> IO (ExitCode, String, B.ByteString)
 runGitCommand repo command args = do
   let env = Just [("GIT_DIFF_OPTS","-u100000")]
-  (status, err, out) <- runProgCommand (gitRepoPath repo) env "git" command args
+  (status, err, out) <- runShellCommand (gitRepoPath repo) env "git" (command : args)
   return (status, toString err, out)
 
 gitInit :: GitFileStore -> IO ()
@@ -88,24 +88,15 @@ gitModify repo name originalRevId author logMsg contents = do
        B.writeFile (gitRepoPath repo </> encodeString name) $ toByteString contents
        gitCommit repo name (authorName author, authorEmail author) logMsg
      else do
-       (rev, conflicts, mergedText) <- gitMerge repo name originalRevId latestRevId $ toByteString contents
-       throwIO $ Merged (MergeInfo rev conflicts mergedText)
+       (conflicts, mergedText) <- gitMerge repo name originalRevId latestRevId $ toByteString contents
+       throwIO $ Merged (MergeInfo latestRev conflicts mergedText)
 
-gitMerge :: GitFileStore -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Revision, Bool, String)
+gitMerge :: GitFileStore -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Bool, String)
 gitMerge repo name originalRevId latestRevId contents = do
   originalContents <- gitRetrieve repo name (Just originalRevId)
   latestContents <- gitRetrieve repo name (Just latestRevId)
-  let [editedTmp, originalTmp, latestTmp] = map (encodeString name ++) [".edited",".original",".latest"]
-  B.writeFile (gitRepoPath repo </> editedTmp)  contents
-  B.writeFile (gitRepoPath repo </> originalTmp) originalContents
-  B.writeFile (gitRepoPath repo </> latestTmp) latestContents
-  (conflicts, mergedText) <- gitMergeFile repo editedTmp originalTmp latestTmp
-  mapM removeFile $ map (gitRepoPath repo </>) [editedTmp, originalTmp, latestTmp]
-  if conflicts == -1 -- error
-     then throwIO $ UnknownError $ "Error in git merge-file:\n" ++ mergedText
-     else do
-       latestRev <- gitGetRevision repo name (Just latestRevId)
-       return (latestRev, (conflicts > 0), mergedText)
+  catch (mergeContents ("edited", contents) (originalRevId, originalContents) (latestRevId, latestContents))
+              (\e -> throwIO $ UnknownError $ show e)
 
 gitCommit :: GitFileStore -> ResourceName -> (String, String) -> String -> IO ()
 gitCommit repo name (author, email) logMsg = do
@@ -117,15 +108,6 @@ gitCommit repo name (author, email) logMsg = do
                        then Unchanged
                        else UnknownError $ "Could not git commit '" ++ name ++ "'\n" ++ errCommit
 
--- | returns (n, s), where s is merged text and n is number of conflicts, or -1 for error.
-gitMergeFile :: GitFileStore -> FilePath -> FilePath -> FilePath -> IO (Int, String)
-gitMergeFile repo edited original latest' = do
-  (status, err, out) <- runGitCommand repo "merge-file" ["--stdout", edited, original, latest']
-  return $ case status of
-               ExitSuccess             -> (0, toString out)
-               ExitFailure n | n >= 0  -> (n, toString out)
-               _                       -> (-1, err)
-        
 gitRetrieve :: Contents a => GitFileStore -> ResourceName -> Maybe RevisionId -> IO a
 gitRetrieve repo name Nothing = do
   -- If called with Nothing, go straight to the file system
