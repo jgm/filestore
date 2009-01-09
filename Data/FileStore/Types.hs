@@ -67,8 +67,7 @@ data MergeInfo =
   } deriving (Show, Read, Eq, Typeable)
 
 data FileStoreError =
-    Merged MergeInfo
-  | RepositoryExists
+    RepositoryExists
   | ResourceExists
   | NotFound
   | Unchanged
