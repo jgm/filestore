@@ -3,6 +3,7 @@
 
 module Data.FileStore.Utils (
           runShellCommand
+        , diffContents
         , mergeContents)
 where
 
@@ -13,7 +14,7 @@ import qualified Data.ByteString.Lazy as B
 import System.Process (runProcess, waitForProcess)
 import Codec.Binary.UTF8.String (encodeString)
 import Data.ByteString.Lazy.UTF8 (toString)
-import Control.Monad (liftM)
+import Control.Monad (liftM, unless)
 import Data.Maybe (isJust)
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
@@ -34,6 +35,23 @@ runShellCommand workingDir environment command optionList = do
   removeFile errorPath
   removeFile outputPath
   return (status, errorOutput, output)
+
+diffContents :: B.ByteString -> B.ByteString -> IO String
+diffContents cont1 cont2 = do
+  tempPath <- catch getTemporaryDirectory (\_ -> return ".")
+  (path1, h1) <- openTempFile tempPath "f1"
+  (path2, h2) <- openTempFile tempPath "f2"
+  B.hPutStr h1 cont1 >> hClose h1
+  B.hPutStr h2 cont2 >> hClose h2
+  diffExists <- liftM isJust (findExecutable "diff")
+  unless diffExists $ error "diffContents requires 'diff' in path"
+  (status, err, out) <- runShellCommand tempPath Nothing "git" ["-U", "10000", path1, path2]
+  returnVal <- case status of
+                    ExitSuccess             -> return (toString out) 
+                    _                       -> error $ "diff failed: " ++ toString err
+  removeFile path1
+  removeFile path2
+  return returnVal
 
 -- | Do a three way merge, using either git merge-file or RCS merge. 
 mergeContents :: (String, B.ByteString)     -- ^ (label, contents) of edited version

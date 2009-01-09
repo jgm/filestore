@@ -8,7 +8,8 @@ module Data.FileStore.Git
            ( GitFileStore(..)
            , gitInit
            , gitCreate
-           , gitModify
+           , gitSave
+           , gitIdsMatch
            , gitRetrieve
            , gitDelete
            , gitMove
@@ -23,10 +24,9 @@ import Data.FileStore.Types
 import System.Exit
 import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (runShellCommand, mergeContents) 
+import Data.FileStore.Utils (runShellCommand) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Maybe (fromMaybe)
-import Data.List (isPrefixOf)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString)
@@ -37,6 +37,7 @@ import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMis
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Text.Regex.Posix ((=~))
+import Data.List (isPrefixOf)
 
 newtype GitFileStore = GitFileStore {
                           gitRepoPath :: FilePath
@@ -63,8 +64,8 @@ gitInit repo = do
 -- | Returns True if the revision ids match -- that is, if one
 -- is a sublist of the other.  Note that git allows prefixes of complete sha1
 -- hashes to be used as identifiers.
-matches :: RevisionId -> RevisionId -> Bool
-matches r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
+gitIdsMatch :: GitFileStore -> RevisionId -> RevisionId -> Bool
+gitIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 gitCreate :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
 gitCreate repo name author logMsg contents = do
@@ -79,25 +80,6 @@ gitCreate repo name author logMsg contents = do
      then gitCommit repo name (authorName author, authorEmail author) logMsg
      else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
 
-gitModify :: Contents a => GitFileStore -> ResourceName -> RevisionId -> Author -> String -> a -> IO ()
-gitModify repo name originalRevId author logMsg contents = do
-  latestRev <- gitGetRevision repo name Nothing
-  let latestRevId = revId latestRev
-  if originalRevId `matches` latestRevId
-     then do
-       B.writeFile (gitRepoPath repo </> encodeString name) $ toByteString contents
-       gitCommit repo name (authorName author, authorEmail author) logMsg
-     else do
-       (conflicts, mergedText) <- gitMerge repo name originalRevId latestRevId $ toByteString contents
-       throwIO $ Merged (MergeInfo latestRev conflicts mergedText)
-
-gitMerge :: GitFileStore -> ResourceName -> RevisionId -> RevisionId -> B.ByteString -> IO (Bool, String)
-gitMerge repo name originalRevId latestRevId contents = do
-  originalContents <- gitRetrieve repo name (Just originalRevId)
-  latestContents <- gitRetrieve repo name (Just latestRevId)
-  catch (mergeContents ("edited", contents) (originalRevId, originalContents) (latestRevId, latestContents))
-              (\e -> throwIO $ UnknownError $ show e)
-
 gitCommit :: GitFileStore -> ResourceName -> (String, String) -> String -> IO ()
 gitCommit repo name (author, email) logMsg = do
   (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", author ++ " <" ++
@@ -107,6 +89,11 @@ gitCommit repo name (author, email) logMsg = do
      else throwIO $ if null errCommit
                        then Unchanged
                        else UnknownError $ "Could not git commit '" ++ name ++ "'\n" ++ errCommit
+
+gitSave :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
+gitSave repo name author logMsg contents = do
+  B.writeFile (gitRepoPath repo </> encodeString name) $ toByteString contents
+  gitCommit repo name (authorName author, authorEmail author) logMsg
 
 gitRetrieve :: Contents a => GitFileStore -> ResourceName -> Maybe RevisionId -> IO a
 gitRetrieve repo name Nothing = do
