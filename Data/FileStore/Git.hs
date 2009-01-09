@@ -7,7 +7,6 @@
 module Data.FileStore.Git
            ( GitFileStore(..)
            , gitInit
-           , gitCreate
            , gitSave
            , gitIdsMatch
            , gitRetrieve
@@ -33,7 +32,7 @@ import Codec.Binary.UTF8.String (decodeString)
 import Data.Char (chr)
 import Control.Monad (liftM, when)
 import System.FilePath ((</>), takeDirectory)
-import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
+import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Text.Regex.Posix ((=~))
@@ -67,23 +66,10 @@ gitInit repo = do
 gitIdsMatch :: GitFileStore -> RevisionId -> RevisionId -> Bool
 gitIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
-gitCreate :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
-gitCreate repo name author logMsg contents = do
-  let filename = gitRepoPath repo </> encodeString name
-  exists <- doesFileExist filename
-  when exists $ throwIO ResourceExists
-  let dir' = takeDirectory filename
-  createDirectoryIfMissing True dir'
-  B.writeFile filename $ toByteString contents
-  (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
-  if statusAdd == ExitSuccess
-     then gitCommit repo name (authorName author, authorEmail author) logMsg
-     else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
-
-gitCommit :: GitFileStore -> ResourceName -> (String, String) -> String -> IO ()
-gitCommit repo name (author, email) logMsg = do
-  (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", author ++ " <" ++
-                                    email ++ ">", "-m", logMsg, name]
+gitCommit :: GitFileStore -> ResourceName -> Author -> String -> IO ()
+gitCommit repo name author logMsg = do
+  (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", authorName author ++ " <" ++
+                                    authorEmail author ++ ">", "-m", logMsg, name]
   if statusCommit == ExitSuccess
      then return ()
      else throwIO $ if null errCommit
@@ -92,8 +78,13 @@ gitCommit repo name (author, email) logMsg = do
 
 gitSave :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
 gitSave repo name author logMsg contents = do
-  B.writeFile (gitRepoPath repo </> encodeString name) $ toByteString contents
-  gitCommit repo name (authorName author, authorEmail author) logMsg
+  let filename = gitRepoPath repo </> encodeString name
+  createDirectoryIfMissing True $ takeDirectory filename
+  B.writeFile filename $ toByteString contents
+  (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
+  if statusAdd == ExitSuccess
+     then gitCommit repo name author logMsg
+     else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
 
 gitRetrieve :: Contents a => GitFileStore -> ResourceName -> Maybe RevisionId -> IO a
 gitRetrieve repo name Nothing = do
@@ -111,7 +102,7 @@ gitDelete :: GitFileStore -> ResourceName -> Author -> String -> IO ()
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
-     then gitCommit repo name (authorName author, authorEmail author) logMsg
+     then gitCommit repo name author logMsg
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
 gitMove :: GitFileStore -> ResourceName -> Author -> String -> IO ()
