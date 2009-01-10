@@ -119,7 +119,7 @@ data SearchMatch =
 -- | An abstract class for a versioning filestore, which can be
 -- implemented using the file system, a database, or revision-control
 -- software. A minimal instance definition will define 'initialize',
--- 'save', 'retrieve', 'delete', 'move', 'history', 'revision', and
+-- 'save', 'retrieve', 'delete', 'rename', 'history', 'revision', and
 -- 'index'. Sensible defaults are provided for 'modify', 'create',
 -- 'diff', and 'idsMatch', so these normally do not need to be
 -- implemented.
@@ -146,8 +146,8 @@ class FileStore b where
     -- | Delete a named resource, providing author and log message.
     delete         :: b -> ResourceName -> Author -> String -> IO ()
 
-    -- | Move a named resource, providing author and log message.
-    move           :: b -> ResourceName -> ResourceName -> Author -> String -> IO ()
+    -- | Rename a resource, providing author and log message.
+    rename         :: b -> ResourceName -> ResourceName -> Author -> String -> IO ()
 
     -- | Get history for a list of named resources in a (possibly openended) time range.
     -- If the list is empty, history for all resources will be returned. 

@@ -45,7 +45,7 @@ instance FileStore GitFileStore where
     save       = gitSave
     retrieve   = gitRetrieve
     delete     = gitDelete
-    move       = gitMove
+    rename     = gitMove
     history    = gitHistory
     revision   = gitGetRevision
     index      = gitIndex
@@ -129,6 +129,7 @@ gitDelete repo name author logMsg = do
      then gitCommit repo name author logMsg
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
+-- | Change the name of a resource.
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
 
