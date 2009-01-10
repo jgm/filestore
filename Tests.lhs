@@ -21,8 +21,12 @@ Invoke it with:
 >   putStrLn $ "**********************************"
 >   runTestTT $ TestList $ map (\(label, testFn) -> TestLabel label $ testFn fs) 
 >     [ ("initialize", initializeTest)
->     , ("create resource", createTest)
->     , ("retrieve resource", retrieveTest)
+>     , ("create resource", createTest1)
+>     , ("create resource in subdirectory", createTest2)
+>     , ("create resource with unicode name", createTest3)
+>     , ("retrieve resource", retrieveTest1)
+>     , ("retrieve resource in a subdirectory", retrieveTest2)
+>     , ("retrieve resource with unicode name", retrieveTest3)
 >     , ("modify resource", modifyTest)
 >     ]
 
@@ -34,6 +38,12 @@ Invoke it with:
 
 > testTitle :: String
 > testTitle = "New resource.txt"
+
+> subdirTestTitle :: String
+> subdirTestTitle = "subdir/Subdir title.txt"
+
+> unicodeTestTitle :: String
+> unicodeTestTitle = "αβγ"
 
 Initialize a repository, check for empty index, and then try to initialize again
 in the same directory (should raise an error):
@@ -47,15 +57,41 @@ in the same directory (should raise an error):
 
 Create a resource, and check to see that revision returns a revision for it:
 
-> createTest fs = TestCase $ do
+> createTest1 fs = TestCase $ do
 >   create fs testTitle testAuthor "description of change" testContents
 >   rev <- revision fs testTitle Nothing
 >   assertBool "revision returns a revision after create" ((not . null . revId) rev)
 
-Retrieve a resource (latest version):
+Create a resource in a subdirectory, and check to see that revision returns a revision for it:
 
-> retrieveTest fs = TestCase $ do
+> createTest2 fs = TestCase $ do
+>   create fs subdirTestTitle testAuthor "description of change" testContents
+>   rev <- revision fs subdirTestTitle Nothing
+>   assertBool "revision returns a revision after create" ((not . null . revId) rev)
+
+Create a resource with a unicode title, and check to see that revision returns a revision for it:
+
+> createTest3 fs = TestCase $ do
+>   create fs unicodeTestTitle testAuthor "description of change" testContents
+>   rev <- revision fs unicodeTestTitle Nothing
+>   assertBool "revision returns a revision after create" ((not . null . revId) rev)
+
+Retrieve latest version of a resource:
+
+> retrieveTest1 fs = TestCase $ do
 >   cont <- retrieve fs testTitle Nothing
+>   assertEqual "contents returned by retrieve" testContents cont 
+
+Retrieve latest version of a resource (in a subdirectory):
+
+> retrieveTest2 fs = TestCase $ do
+>   cont <- retrieve fs subdirTestTitle Nothing
+>   assertEqual "contents returned by retrieve" testContents cont 
+
+Retrieve latest version of a resource with a unicode name:
+
+> retrieveTest3 fs = TestCase $ do
+>   cont <- retrieve fs unicodeTestTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
 
 Modify a resource.  Retrieve the contents and make sure they were changed.  Try
