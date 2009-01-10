@@ -28,6 +28,7 @@ Invoke it with:
 >     , ("retrieve resource in a subdirectory", retrieveTest2)
 >     , ("retrieve resource with unicode name", retrieveTest3)
 >     , ("modify resource", modifyTest)
+>     , ("create and delete resource", deleteTest)
 >     ]
 
 > testAuthor :: Author
@@ -128,6 +129,24 @@ Modify a resource:
 
 >   modResult4 <- modify fs testTitle (revId newRev) testAuthor "modified from new version" (modifiedContents ++ "\nThird line")
 >   assertEqual "results of modify from new version" (Right ()) modResult4 
+
+Delete a resource:
+
+> deleteTest fs = TestCase $ do
+
+    Create a file and verify that it's there.
+
+>   let toBeDeleted = "Aaack!"
+>   create fs toBeDeleted testAuthor "description of change" testContents
+>   ind <- index fs
+>   assertBool "index contains file to be deleted" (toBeDeleted `elem` ind) 
+
+    Now delete it and verify that it's gone.
+
+>   delete fs toBeDeleted testAuthor "goodbye"
+>   ind <- index fs
+>   assertBool "index does not contain file that was deleted" (not (toBeDeleted `elem` ind))
+
 
 > main = do
 >   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
