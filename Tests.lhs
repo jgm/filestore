@@ -94,44 +94,37 @@ Retrieve latest version of a resource with a unicode name:
 >   cont <- retrieve fs unicodeTestTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
 
-Modify a resource.  Retrieve the contents and make sure they were changed.  Try
-modifying again with the old revision as base.  This should produce a merge.
-Check to make sure the merge is correct. Try modifying with the old revision
-as base, but with the same contents as the new revision.  This should produce
-a merge with no conflicts.  Finally, modify with the new revision, which
-should succeed without a merge.
-
 Modify a resource:
 
 > modifyTest fs = TestCase $ do
 
-  Modify a resource.  Should return Right ().
+    Modify a resource.  Should return Right ().
 
 >   rev <- revision fs testTitle Nothing
 >   let modifiedContents = unlines $ take 2 $ lines testContents
 >   modResult <- modify fs testTitle (revId rev) testAuthor "removed third line" modifiedContents
 >   assertEqual "results of modify" (Right ()) modResult
 
-  Now retrieve the contents and make sure they were changed.
+    Now retrieve the contents and make sure they were changed.
 
 >   modifiedContents' <- retrieve fs testTitle Nothing
 >   newRev <- revision fs testTitle Nothing
 >   assertEqual "retrieved contents after modify" modifiedContents' modifiedContents
 
-  Now try to modify again, using the old revision as base.  This should result in a merge with conflicts.
+    Now try to modify again, using the old revision as base.  This should result in a merge with conflicts.
 
 >   modResult2 <- modify fs testTitle (revId rev) testAuthor "modified from old version" (testContents ++ "\nFourth line")
 >   let normModResult2 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = True, mergeText = "Test contents.\nSecond line.\n<<<<<<< edited\nThird test line with some unicode \945\946.\nFourth line\n=======\n>>>>>>> " ++ revId newRev ++ "\n"})
 >   assertEqual "results of modify from old version" normModResult2 modResult2
 
-  Now try it again, still using the old version as base, but with contents of the new version.
-  This should result in a merge without conflicts.
+    Now try it again, still using the old version as base, but with contents of the new version.
+    This should result in a merge without conflicts.
 
 >   modResult3 <- modify fs testTitle (revId rev) testAuthor "modified from old version" modifiedContents
 >   let normModResult3 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = False, mergeText = modifiedContents})
 >   assertEqual "results of modify from old version with new version's contents" normModResult3 modResult3
 
-  Now try modifying again, this time using the new version as base. Should succeed with Right ().
+    Now try modifying again, this time using the new version as base. Should succeed with Right ().
 
 >   modResult4 <- modify fs testTitle (revId newRev) testAuthor "modified from new version" (modifiedContents ++ "\nThird line")
 >   assertEqual "results of modify from new version" (Right ()) modResult4 
