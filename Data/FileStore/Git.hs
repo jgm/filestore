@@ -131,7 +131,11 @@ gitDelete repo name author logMsg = do
 
 -- | Change the name of a resource.
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
-gitMove = undefined
+gitMove repo oldName newName author logMsg = do
+  (statusAdd, err, _) <- runGitCommand repo "mv" [oldName, newName]
+  if statusAdd == ExitSuccess
+     then gitCommit repo [oldName, newName] author logMsg
+     else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
 
 -- | Get revision information for a particular revision ID, or latest revision.
 gitGetRevision :: GitFileStore
