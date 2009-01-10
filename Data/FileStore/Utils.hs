@@ -104,3 +104,4 @@ mergeContents (newLabel, newContents) (originalLabel, originalContents) (latestL
   removeFile latestPath
   removeFile newPath
   return (conflicts, toString mergedContents)
+

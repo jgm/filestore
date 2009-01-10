@@ -13,19 +13,7 @@
 -}
 
 module Data.FileStore.Git
-           ( GitFileStore(..)
-           , gitInit
-           , gitSave
-           , gitIdsMatch
-           , gitRetrieve
-           , gitDelete
-           , gitMove
-           , gitHistory
-           , gitGetRevision
-           , gitIndex
-           , gitSearch
-           , gitDiff
-           )
+           ( GitFileStore(..) )
 where
 import Data.FileStore.Types
 import System.Exit
@@ -51,6 +39,22 @@ import Data.List (isPrefixOf)
 newtype GitFileStore = GitFileStore {
                           gitRepoPath :: FilePath
                           } deriving (Read, Eq, Show)
+
+instance FileStore GitFileStore where
+    initialize = gitInit
+    save       = gitSave
+    retrieve   = gitRetrieve
+    delete     = gitDelete
+    move       = gitMove
+    history    = gitHistory
+    revision   = gitGetRevision
+    index      = gitIndex
+    diff       = gitDiff
+    idsMatch   = gitIdsMatch
+    -- modify, create: defaults
+
+instance SearchableFileStore GitFileStore where 
+    search     = gitSearch
 
 -- | Run a git command and return error status, error output, standard output.  The repository
 -- is used as working directory.
