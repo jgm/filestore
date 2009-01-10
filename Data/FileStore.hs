@@ -24,17 +24,46 @@ class FileStore b where
 
     -- A minimal implementation will define the following functions:
 
+    -- | Initialize a new filestore.
     initialize     :: b -> IO ()
+
+    -- | Save contents in the filestore with a resource name, author, and log message.
     save           :: Contents a => b -> ResourceName -> Author -> String -> a -> IO ()
+    
+    -- | Like save, but first verify that the resource name is new.
     create         :: Contents a => b -> ResourceName -> Author -> String -> a -> IO ()
+
+    -- | Modify a named resource in the filestore.  Like save, except that a revision ID
+    -- must be specified.  If the resource has been modified since the specified revision,
+    -- merge information is returned.  Otherwise, the new contents are saved.  
     modify         :: Contents a => b -> ResourceName -> RevisionId -> Author -> String -> a -> IO (Either MergeInfo ())
+
+    -- | Retrieve the contents of the named resource.  If @Just@ a revision ID is provided,
+    -- that revision will be returned; if @Nothing@, the latest revision will be returned.
     retrieve       :: Contents a => b -> ResourceName -> Maybe RevisionId -> IO a
+
+    -- | Delete a named resource, providing author and log message.
     delete         :: b -> ResourceName -> Author -> String -> IO ()
-    move           :: b -> ResourceName -> Author -> String -> IO ()
+
+    -- | Move a named resource, providing author and log message.
+    move           :: b -> ResourceName -> ResourceName -> Author -> String -> IO ()
+
+    -- | Get history for a list of named resources in a (possibly openended) time range.
+    -- If the list is empty, history for all resources will be returned. 
     history        :: b -> [ResourceName] -> TimeRange -> IO History
+
+    -- | Return information about a revision, given a resource name and a revision ID,
+    -- or the latest revision, if revision ID is @Nothing@.
     revision       :: b -> ResourceName -> Maybe RevisionId -> IO Revision
+
+    -- | Return a list of resources in the filestore.
     index          :: b -> IO [ResourceName]
+
+    -- | Return a unified diff of two revisions of a named resource.
     diff           :: b -> ResourceName -> RevisionId -> RevisionId -> IO String
+
+    -- | @True@ if the revision IDs match, in the sense that the
+    -- can be treated as specifying the same revision.
     idsMatch       :: b -> RevisionId -> RevisionId -> Bool
 
     -- Sensible defaults are provided for modify, create, and diff, so

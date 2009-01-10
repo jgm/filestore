@@ -105,7 +105,7 @@ gitDelete repo name author logMsg = do
      then gitCommit repo name author logMsg
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
-gitMove :: GitFileStore -> ResourceName -> Author -> String -> IO ()
+gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
 
 gitHistory :: GitFileStore -> [ResourceName] -> TimeRange -> IO History
