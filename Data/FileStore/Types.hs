@@ -69,8 +69,8 @@ instance Contents String where
 
 data TimeRange =
   TimeRange {
-    timeFrom :: Maybe DateTime
-  , timeTo   :: Maybe DateTime
+    timeFrom :: Maybe DateTime  -- ^ @Nothing@ means no lower bound
+  , timeTo   :: Maybe DateTime  -- ^ @Nothing@ means no upper bound
   } deriving (Show, Read, Eq)
 
 data MergeInfo =
@@ -81,10 +81,10 @@ data MergeInfo =
   } deriving (Show, Read, Eq, Typeable)
 
 data FileStoreError =
-    RepositoryExists
-  | ResourceExists
-  | NotFound
-  | Unchanged
+    RepositoryExists             -- ^ Tried to initialize a repository that already exists
+  | ResourceExists               -- ^ Tried to create a resource that already exists
+  | NotFound                     -- ^ Requested resource was not found
+  | Unchanged                    -- ^ The resource was not modified, because the contents were unchanged
   | UnsupportedOperation
   | UnknownError String
   deriving (Show, Read, Eq, Typeable)
@@ -94,10 +94,10 @@ instance Exception FileStoreError
 data SearchQuery =
   SearchQuery {
     queryPatterns    :: [String] -- ^ Patterns to match
-  , queryRegex       :: Bool     -- ^ Interpret patterns as extended regexes, not strings
-  , queryWholeWords  :: Bool     -- ^ Match patterns only with whole words
-  , queryMatchAll    :: Bool     -- ^ Return matches only from files in which all patterns match
-  , queryIgnoreCase  :: Bool     -- ^ Make matches case-insensitive
+  , queryRegex       :: Bool     -- ^ Interpret patterns as extended regexes, not strings?
+  , queryWholeWords  :: Bool     -- ^ Match patterns only with whole words?
+  , queryMatchAll    :: Bool     -- ^ Return matches only from files in which all patterns match?
+  , queryIgnoreCase  :: Bool     -- ^ Make matches case-insensitive?
   } deriving (Show, Read, Eq)
 
 defaultSearchQuery :: SearchQuery
@@ -126,46 +126,92 @@ data SearchMatch =
 class FileStore b where
 
     -- | Initialize a new filestore.
-    initialize     :: b -> IO ()
+    initialize     :: b
+                   -> IO ()
 
-    -- | Save contents in the filestore with a resource name, author, and log message.
-    save           :: Contents a => b -> ResourceName -> Author -> String -> a -> IO ()
+    -- | Save contents in the filestore.
+    save           :: Contents a
+                   => b
+                   -> ResourceName      -- ^ Resource to save.
+                   -> Author            -- ^ Author of change.
+                   -> String            -- ^ Description of change.
+                   -> a                 -- ^ New contents of resource.
+                   -> IO ()
     
     -- | Like save, but first verify that the resource name is new.
-    create         :: Contents a => b -> ResourceName -> Author -> String -> a -> IO ()
+    create         :: Contents a
+                   => b
+                   -> ResourceName      -- ^ Resource to create.
+                   -> Author            -- ^ Author of change.
+                   -> String            -- ^ Description of change.
+                   -> a                 -- ^ Contents of resource.
+                   -> IO ()
 
     -- | Modify a named resource in the filestore.  Like save, except that a revision ID
     -- must be specified.  If the resource has been modified since the specified revision,
     -- merge information is returned.  Otherwise, the new contents are saved.  
-    modify         :: Contents a => b -> ResourceName -> RevisionId -> Author -> String -> a -> IO (Either MergeInfo ())
+    modify         :: Contents a
+                   => b
+                   -> ResourceName      -- ^ Resource to create.
+                   -> RevisionId        -- ^ ID of previous revision that is being modified.
+                   -> Author            -- ^ Author of change.
+                   -> String            -- ^ Description of change.
+                   -> a                 -- ^ Contents of resource.
+                   -> IO (Either MergeInfo ())
 
-    -- | Retrieve the contents of the named resource.  If @Just@ a revision ID is provided,
-    -- that revision will be returned; if @Nothing@, the latest revision will be returned.
-    retrieve       :: Contents a => b -> ResourceName -> Maybe RevisionId -> IO a
+    -- | Retrieve the contents of the named resource.
+    retrieve       :: Contents a
+                   => b
+                   -> ResourceName      -- ^ Resource to retrieve.
+                   -> Maybe RevisionId  -- ^ @Just@ a particular revision ID, or @Nothing@ for latest
+                   -> IO a
 
     -- | Delete a named resource, providing author and log message.
-    delete         :: b -> ResourceName -> Author -> String -> IO ()
+    delete         :: b
+                   -> ResourceName      -- ^ Resource to delete.
+                   -> Author            -- ^ Author of change.
+                   -> String            -- ^ Description of change.
+                   -> IO ()
 
     -- | Rename a resource, providing author and log message.
-    rename         :: b -> ResourceName -> ResourceName -> Author -> String -> IO ()
+    rename         :: b
+                   -> ResourceName      -- ^ Resource original name.
+                   -> ResourceName      -- ^ Resource new name.
+                   -> Author            -- ^ Author of change.
+                   -> String            -- ^ Description of change.
+                   -> IO ()
 
     -- | Get history for a list of named resources in a (possibly openended) time range.
     -- If the list is empty, history for all resources will be returned. 
-    history        :: b -> [ResourceName] -> TimeRange -> IO [Revision]
+    history        :: b
+                   -> [ResourceName]    -- ^ List of resources to get history for, or @[]@ for all.
+                   -> TimeRange         -- ^ Time range within which to get history.
+                   -> IO [Revision]
 
     -- | Return information about a revision, given a resource name and a revision ID,
     -- or the latest revision, if revision ID is @Nothing@.
-    revision       :: b -> ResourceName -> Maybe RevisionId -> IO Revision
+    revision       :: b
+                   -> ResourceName      -- ^ Resource to get revision information for.
+                   -> Maybe RevisionId  -- ^ @Just@ a particular revision ID, or @Nothing@ for latest.
+                   -> IO Revision
 
     -- | Return a list of resources in the filestore.
-    index          :: b -> IO [ResourceName]
+    index          :: b
+                   -> IO [ResourceName]
 
     -- | Return a unified diff of two revisions of a named resource.
-    diff           :: b -> ResourceName -> RevisionId -> RevisionId -> IO String
+    diff           :: b
+                   -> ResourceName      -- ^ Resource name to get diff for.
+                   -> RevisionId        -- ^ Old revision ID.
+                   -> RevisionId        -- ^ New revision ID.
+                   -> IO String
 
     -- | @True@ if the revision IDs match, in the sense that the
     -- can be treated as specifying the same revision.
-    idsMatch       :: b -> RevisionId -> RevisionId -> Bool
+    idsMatch       :: b
+                   -> RevisionId
+                   -> RevisionId
+                   -> Bool
 
     -- Defaults
 
@@ -180,7 +226,9 @@ class FileStore b where
 
 -- | An abstract class for a searchable versioning filestore.
 class FileStore b => SearchableFileStore b where
-    search         :: b -> SearchQuery -> IO [SearchMatch]
+    search         :: b
+                   -> SearchQuery
+                   -> IO [SearchMatch]
 
 handleUnknownError :: SomeException -> IO a
 handleUnknownError e = throwIO $ UnknownError $ show e
