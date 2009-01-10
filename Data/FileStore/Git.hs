@@ -83,15 +83,15 @@ gitIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.
-gitCommit :: GitFileStore -> ResourceName -> Author -> String -> IO ()
-gitCommit repo name author logMsg = do
-  (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", authorName author ++ " <" ++
-                                    authorEmail author ++ ">", "-m", logMsg, name]
+gitCommit :: GitFileStore -> [ResourceName] -> Author -> String -> IO ()
+gitCommit repo names author logMsg = do
+  (statusCommit, errCommit, _) <- runGitCommand repo "commit" $ ["--author", authorName author ++ " <" ++
+                                    authorEmail author ++ ">", "-m", logMsg] ++ names
   if statusCommit == ExitSuccess
      then return ()
      else throwIO $ if null errCommit
                        then Unchanged
-                       else UnknownError $ "Could not git commit '" ++ name ++ "'\n" ++ errCommit
+                       else UnknownError $ "Could not git commit " ++ unwords names ++ "\n" ++ errCommit
 
 -- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
@@ -101,7 +101,7 @@ gitSave repo name author logMsg contents = do
   B.writeFile filename $ toByteString contents
   (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
   if statusAdd == ExitSuccess
-     then gitCommit repo name author logMsg
+     then gitCommit repo [name] author logMsg
      else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
 
 -- | Retrieve contents from resource.
@@ -126,7 +126,7 @@ gitDelete :: GitFileStore -> ResourceName -> Author -> String -> IO ()
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
-     then gitCommit repo name author logMsg
+     then gitCommit repo [name] author logMsg
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
 -- | Change the name of a resource.
