@@ -46,7 +46,7 @@ instance FileStore GitFileStore where
     retrieve   = gitRetrieve
     delete     = gitDelete
     rename     = gitMove
-    history    = gitHistory
+    history    = gitLog
     revision   = gitGetRevision
     index      = gitIndex
     diff       = gitDiff
@@ -132,10 +132,6 @@ gitDelete repo name author logMsg = do
 -- | Change the name of a resource.
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
-
-gitHistory :: GitFileStore -> [ResourceName] -> TimeRange -> IO [Revision]
-gitHistory repo names (TimeRange mbSince mbUntil) =
-  gitLog repo names (TimeRange mbSince mbUntil)
 
 gitGetRevision :: GitFileStore -> ResourceName -> Maybe RevisionId -> IO Revision
 gitGetRevision repo name mbRevid = do
