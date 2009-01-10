@@ -50,7 +50,7 @@ class FileStore b where
 
     -- | Get history for a list of named resources in a (possibly openended) time range.
     -- If the list is empty, history for all resources will be returned. 
-    history        :: b -> [ResourceName] -> TimeRange -> IO History
+    history        :: b -> [ResourceName] -> TimeRange -> IO [Revision]
 
     -- | Return information about a revision, given a resource name and a revision ID,
     -- or the latest revision, if revision ID is @Nothing@.

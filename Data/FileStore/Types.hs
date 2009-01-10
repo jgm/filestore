@@ -5,7 +5,6 @@ module Data.FileStore.Types
            , Author(..)
            , Revision(..)
            , Contents(..)
-           , History
            , TimeRange(..)
            , MergeInfo(..)
            , FileStoreError(..)
@@ -37,6 +36,7 @@ data Revision =
   , revDateTime    :: DateTime
   , revAuthor      :: Author
   , revDescription :: String
+  , revModified    :: [ResourceName]
   } deriving (Show, Read, Eq, Typeable)
 
 class Contents a where
@@ -50,8 +50,6 @@ instance Contents ByteString where
 instance Contents String where
   toByteString   = fromString
   fromByteString = toString
-
-type History = [(ResourceName, Revision)]
 
 data TimeRange =
   TimeRange {

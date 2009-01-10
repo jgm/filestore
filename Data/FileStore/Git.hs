@@ -108,36 +108,20 @@ gitDelete repo name author logMsg = do
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
 
-gitHistory :: GitFileStore -> [ResourceName] -> TimeRange -> IO History
+gitHistory :: GitFileStore -> [ResourceName] -> TimeRange -> IO [Revision]
 gitHistory repo names (TimeRange mbSince mbUntil) =
-  liftM (concatMap logEntryToHistory) $ gitLog repo names (TimeRange mbSince mbUntil)
-
-logEntryToHistory :: LogEntry -> History
-logEntryToHistory entry =
-  let names = logFiles entry
-      stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
-      rev = Revision {
-               revId          = logRevision entry
-             , revDateTime    = posixSecondsToUTCTime $ realToFrac $ (read $ logDate entry :: Integer)
-             , revAuthor      = Author { authorName = logAuthor entry, authorEmail = logEmail entry }
-             , revDescription = stripTrailingNewlines $ logSubject entry  }
-  in  map (\name -> (name, rev)) names
+  gitLog repo names (TimeRange mbSince mbUntil)
 
 gitGetRevision :: GitFileStore -> ResourceName -> Maybe RevisionId -> IO Revision
 gitGetRevision repo name mbRevid = do
   let revid = fromMaybe "HEAD" mbRevid
   (status, _, output) <- runGitCommand repo "rev-list" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid, "--", name]
   if status == ExitSuccess
-     then do
-       resources <- case P.parse parseGitLog "" (toString output) of
-                           Left err'   -> throwIO $ UnknownError $ "error parsing git log: " ++ show err'
-                           Right [x]   -> return $ logEntryToHistory x{logFiles = [name]}
-                           Right []    -> return []
-                           Right xs    -> throwIO $ UnknownError $ "git rev-list returned more than one result: " ++ show xs
-       case resources of
-            xs -> case lookup name xs of
-                       Just r  -> return r
-                       Nothing -> throwIO NotFound
+     then case P.parse parseGitLog "" (toString output) of
+                 Left err'   -> throwIO $ UnknownError $ "error parsing git log: " ++ show err'
+                 Right [r]   -> return r
+                 Right []    -> throwIO NotFound
+                 Right xs    -> throwIO $ UnknownError $ "git rev-list returned more than one result: " ++ show xs
      else throwIO NotFound
 
 gitIndex :: GitFileStore -> IO [ResourceName]
@@ -204,7 +188,7 @@ gitDiff repo name from to = do
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-gitLog :: GitFileStore -> [ResourceName] -> TimeRange -> IO [LogEntry]
+gitLog :: GitFileStore -> [ResourceName] -> TimeRange -> IO [Revision]
 gitLog repo names (TimeRange mbSince mbUntil) = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
                            ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n"] ++
@@ -222,20 +206,10 @@ gitLog repo names (TimeRange mbSince mbUntil) = do
      else throwIO $ UnknownError $ "git whatchanged returned error status.\n" ++ err
 
 --
--- Parsers to parse git log into LogEntry records.
+-- Parsers to parse git log into Revisions.
 --
 
--- | Abstract representation of a git log entry.
-data LogEntry = LogEntry
-  { logRevision   :: String
-  , logDate       :: String
-  , logAuthor     :: String
-  , logEmail      :: String
-  , logSubject    :: String
-  , logFiles      :: [String]
-  } deriving (Read, Show)
-
-parseGitLog :: P.Parser [LogEntry]
+parseGitLog :: P.Parser [Revision]
 parseGitLog = P.manyTill gitLogEntry P.eof
 
 wholeLine :: P.GenParser Char st [Char]
@@ -244,7 +218,7 @@ wholeLine = P.manyTill P.anyChar P.newline
 nonblankLine :: P.GenParser Char st [Char]
 nonblankLine = P.notFollowedBy P.newline >> wholeLine
 
-gitLogEntry :: P.Parser LogEntry
+gitLogEntry :: P.Parser Revision
 gitLogEntry = do
   P.optional (P.string "commit" >> wholeLine)  -- the commit XXX message returned by git rev-list
   rev <- nonblankLine
@@ -255,12 +229,13 @@ gitLogEntry = do
   P.spaces
   files <- P.many gitLogChange
   P.spaces
-  return $ LogEntry { logRevision = rev,
-                      logDate = date,
-                      logAuthor = author,
-                      logEmail = email,
-                      logSubject = subject,
-                      logFiles = map convertEncoded files }
+  let stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
+  return $ Revision {
+              revId          = rev
+            , revDateTime    = posixSecondsToUTCTime $ realToFrac $ (read $ date :: Integer)
+            , revAuthor      = Author { authorName = author, authorEmail = email }
+            , revDescription = stripTrailingNewlines $ subject
+            , revModified    = map convertEncoded files }
 
 gitLogChange :: P.Parser String
 gitLogChange = do
