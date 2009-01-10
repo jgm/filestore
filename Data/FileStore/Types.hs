@@ -1,4 +1,16 @@
 {-# LANGUAGE TypeSynonymInstances, DeriveDataTypeable #-}
+{- |
+   Module      : Data.FileStore.Types
+   Copyright   : Copyright (C) 2008 John MacFarlane
+   License     : BSD 3
+
+   Maintainer  : John MacFarlane <jgm@berkeley.edu>
+   Stability   : alpha
+   Portability : GHC 6.10 required
+
+   Type definitions for "Data.FileStore".
+-}
+
 module Data.FileStore.Types
            ( RevisionId
            , ResourceName
@@ -53,15 +65,15 @@ instance Contents String where
 
 data TimeRange =
   TimeRange {
-    trFrom :: Maybe DateTime
-  , trTo   :: Maybe DateTime
+    timeFrom :: Maybe DateTime
+  , timeTo   :: Maybe DateTime
   } deriving (Show, Read, Eq)
 
 data MergeInfo =
   MergeInfo {
-    mergeRevision  :: Revision
-  , mergeConflicts :: Bool
-  , mergeText      :: String
+    mergeRevision  :: Revision   -- ^ The revision with which changes were merged
+  , mergeConflicts :: Bool       -- ^ @True@ if there were merge conflicts
+  , mergeText      :: String     -- ^ The merged text, including conflict markers
   } deriving (Show, Read, Eq, Typeable)
 
 data FileStoreError =

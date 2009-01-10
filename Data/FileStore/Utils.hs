@@ -1,4 +1,13 @@
-{- Auxiliary functions for running shell commands.
+{- |
+   Module      : Data.FileStore.Utils
+   Copyright   : Copyright (C) 2008 John MacFarlane
+   License     : BSD 3
+
+   Maintainer  : John MacFarlane <jgm@berkeley.edu>
+   Stability   : alpha
+   Portability : portable
+
+   Utility functions for running external processes.
 -}
 
 module Data.FileStore.Utils (
@@ -36,6 +45,9 @@ runShellCommand workingDir environment command optionList = do
   removeFile outputPath
   return (status, errorOutput, output)
 
+-- | Use @diff@ to get a unified diff between two bytestrings.  The result
+-- is returned as a string. Assumes that @diff@ is in the system path.  Assumes
+-- UTF-8 locale.
 diffContents :: B.ByteString -> B.ByteString -> IO String
 diffContents cont1 cont2 = do
   tempPath <- catch getTemporaryDirectory (\_ -> return ".")
@@ -53,7 +65,8 @@ diffContents cont1 cont2 = do
   removeFile path2
   return returnVal
 
--- | Do a three way merge, using either git merge-file or RCS merge. 
+-- | Do a three way merge, using either git merge-file or RCS merge.  Assumes
+-- that either @git@ or @merge@ is in the system path.  Assumes UTF-8 locale.
 mergeContents :: (String, B.ByteString)     -- ^ (label, contents) of edited version
               -> (String, B.ByteString)     -- ^ (label, contents) of original revision
               -> (String, B.ByteString)     -- ^ (label, contents) of latest version

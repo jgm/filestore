@@ -1,7 +1,15 @@
-{- A git instance of the abstract filestore defined in
--  Data.FileStore.  Derived from Gitit's git functions.
+{- |
+   Module      : Data.FileStore
+   Copyright   : Copyright (C) 2008 John MacFarlane
+   License     : BSD 3
 
-   (C) 2008 John MacFarlane
+   Maintainer  : John MacFarlane <jgm@berkeley.edu>
+   Stability   : alpha
+   Portability : GHC 6.10 required
+
+   A versioned filestore implemented using git.
+   Normally this module should not be imported: import
+   "Data.FileStore" instead.
 -}
 
 module Data.FileStore.Git
@@ -38,11 +46,13 @@ import Control.Exception (throwIO)
 import Text.Regex.Posix ((=~))
 import Data.List (isPrefixOf)
 
+-- | A filestore implemented using the git distributed revision control system
+-- (<http://git-scm.com/>).
 newtype GitFileStore = GitFileStore {
                           gitRepoPath :: FilePath
                           } deriving (Read, Eq, Show)
 
--- | Run git command and return error status, error output, standard output.  The repository
+-- | Run a git command and return error status, error output, standard output.  The repository
 -- is used as working directory.
 runGitCommand :: GitFileStore -> String -> [String] -> IO (ExitCode, String, B.ByteString)
 runGitCommand repo command args = do
@@ -50,6 +60,7 @@ runGitCommand repo command args = do
   (status, err, out) <- runShellCommand (gitRepoPath repo) env "git" (command : args)
   return (status, toString err, out)
 
+-- | Initialize a repository, creating the directory if needed.
 gitInit :: GitFileStore -> IO ()
 gitInit repo = do
   exists <- doesDirectoryExist (gitRepoPath repo)
@@ -66,6 +77,8 @@ gitInit repo = do
 gitIdsMatch :: GitFileStore -> RevisionId -> RevisionId -> Bool
 gitIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
+-- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
+-- no changes.
 gitCommit :: GitFileStore -> ResourceName -> Author -> String -> IO ()
 gitCommit repo name author logMsg = do
   (statusCommit, errCommit, _) <- runGitCommand repo "commit" ["--author", authorName author ++ " <" ++
@@ -76,6 +89,7 @@ gitCommit repo name author logMsg = do
                        then Unchanged
                        else UnknownError $ "Could not git commit '" ++ name ++ "'\n" ++ errCommit
 
+-- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
 gitSave repo name author logMsg contents = do
   let filename = gitRepoPath repo </> encodeString name
@@ -86,7 +100,12 @@ gitSave repo name author logMsg contents = do
      then gitCommit repo name author logMsg
      else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
 
-gitRetrieve :: Contents a => GitFileStore -> ResourceName -> Maybe RevisionId -> IO a
+-- | Retrieve contents from resource.
+gitRetrieve :: Contents a
+            => GitFileStore
+            -> ResourceName
+            -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
+            -> IO a
 gitRetrieve repo name Nothing = do
   -- If called with Nothing, go straight to the file system
   catch (liftM fromByteString $ B.readFile (gitRepoPath repo </> name)) $
@@ -98,6 +117,7 @@ gitRetrieve repo name mbRevId = do
      then return $ fromByteString output
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
 
+-- | Delete a resource from the repository.
 gitDelete :: GitFileStore -> ResourceName -> Author -> String -> IO ()
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
