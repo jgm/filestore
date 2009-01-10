@@ -112,7 +112,8 @@ gitRetrieve :: Contents a
             -> IO a
 gitRetrieve repo name Nothing = do
   -- If called with Nothing, go straight to the file system
-  catch (liftM fromByteString $ B.readFile (gitRepoPath repo </> name)) $
+  let filename = gitRepoPath repo </> encodeString name
+  catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 gitRetrieve repo name mbRevId = do
   rev <- gitGetRevision repo name mbRevId
