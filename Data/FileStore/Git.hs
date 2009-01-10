@@ -133,7 +133,11 @@ gitDelete repo name author logMsg = do
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove = undefined
 
-gitGetRevision :: GitFileStore -> ResourceName -> Maybe RevisionId -> IO Revision
+-- | Get revision information for a particular revision ID, or latest revision.
+gitGetRevision :: GitFileStore
+               -> ResourceName
+               -> Maybe RevisionId   -- ^ @Just@ a particular revision ID, or @Nothing@ for latest
+               -> IO Revision
 gitGetRevision repo name mbRevid = do
   let revid = fromMaybe "HEAD" mbRevid
   (status, _, output) <- runGitCommand repo "rev-list" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid, "--", name]
@@ -145,6 +149,7 @@ gitGetRevision repo name mbRevid = do
                  Right xs    -> throwIO $ UnknownError $ "git rev-list returned more than one result: " ++ show xs
      else throwIO NotFound
 
+-- | Get list of files in repository.
 gitIndex :: GitFileStore -> IO [ResourceName]
 gitIndex repo = do
   (status, errOutput, output) <- runGitCommand repo "ls-files" []
@@ -176,6 +181,7 @@ pOctalChar = P.try $ do
   let num = read $ "0o" ++ ds
   return $ chr num
 
+-- | Uses git-grep to search repository.
 gitSearch :: GitFileStore -> SearchQuery -> IO [SearchMatch]
 gitSearch repo query = do
   let opts = ["-I","-n"] ++
@@ -195,6 +201,7 @@ parseMatchLine str =
   let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
   in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
 
+-- | Uses git-diff to get a dif between two revisions.
 gitDiff :: GitFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
 gitDiff repo name from to = do
   (status, _, output) <- runGitCommand repo "diff" [from, to, name]
