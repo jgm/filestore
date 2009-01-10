@@ -46,8 +46,8 @@ Invoke it with:
 > unicodeTestTitle :: String
 > unicodeTestTitle = "αβγ"
 
-Initialize a repository, check for empty index, and then try to initialize again
-in the same directory (should raise an error):
+*** Initialize a repository, check for empty index, and then try to initialize again
+*** in the same directory (should raise an error):
 
 > initializeTest fs = TestCase $ do
 >   initialize fs
@@ -56,46 +56,46 @@ in the same directory (should raise an error):
 >   catch (initialize fs >> assertFailure "did not return error for existing repository") $
 >     \e -> assertEqual "error status from existing repository" e RepositoryExists
 
-Create a resource, and check to see that revision returns a revision for it:
+*** Create a resource, and check to see that revision returns a revision for it:
 
 > createTest1 fs = TestCase $ do
 >   create fs testTitle testAuthor "description of change" testContents
 >   rev <- revision fs testTitle Nothing
 >   assertBool "revision returns a revision after create" ((not . null . revId) rev)
 
-Create a resource in a subdirectory, and check to see that revision returns a revision for it:
+*** Create a resource in a subdirectory, and check to see that revision returns a revision for it:
 
 > createTest2 fs = TestCase $ do
 >   create fs subdirTestTitle testAuthor "description of change" testContents
 >   rev <- revision fs subdirTestTitle Nothing
 >   assertBool "revision returns a revision after create" ((not . null . revId) rev)
 
-Create a resource with a unicode title, and check to see that revision returns a revision for it:
+*** Create a resource with a unicode title, and check to see that revision returns a revision for it:
 
 > createTest3 fs = TestCase $ do
 >   create fs unicodeTestTitle testAuthor "description of change" testContents
 >   rev <- revision fs unicodeTestTitle Nothing
 >   assertBool "revision returns a revision after create" ((not . null . revId) rev)
 
-Retrieve latest version of a resource:
+*** Retrieve latest version of a resource:
 
 > retrieveTest1 fs = TestCase $ do
 >   cont <- retrieve fs testTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
 
-Retrieve latest version of a resource (in a subdirectory):
+*** Retrieve latest version of a resource (in a subdirectory):
 
 > retrieveTest2 fs = TestCase $ do
 >   cont <- retrieve fs subdirTestTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
 
-Retrieve latest version of a resource with a unicode name:
+*** Retrieve latest version of a resource with a unicode name:
 
 > retrieveTest3 fs = TestCase $ do
 >   cont <- retrieve fs unicodeTestTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
 
-Modify a resource:
+*** Modify a resource:
 
 > modifyTest fs = TestCase $ do
 
@@ -115,7 +115,9 @@ Modify a resource:
     Now try to modify again, using the old revision as base.  This should result in a merge with conflicts.
 
 >   modResult2 <- modify fs testTitle (revId rev) testAuthor "modified from old version" (testContents ++ "\nFourth line")
->   let normModResult2 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = True, mergeText = "Test contents.\nSecond line.\n<<<<<<< edited\nThird test line with some unicode \945\946.\nFourth line\n=======\n>>>>>>> " ++ revId newRev ++ "\n"})
+>   let normModResult2 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = True, mergeText =
+>                         "Test contents.\nSecond line.\n<<<<<<< edited\nThird test line with some unicode \945\946.\nFourth line\n=======\n>>>>>>> " ++
+>                         revId newRev ++ "\n"})
 >   assertEqual "results of modify from old version" normModResult2 modResult2
 
     Now try it again, still using the old version as base, but with contents of the new version.
