@@ -21,7 +21,6 @@ import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (runShellCommand) 
 import Data.ByteString.Lazy.UTF8 (toString)
-import Data.Maybe (fromMaybe)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString)
@@ -47,6 +46,7 @@ instance FileStore GitFileStore where
     delete     = gitDelete
     rename     = gitMove
     history    = gitLog
+    latest     = gitLatestRevId
     revision   = gitGetRevision
     index      = gitIndex
     diff       = gitDiff
@@ -115,9 +115,8 @@ gitRetrieve repo name Nothing = do
   let filename = gitRepoPath repo </> encodeString name
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
-gitRetrieve repo name mbRevId = do
-  rev <- gitGetRevision repo name mbRevId
-  (status, err, output) <- runGitCommand repo "cat-file" ["-p", revId rev ++ ":" ++ name]
+gitRetrieve repo name (Just revid) = do
+  (status, err, output) <- runGitCommand repo "cat-file" ["-p", revid ++ ":" ++ name]
   if status == ExitSuccess
      then return $ fromByteString output
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
@@ -133,7 +132,7 @@ gitDelete repo name author logMsg = do
 -- | Change the name of a resource.
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove repo oldName newName author logMsg = do
-  gitGetRevision repo oldName Nothing  -- throw a NotFound error if oldName doesn't exist
+  gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
   -- create destination directory if missing
   createDirectoryIfMissing True $ takeDirectory (gitRepoPath repo </> encodeString newName)
   (statusAdd, err, _) <- runGitCommand repo "mv" [oldName, newName]
@@ -142,24 +141,20 @@ gitMove repo oldName newName author logMsg = do
      else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
 
 -- | Return revision ID for latest commit for a resource.
-gitLatestRevId :: GitFileStore
-               -> ResourceName
-               -> IO RevisionId
+gitLatestRevId :: GitFileStore -> ResourceName -> IO RevisionId
 gitLatestRevId repo name = do
   (status, _, output) <- runGitCommand repo "rev-list" ["--max-count=1", "HEAD", "--", name]
   if status == ExitSuccess
-     then return $ takeWhile (`notElem` "\n\r\t ") $ toString output
+     then do
+       let result = takeWhile (`notElem` "\n\r \t") $ toString output
+       if null result
+          then throwIO NotFound
+          else return result
      else throwIO NotFound
 
 -- | Get revision information for a particular revision ID, or latest revision.
-gitGetRevision :: GitFileStore
-               -> ResourceName
-               -> Maybe RevisionId   -- ^ @Just@ a particular revision ID, or @Nothing@ for latest
-               -> IO Revision
-gitGetRevision repo name mbRevid = do
-  revid <- case mbRevid of
-                Just r  -> return r
-                Nothing -> gitLatestRevId repo name
+gitGetRevision :: GitFileStore -> RevisionId -> IO Revision
+gitGetRevision repo revid = do
   (status, _, output) <- runGitCommand repo "whatchanged" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid]
   if status == ExitSuccess
      then case P.parse parseGitLog "" (toString output) of

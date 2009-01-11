@@ -64,26 +64,26 @@ Invoke it with:
 >   catch (initialize fs >> assertFailure "did not return error for existing repository") $
 >     \e -> assertEqual "error status from existing repository" e RepositoryExists
 
-*** Create a resource, and check to see that revision returns a revision for it:
+*** Create a resource, and check to see that latest returns a revision ID for it:
 
 > createTest1 fs = TestCase $ do
 >   create fs testTitle testAuthor "description of change" testContents
->   rev <- revision fs testTitle Nothing
->   assertBool "revision returns a revision after create" ((not . null . revId) rev)
+>   revid <- latest fs testTitle
+>   assertBool "revision returns a revision after create" (not (null revid))
 
 *** Create a resource in a subdirectory, and check to see that revision returns a revision for it:
 
 > createTest2 fs = TestCase $ do
 >   create fs subdirTestTitle testAuthor "description of change" testContents
->   rev <- revision fs subdirTestTitle Nothing
->   assertBool "revision returns a revision after create" ((not . null . revId) rev)
+>   revid <- latest fs testTitle
+>   assertBool "revision returns a revision after create" (not (null revid))
 
 *** Create a resource with a non-ascii title, and check to see that revision returns a revision for it:
 
 > createTest3 fs = TestCase $ do
 >   create fs nonasciiTestTitle testAuthor "description of change" testContents
->   rev <- revision fs nonasciiTestTitle Nothing
->   assertBool "revision returns a revision after create" ((not . null . revId) rev)
+>   revid <- latest fs testTitle
+>   assertBool "revision returns a revision after create" (not (null revid))
 
 *** Retrieve latest version of a resource:
 
@@ -109,35 +109,36 @@ Invoke it with:
 
     Modify a resource.  Should return Right ().
 
->   rev <- revision fs testTitle Nothing
+>   revid <- latest fs testTitle
 >   let modifiedContents = unlines $ take 2 $ lines testContents
->   modResult <- modify fs testTitle (revId rev) testAuthor "removed third line" modifiedContents
+>   modResult <- modify fs testTitle revid testAuthor "removed third line" modifiedContents
 >   assertEqual "results of modify" (Right ()) modResult
 
     Now retrieve the contents and make sure they were changed.
 
 >   modifiedContents' <- retrieve fs testTitle Nothing
->   newRev <- revision fs testTitle Nothing
+>   newRevId <- latest fs testTitle
+>   newRev <- revision fs newRevId
 >   assertEqual "retrieved contents after modify" modifiedContents' modifiedContents
 
     Now try to modify again, using the old revision as base.  This should result in a merge with conflicts.
 
->   modResult2 <- modify fs testTitle (revId rev) testAuthor "modified from old version" (testContents ++ "\nFourth line")
+>   modResult2 <- modify fs testTitle revid testAuthor "modified from old version" (testContents ++ "\nFourth line")
 >   let normModResult2 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = True, mergeText =
 >                         "Test contents.\nSecond line.\n<<<<<<< edited\nThird test line with some Greek \945\946.\nFourth line\n=======\n>>>>>>> " ++
->                         revId newRev ++ "\n"})
+>                         newRevId ++ "\n"})
 >   assertEqual "results of modify from old version" normModResult2 modResult2
 
     Now try it again, still using the old version as base, but with contents of the new version.
     This should result in a merge without conflicts.
 
->   modResult3 <- modify fs testTitle (revId rev) testAuthor "modified from old version" modifiedContents
+>   modResult3 <- modify fs testTitle revid testAuthor "modified from old version" modifiedContents
 >   let normModResult3 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = False, mergeText = modifiedContents})
 >   assertEqual "results of modify from old version with new version's contents" normModResult3 modResult3
 
     Now try modifying again, this time using the new version as base. Should succeed with Right ().
 
->   modResult4 <- modify fs testTitle (revId newRev) testAuthor "modified from new version" (modifiedContents ++ "\nThird line")
+>   modResult4 <- modify fs testTitle newRevId testAuthor "modified from new version" (modifiedContents ++ "\nThird line")
 >   assertEqual "results of modify from new version" (Right ()) modResult4 
 
 *** Delete a resource:
@@ -192,7 +193,7 @@ Invoke it with:
 >   hist <- history fs [testTitle, subdirTestTitle, nonasciiTestTitle] (TimeRange Nothing Nothing)
 >   assertBool "history is nonempty" (not (null hist))
 >   now <- getCurrentTime
->   rev <- revision fs testTitle Nothing  -- get latest revision
+>   rev <- latest fs testTitle >>= revision fs  -- get latest revision
 >   assertBool "history contains latest revision" (rev `elem` hist)
 >   assertEqual "revAuthor" testAuthor (revAuthor rev)
 >   assertBool "revId non-null" (not (null (revId rev)))

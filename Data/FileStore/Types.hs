@@ -119,8 +119,8 @@ data SearchMatch =
 -- | An abstract class for a versioning filestore, which can be
 -- implemented using the file system, a database, or revision-control
 -- software. A minimal instance definition will define 'initialize',
--- 'save', 'retrieve', 'delete', 'rename', 'history', 'revision', and
--- 'index'. Sensible defaults are provided for 'modify', 'create',
+-- 'save', 'retrieve', 'delete', 'rename', 'history', 'latest', 'revision',
+-- and 'index'. Sensible defaults are provided for 'modify', 'create',
 -- 'diff', and 'idsMatch', so these normally do not need to be
 -- implemented.
 class FileStore b where
@@ -188,11 +188,16 @@ class FileStore b where
                    -> TimeRange         -- ^ Time range within which to get history.
                    -> IO [Revision]
 
-    -- | Return information about a revision, given a resource name and a revision ID,
-    -- or the latest revision, if revision ID is @Nothing@.
+    -- | Return the revision ID of the latest change for a resource.  Raises 'NotFound'
+    -- if the resource is not found.
+    latest         :: b
+                   -> ResourceName      -- ^ Resource to get revision ID for.
+                   -> IO RevisionId
+
+    -- | Return information about a revision, given the ID.  Raises 'NotFound' if there is
+    -- no such revision.
     revision       :: b
-                   -> ResourceName      -- ^ Resource to get revision information for.
-                   -> Maybe RevisionId  -- ^ @Just@ a particular revision ID, or @Nothing@ for latest.
+                   -> RevisionId        -- ^ Revision ID to get revision information for.
                    -> IO Revision
 
     -- | Return a list of resources in the filestore.
@@ -237,7 +242,7 @@ handleUnknownError e = throwIO $ UnknownError $ show e
 -- if the resource already exists: if so, throws a 'ResourceExists' error, if not, saves contents.
 genericCreate :: (Contents a, FileStore b) => b -> ResourceName -> Author -> String -> a -> IO ()
 genericCreate fs name author logMsg contents = do
-  catch (revision fs name Nothing >> throwIO ResourceExists)
+  catch (latest fs name >> throwIO ResourceExists)
         (\e -> if e == NotFound
                   then save fs name author logMsg contents
                   else throwIO e)
@@ -249,8 +254,8 @@ genericCreate fs name author logMsg contents = do
 -- to call modify again with the updated revision ID and possibly revised contents.
 modifyWithMerge :: (Contents a, FileStore b) => b -> ResourceName -> RevisionId -> Author -> String -> a -> IO (Either MergeInfo ())
 modifyWithMerge fs name originalRevId author msg contents = do
-  latestRev <- revision fs name Nothing
-  let latestRevId = revId latestRev
+  latestRevId <- latest fs name
+  latestRev <- revision fs latestRevId
   if idsMatch fs originalRevId latestRevId
      then save fs name author msg contents >> return (Right ())
      else do
