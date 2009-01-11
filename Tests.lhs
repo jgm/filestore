@@ -23,10 +23,10 @@ Invoke it with:
 >     [ ("initialize", initializeTest)
 >     , ("create resource", createTest1)
 >     , ("create resource in subdirectory", createTest2)
->     , ("create resource with unicode name", createTest3)
+>     , ("create resource with non-ascii name", createTest3)
 >     , ("retrieve resource", retrieveTest1)
 >     , ("retrieve resource in a subdirectory", retrieveTest2)
->     , ("retrieve resource with unicode name", retrieveTest3)
+>     , ("retrieve resource with non-ascii name", retrieveTest3)
 >     , ("modify resource", modifyTest)
 >     , ("delete resource", deleteTest)
 >     , ("rename resource", renameTest)
@@ -36,7 +36,7 @@ Invoke it with:
 > testAuthor = Author "Test Suite" "suite@test.org"
 
 > testContents :: String
-> testContents = "Test contents.\nSecond line.\nThird test line with some unicode αβ."
+> testContents = "Test contents.\nSecond line.\nThird test line with some Greek αβ."
 
 > testTitle :: String
 > testTitle = "New resource.txt"
@@ -44,8 +44,8 @@ Invoke it with:
 > subdirTestTitle :: String
 > subdirTestTitle = "subdir/Subdir title.txt"
 
-> unicodeTestTitle :: String
-> unicodeTestTitle = "αβγ"
+> nonasciiTestTitle :: String
+> nonasciiTestTitle = "αβγ"
 
 *** Initialize a repository, check for empty index, and then try to initialize again
 *** in the same directory (should raise an error):
@@ -71,11 +71,11 @@ Invoke it with:
 >   rev <- revision fs subdirTestTitle Nothing
 >   assertBool "revision returns a revision after create" ((not . null . revId) rev)
 
-*** Create a resource with a unicode title, and check to see that revision returns a revision for it:
+*** Create a resource with a non-ascii title, and check to see that revision returns a revision for it:
 
 > createTest3 fs = TestCase $ do
->   create fs unicodeTestTitle testAuthor "description of change" testContents
->   rev <- revision fs unicodeTestTitle Nothing
+>   create fs nonasciiTestTitle testAuthor "description of change" testContents
+>   rev <- revision fs nonasciiTestTitle Nothing
 >   assertBool "revision returns a revision after create" ((not . null . revId) rev)
 
 *** Retrieve latest version of a resource:
@@ -90,10 +90,10 @@ Invoke it with:
 >   cont <- retrieve fs subdirTestTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
 
-*** Retrieve latest version of a resource with a unicode name:
+*** Retrieve latest version of a resource with a nonascii name:
 
 > retrieveTest3 fs = TestCase $ do
->   cont <- retrieve fs unicodeTestTitle Nothing
+>   cont <- retrieve fs nonasciiTestTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
 
 *** Modify a resource:
@@ -117,7 +117,7 @@ Invoke it with:
 
 >   modResult2 <- modify fs testTitle (revId rev) testAuthor "modified from old version" (testContents ++ "\nFourth line")
 >   let normModResult2 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = True, mergeText =
->                         "Test contents.\nSecond line.\n<<<<<<< edited\nThird test line with some unicode \945\946.\nFourth line\n=======\n>>>>>>> " ++
+>                         "Test contents.\nSecond line.\n<<<<<<< edited\nThird test line with some Greek \945\946.\nFourth line\n=======\n>>>>>>> " ++
 >                         revId newRev ++ "\n"})
 >   assertEqual "results of modify from old version" normModResult2 modResult2
 
