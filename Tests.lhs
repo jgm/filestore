@@ -132,7 +132,7 @@ Invoke it with:
 >   modResult4 <- modify fs testTitle (revId newRev) testAuthor "modified from new version" (modifiedContents ++ "\nThird line")
 >   assertEqual "results of modify from new version" (Right ()) modResult4 
 
-Delete a resource:
+*** Delete a resource:
 
 > deleteTest fs = TestCase $ do
 
@@ -141,13 +141,13 @@ Delete a resource:
 >   let toBeDeleted = "Aaack!"
 >   create fs toBeDeleted testAuthor "description of change" testContents
 >   ind <- index fs
->   assertBool "index contains file to be deleted" (toBeDeleted `elem` ind) 
+>   assertBool "index contains resource to be deleted" (toBeDeleted `elem` ind) 
 
     Now delete it and verify that it's gone.
 
 >   delete fs toBeDeleted testAuthor "goodbye"
 >   ind <- index fs
->   assertBool "index does not contain file that was deleted" (not (toBeDeleted `elem` ind))
+>   assertBool "index does not contain resource that was deleted" (not (toBeDeleted `elem` ind))
 
 
 > main = do
