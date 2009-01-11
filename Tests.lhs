@@ -19,7 +19,7 @@ Invoke it with:
 >   forM fileStores testFileStore
 >   removeDirectoryRecursive "tmp"
 
-> testFileStore :: FileStore a => (a, String) -> IO Counts 
+> testFileStore :: SearchableFileStore a => (a, String) -> IO Counts 
 > testFileStore (fs, fsName) = do
 >   putStrLn $ "**********************************"
 >   putStrLn $ "Testing " ++ fsName
@@ -36,7 +36,8 @@ Invoke it with:
 >     , ("delete resource", deleteTest)
 >     , ("rename resource", renameTest)
 >     , ("test for matching IDs", matchTest)
->     , ("test for history and revision", historyTest)
+>     , ("history and revision", historyTest)
+>     , ("search", searchTest)
 >     ]
 
 > testAuthor :: Author
@@ -205,7 +206,41 @@ Invoke it with:
 
 *** Test diff
 
+
 *** Test search
+
+> searchTest fs = TestCase $ do
+
+    Search for "bing"
+
+>   create fs "foo" testAuthor "my 1st search test doc" "bing\nbong\nbang\nφ"
+>   create fs "bar" testAuthor "my 2nd search test doc" "bing BONG" 
+>   create fs "baz" testAuthor "my 3nd search test doc" "bingbang\nbong"
+
+    Search for "bing" with whole-word matches.
+
+>   res1 <- search fs SearchQuery{queryPatterns = ["bing"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = True}
+>   assertEqual "search results 1" [SearchMatch "bar" 1 "bing BONG", SearchMatch "foo" 1 "bing"] res1
+
+    Search for regex "B.NG" case-sensitive.
+
+>   res2 <- search fs SearchQuery{queryPatterns = ["B.NG"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = False}
+>   assertEqual "search results 2" [SearchMatch "bar" 1 "bing BONG"] res2
+
+    Search for "bo.*g" and "φ"
+
+>   res3 <- search fs SearchQuery{queryPatterns = ["bo.*g", "φ"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = True}
+>   assertEqual "search results 3" [SearchMatch "foo" 2 "bong", SearchMatch "foo" 4 "φ"] res3
+
+    Search for "bo.*g" and "φ" but without match-all set
+
+>   res4 <- search fs SearchQuery{queryPatterns = ["bo.*g", "φ"], queryWholeWords = True, queryMatchAll = False, queryIgnoreCase = True}
+>   assertEqual "search results 4" [SearchMatch "bar" 1 "bing BONG", SearchMatch "baz" 2 "bong", SearchMatch "foo" 2 "bong", SearchMatch "foo" 4 "φ"] res4
+
+    Search for "bing" but without whole-words set
+
+>   res5 <- search fs SearchQuery{queryPatterns = ["bing"], queryWholeWords = False, queryMatchAll = True, queryIgnoreCase = True}
+>   assertEqual "search results 5" [SearchMatch "bar" 1 "bing BONG", SearchMatch "baz" 1 "bingbang", SearchMatch "foo" 1 "bing"] res5
 
 *** Test IDs match
 
