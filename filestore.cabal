@@ -9,6 +9,7 @@ Description:         The filestore library provides an abstract interface for a 
                      used, too.
 Category:            Data
 License:             BSD3
+License-File:        LICENSE
 Author:              John MacFarlane
 Maintainer:          jgm@berkeley.edu
 Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
