@@ -269,7 +269,7 @@ gitLogEntry = do
   email <- wholeLine
   subject <- liftM unlines (P.manyTill wholeLine (P.eof P.<|> (P.lookAhead (P.char ':') >> return ())))
   P.spaces
-  files <- P.many gitLogChange
+  changes <- P.many gitLogChange
   P.spaces
   let stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
   return $ Revision {
@@ -277,11 +277,16 @@ gitLogEntry = do
             , revDateTime    = posixSecondsToUTCTime $ realToFrac $ (read $ date :: Integer)
             , revAuthor      = Author { authorName = author, authorEmail = email }
             , revDescription = stripTrailingNewlines $ subject
-            , revModified    = map convertEncoded files }
+            , revChanges     = changes }
 
-gitLogChange :: P.Parser String
+gitLogChange :: P.Parser Change
 gitLogChange = do
   P.char ':'
   line <- nonblankLine
-  return $ unwords $ drop 5 $ words line
-
+  let (changeType : fileWords) = drop 4 $ words line
+  let file' = convertEncoded $ unwords fileWords
+  case changeType of
+         "A"  -> return $ Added file'
+         "M"  -> return $ Modified file'
+         "D"  -> return $ Deleted file'
+         x    -> fail $ "Unknown change type '" ++ x ++ "'"

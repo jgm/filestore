@@ -15,6 +15,7 @@ module Data.FileStore.Types
            ( RevisionId
            , ResourceName
            , Author(..)
+           , Change(..)
            , Revision(..)
            , Contents(..)
            , TimeRange(..)
@@ -46,13 +47,19 @@ data Author =
   , authorEmail :: String
   } deriving (Show, Read, Eq)
 
+data Change =
+    Added ResourceName
+  | Deleted ResourceName
+  | Modified ResourceName
+  deriving (Show, Read, Eq, Typeable)
+
 data Revision =
   Revision {
     revId          :: RevisionId
   , revDateTime    :: DateTime
   , revAuthor      :: Author
   , revDescription :: String
-  , revModified    :: [ResourceName]
+  , revChanges     :: [Change]
   } deriving (Show, Read, Eq, Typeable)
 
 class Contents a where

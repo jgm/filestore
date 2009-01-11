@@ -198,7 +198,7 @@ Invoke it with:
 >   assertEqual "revAuthor" testAuthor (revAuthor rev)
 >   assertBool "revId non-null" (not (null (revId rev)))
 >   assertBool "revDescription non-null" (not (null (revDescription rev)))
->   assertEqual "revModified" [testTitle] (revModified rev)
+>   assertEqual "revChanges" [Modified testTitle] (revChanges rev)
 >   let revtime = revDateTime rev
 >   histNow <- history fs [testTitle] (TimeRange (Just now) Nothing)
 >   assertBool "history from now onwards is empty" (null histNow)
