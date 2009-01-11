@@ -28,7 +28,8 @@ Invoke it with:
 >     , ("retrieve resource in a subdirectory", retrieveTest2)
 >     , ("retrieve resource with unicode name", retrieveTest3)
 >     , ("modify resource", modifyTest)
->     , ("create and delete resource", deleteTest)
+>     , ("delete resource", deleteTest)
+>     , ("rename resource", renameTest)
 >     ]
 
 > testAuthor :: Author
@@ -149,6 +150,31 @@ Invoke it with:
 >   ind <- index fs
 >   assertBool "index does not contain resource that was deleted" (not (toBeDeleted `elem` ind))
 
+*** Rename a resource:
+
+> renameTest fs = TestCase $ do
+
+    Create a file and verify that it's there.
+
+>   let oldName = "Old Name"
+>   let newName = "newdir/New Name.txt"
+>   create fs oldName testAuthor "description of change" testContents
+>   ind <- index fs
+>   assertBool "index contains old name" (oldName `elem` ind) 
+>   assertBool "index does not contain new name" (newName `notElem` ind)
+
+    Now rename it and verify that it changed names.
+
+>   rename fs oldName newName testAuthor "rename"
+>   ind <- index fs
+>   assertBool "index does not contain old name" (oldName `notElem` ind) 
+>   assertBool "index contains new name" (newName `elem` ind)
+
+    Try renaming a file that doesn't exist.
+
+>   catch (rename fs "nonexistent file" "other name" testAuthor "rename" >>
+>       assertFailure "rename of nonexistent file did not throw error") $
+>       \e -> assertEqual "error status from rename of nonexistent file" NotFound e
 
 > main = do
 >   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
