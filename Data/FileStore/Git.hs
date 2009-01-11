@@ -141,14 +141,26 @@ gitMove repo oldName newName author logMsg = do
      then gitCommit repo [oldName, newName] author logMsg
      else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
 
+-- | Return revision ID for latest commit for a resource.
+gitLatestRevId :: GitFileStore
+               -> ResourceName
+               -> IO RevisionId
+gitLatestRevId repo name = do
+  (status, _, output) <- runGitCommand repo "rev-list" ["--max-count=1", "HEAD", "--", name]
+  if status == ExitSuccess
+     then return $ takeWhile (`notElem` "\n\r\t ") $ toString output
+     else throwIO NotFound
+
 -- | Get revision information for a particular revision ID, or latest revision.
 gitGetRevision :: GitFileStore
                -> ResourceName
                -> Maybe RevisionId   -- ^ @Just@ a particular revision ID, or @Nothing@ for latest
                -> IO Revision
 gitGetRevision repo name mbRevid = do
-  let revid = fromMaybe "HEAD" mbRevid
-  (status, _, output) <- runGitCommand repo "rev-list" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid, "--", name]
+  revid <- case mbRevid of
+                Just r  -> return r
+                Nothing -> gitLatestRevId repo name
+  (status, _, output) <- runGitCommand repo "whatchanged" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid]
   if status == ExitSuccess
      then case P.parse parseGitLog "" (toString output) of
                  Left err'   -> throwIO $ UnknownError $ "error parsing git log: " ++ show err'
@@ -256,7 +268,6 @@ nonblankLine = P.notFollowedBy P.newline >> wholeLine
 
 gitLogEntry :: P.Parser Revision
 gitLogEntry = do
-  P.optional (P.string "commit" >> wholeLine)  -- the commit XXX message returned by git rev-list
   rev <- nonblankLine
   date <- nonblankLine
   author <- wholeLine
