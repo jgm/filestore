@@ -37,6 +37,7 @@ Invoke it with:
 >     , ("rename resource", renameTest)
 >     , ("test for matching IDs", matchTest)
 >     , ("history and revision", historyTest)
+>     , ("diff", diffTest)
 >     , ("search", searchTest)
 >     ]
 
@@ -206,6 +207,12 @@ Invoke it with:
 
 *** Test diff
 
+> diffTest fs = TestCase $ do
+
+>   hist <- history fs [testTitle] (TimeRange Nothing Nothing)
+>   diff' <- diff fs testTitle (revId $ hist !! 1) (revId $ hist !! 0)
+>   let added = filter (\x -> take 1 x == "+") $ drop 5 $ lines diff'
+>   assertEqual "added lines" ["+","+Third line"] added
 
 *** Test search
 
