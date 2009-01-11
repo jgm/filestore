@@ -101,7 +101,6 @@ instance Exception FileStoreError
 data SearchQuery =
   SearchQuery {
     queryPatterns    :: [String] -- ^ Patterns to match
-  , queryRegex       :: Bool     -- ^ Interpret patterns as extended regexes, not strings?
   , queryWholeWords  :: Bool     -- ^ Match patterns only with whole words?
   , queryMatchAll    :: Bool     -- ^ Return matches only from files in which all patterns match?
   , queryIgnoreCase  :: Bool     -- ^ Make matches case-insensitive?
@@ -110,7 +109,6 @@ data SearchQuery =
 defaultSearchQuery :: SearchQuery
 defaultSearchQuery = SearchQuery {
      queryPatterns   = []
-   , queryRegex      = True
    , queryWholeWords = True
    , queryMatchAll   = True
    , queryIgnoreCase = True

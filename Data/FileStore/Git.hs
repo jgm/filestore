@@ -202,8 +202,7 @@ gitSearch repo query = do
   let opts = ["-I","-n"] ++
              (if queryIgnoreCase query then ["--ignore-case"] else []) ++
              (if queryMatchAll query then ["--all-match"] else []) ++
-             (if queryWholeWords query then ["--word-regexp"] else []) ++
-             (if queryRegex query then ["--extended-regexp"] else ["--fixed-strings"])
+             (if queryWholeWords query then ["--word-regexp"] else [])
   (status, errOutput, output) <- runGitCommand repo "grep" (opts ++
                                    concatMap (\term -> ["-e", term]) (queryPatterns query))
   if status == ExitSuccess
