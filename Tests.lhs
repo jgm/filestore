@@ -36,6 +36,7 @@ Invoke it with:
 >     , ("delete resource", deleteTest)
 >     , ("rename resource", renameTest)
 >     , ("test for matching IDs", matchTest)
+>     , ("test for history and revision", historyTest)
 >     ]
 
 > testAuthor :: Author
@@ -182,7 +183,24 @@ Invoke it with:
 >       assertFailure "rename of nonexistent file did not throw error") $
 >       \e -> assertEqual "error status from rename of nonexistent file" NotFound e
 
-*** Test history and retrieve
+*** Test history and revision
+
+> historyTest fs = TestCase $ do
+
+    Get history for three files
+
+>   hist <- history fs [testTitle, subdirTestTitle, nonasciiTestTitle] (TimeRange Nothing Nothing)
+>   assertBool "history is nonempty" (not (null hist))
+>   now <- getCurrentTime
+>   rev <- revision fs testTitle Nothing  -- get latest revision
+>   assertBool "history contains latest revision" (rev `elem` hist)
+>   assertEqual "revAuthor" testAuthor (revAuthor rev)
+>   assertBool "revId non-null" (not (null (revId rev)))
+>   assertBool "revDescription non-null" (not (null (revDescription rev)))
+>   assertEqual "revModified" [testTitle] (revModified rev)
+>   let revtime = revDateTime rev
+>   histNow <- history fs [testTitle] (TimeRange (Just now) Nothing)
+>   assertBool "history from now onwards is empty" (null histNow)
 
 *** Test diff
 
