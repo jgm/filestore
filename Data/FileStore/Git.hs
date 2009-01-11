@@ -133,6 +133,9 @@ gitDelete repo name author logMsg = do
 -- | Change the name of a resource.
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove repo oldName newName author logMsg = do
+  gitGetRevision repo oldName Nothing  -- throw a NotFound error if oldName doesn't exist
+  -- create destination directory if missing
+  createDirectoryIfMissing True $ takeDirectory (gitRepoPath repo </> encodeString newName)
   (statusAdd, err, _) <- runGitCommand repo "mv" [oldName, newName]
   if statusAdd == ExitSuccess
      then gitCommit repo [oldName, newName] author logMsg
