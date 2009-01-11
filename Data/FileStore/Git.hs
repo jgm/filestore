@@ -1,5 +1,5 @@
 {- |
-   Module      : Data.FileStore
+   Module      : Data.FileStore.Git
    Copyright   : Copyright (C) 2008 John MacFarlane
    License     : BSD 3
 
