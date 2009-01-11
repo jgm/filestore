@@ -30,9 +30,10 @@ import System.FilePath ((</>), takeDirectory)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
-import Text.Regex.Posix ((=~))
 import Control.Monad (unless)
-import Data.List (isPrefixOf, isInfixOf)
+import Text.Regex.Posix ((=~))
+import System.Directory (canonicalizePath)
+import Data.List (isPrefixOf)
 
 -- | A filestore implemented using the git distributed revision control system
 -- (<http://git-scm.com/>).
@@ -94,15 +95,18 @@ gitCommit repo names author logMsg = do
                        then Unchanged
                        else UnknownError $ "Could not git commit " ++ unwords names ++ "\n" ++ errCommit
 
-legalResourceName :: ResourceName -> Bool
-legalResourceName ('/':_) = False
-legalResourceName name = not (".." `isInfixOf` name)
+isInsideRepo :: GitFileStore -> ResourceName -> IO Bool
+isInsideRepo fs name = do
+  gitRepoPathCanon <- canonicalizePath $ gitRepoPath fs
+  filenameCanon <- canonicalizePath name
+  return (gitRepoPathCanon `isPrefixOf` filenameCanon)
 
 -- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
 gitSave repo name author logMsg contents = do
   let filename = gitRepoPath repo </> encodeString name
-  unless (legalResourceName name) $ throwIO IllegalResourceName
+  inside <- isInsideRepo repo filename
+  unless inside $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
   B.writeFile filename $ toByteString contents
   (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
@@ -139,9 +143,11 @@ gitDelete repo name author logMsg = do
 gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove repo oldName newName author logMsg = do
   gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
+  let newPath = gitRepoPath repo </> encodeString newName
+  inside <- isInsideRepo repo newPath
+  unless inside $ throwIO IllegalResourceName
   -- create destination directory if missing
-  unless (legalResourceName newName) $ throwIO IllegalResourceName
-  createDirectoryIfMissing True $ takeDirectory (gitRepoPath repo </> encodeString newName)
+  createDirectoryIfMissing True $ takeDirectory newPath
   (statusAdd, err, _) <- runGitCommand repo "mv" [oldName, newName]
   if statusAdd == ExitSuccess
      then gitCommit repo [oldName, newName] author logMsg
