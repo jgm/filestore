@@ -91,6 +91,7 @@ data FileStoreError =
     RepositoryExists             -- ^ Tried to initialize a repository that already exists
   | ResourceExists               -- ^ Tried to create a resource that already exists
   | NotFound                     -- ^ Requested resource was not found
+  | IllegalResourceName          -- ^ The specified resource name is illegal
   | Unchanged                    -- ^ The resource was not modified, because the contents were unchanged
   | UnsupportedOperation
   | UnknownError String

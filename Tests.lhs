@@ -13,6 +13,9 @@ Invoke it with:
 > import Prelude hiding (catch)
 > import Control.Exception (catch)
 > import Data.DateTime
+> import Control.Monad (unless)
+> import System.Directory (doesFileExist)
+> import System.FilePath ((</>))
 
 > main = do
 >   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
@@ -29,6 +32,7 @@ Invoke it with:
 >     , ("create resource", createTest1)
 >     , ("create resource in subdirectory", createTest2)
 >     , ("create resource with non-ascii name", createTest3)
+>     , ("try to create resource outside repo", createTest4)
 >     , ("retrieve resource", retrieveTest1)
 >     , ("retrieve resource in a subdirectory", retrieveTest2)
 >     , ("retrieve resource with non-ascii name", retrieveTest3)
@@ -86,6 +90,15 @@ Invoke it with:
 >   create fs nonasciiTestTitle testAuthor "description of change" testContents
 >   revid <- latest fs testTitle
 >   assertBool "revision returns a revision after create" (not (null revid))
+
+*** Try to create a resource outside the repository (should fail with an error and NOT write the file):
+
+> createTest4 fs = TestCase $ do
+>   catch (create fs "../oops" testAuthor "description of change" testContents >>
+>          assertFailure "did not return error from create ../oops") $
+>          \e -> assertEqual "error from create ../oops" IllegalResourceName e 
+>   exists <- doesFileExist "tmp/oops"
+>   assertBool "file ../oops was created outside repository" (not exists)
 
 *** Retrieve latest version of a resource:
 
