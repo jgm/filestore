@@ -14,6 +14,11 @@ Invoke it with:
 > import Control.Exception (catch)
 > import Data.DateTime
 
+> main = do
+>   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
+>   forM fileStores testFileStore
+>   removeDirectoryRecursive "tmp"
+
 > testFileStore :: FileStore a => (a, String) -> IO Counts 
 > testFileStore (fs, fsName) = do
 >   putStrLn $ "**********************************"
@@ -30,6 +35,7 @@ Invoke it with:
 >     , ("modify resource", modifyTest)
 >     , ("delete resource", deleteTest)
 >     , ("rename resource", renameTest)
+>     , ("test for matching IDs", matchTest)
 >     ]
 
 > testAuthor :: Author
@@ -176,8 +182,17 @@ Invoke it with:
 >       assertFailure "rename of nonexistent file did not throw error") $
 >       \e -> assertEqual "error status from rename of nonexistent file" NotFound e
 
-> main = do
->   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
->   forM fileStores testFileStore
->   removeDirectoryRecursive "tmp"
+*** Test history and retrieve
+
+*** Test diff
+
+*** Test search
+
+*** Test IDs match
+
+> matchTest fs = TestCase $ do
+
+>   assertBool "match with two identical IDs" (idsMatch fs "abcde" "abcde")
+>   assertBool "match with nonidentical but matching IDs" (idsMatch fs "abcde" "abcde5553")
+>   assertBool "non-match" (not (idsMatch fs "abcde" "abedc"))
 
