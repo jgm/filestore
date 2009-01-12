@@ -4,7 +4,7 @@ import Control.Exception (throwIO)
 import Control.Monad
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.FileStore.Types
-import Data.FileStore.Utils (runShellCommand) 
+import Data.FileStore.Utils (runShellCommand)
 import Data.List (isInfixOf, isPrefixOf)
 import System.Directory (canonicalizePath)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
@@ -31,7 +31,7 @@ instance FileStore DarcsFileStore where
     index      = darcsIndex
     diff       = darcsDiff
     idsMatch   = darcsIdsMatch
-instance SearchableFileStore DarcsFileStore where 
+instance SearchableFileStore DarcsFileStore where
     search     = darcsSearch
 
 -- | Run a darcs command and return error status, error output, standard output.  The repository
@@ -119,7 +119,7 @@ darcsSearch repo query = do
   -- is search for the *first* term, and then we process it later in Haskell-land against all the other terms
   -- with 'searchMultiply', which operates on a list (the results of grepping for the first term) and only lets
   -- through entries which contain (infix) all our other expressions. Tho it isn't a regexp search.
-  (status, errOutput, output) <- 
+  (status, errOutput, output) <-
    runShellCommand (darcsRepoPath repo) Nothing "grep" ((opts ++
                                                        concatMap (\term -> ["-e", term]) (take 1 regexps)) ++ files)
   let results = lines $ toString output
@@ -193,7 +193,7 @@ darcsInit repo = do
   (status, err, _) <- runDarcsCommand repo "init" []
   if status == ExitSuccess
      then return ()
-     else throwIO $ UnknownError $ "darcs init failed:\n" ++ err 
+     else throwIO $ UnknownError $ "darcs init failed:\n" ++ err
 
 {- TODO:
 gitCatFile: http://book.git-scm.com/7_browsing_git_objects.html
@@ -221,7 +221,7 @@ gitMergeFile
 -- darcsLog author files = do (_, _, output) <- runDarcsCommand "changes" $ ["--xml-output"] ++ files
 --                            -- logs <- map xmlParse output
 --                            return undefined
- 
+
 -- -- | Add and then commit file, raising errors if either step fails.
 -- darcsCommit :: MonadIO m => FilePath -> (String, String) -> String -> m ()
 -- darcsCommit file (author, email) logMsg = do
@@ -249,7 +249,7 @@ gitMergeFile
 --   return $ if status == ExitSuccess
 --               then Just output
 --               else Nothing
--- 
+--
 -- darcsMergeFile :: MonadIO m => FilePath -> FilePath -> FilePath -> m String
 -- darcsMergeFile edited original latest = do repo <- liftM repositoryPath (query GetConfig)
---                                            mergeFile repo edited original latest 
+--                                            mergeFile repo edited original latest
