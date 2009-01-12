@@ -70,7 +70,7 @@ runGitCommand repo command args = do
 gitInit :: GitFileStore -> IO ()
 gitInit repo = do
   exists <- doesDirectoryExist (gitRepoPath repo)
-  when exists $ throwIO $ RepositoryExists
+  when exists $ throwIO RepositoryExists
   createDirectoryIfMissing True (gitRepoPath repo)
   (status, err, _) <- runGitCommand repo "init" []
   if status == ExitSuccess
@@ -284,11 +284,11 @@ gitLogEntry = do
   changes <- P.many gitLogChange
   P.spaces
   let stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
-  return $ Revision {
+  return Revision {
               revId          = rev
-            , revDateTime    = posixSecondsToUTCTime $ realToFrac $ (read $ date :: Integer)
+            , revDateTime    = posixSecondsToUTCTime $ realToFrac (read date :: Integer)
             , revAuthor      = Author { authorName = author, authorEmail = email }
-            , revDescription = stripTrailingNewlines $ subject
+            , revDescription = stripTrailingNewlines subject
             , revChanges     = changes }
 
 gitLogChange :: P.Parser Change
