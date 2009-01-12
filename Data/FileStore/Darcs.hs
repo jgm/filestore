@@ -54,6 +54,7 @@ parseMatchLine str =
   in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
 
 -- | Match multiple terms against multiple search items.
+--
 -- > searchMultiple ["f", "g"] ["fbar", "gfar", "Zaptos", "Moltres"] ~> ["gfar"]
 searchMultiple :: (Eq a) =>[[a]] -> [[a]] -> [[a]]
 searchMultiple terms results = filter (search' terms) results
