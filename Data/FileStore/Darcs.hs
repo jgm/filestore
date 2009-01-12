@@ -10,6 +10,7 @@ import System.Directory (canonicalizePath)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit
 import System.FilePath ((</>), takeDirectory)
+import System.IO.Error (isDoesNotExistError)
 import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
 
@@ -65,11 +66,27 @@ searchMultiple terms results = filter (search' terms) results
 -- End utility functions and types
 ---------------------------
 
-darcsRetrieve = undefined
 darcsLog = undefined
 darcsLatestRevId = undefined
 darcsGetRevision = undefined
 darcsDiff = undefined
+
+-- | Retrieve contents from resource.
+darcsRetrieve :: Contents a
+            => DarcsFileStore
+            -> ResourceName
+            -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
+            -> IO a
+-- If called with Nothing, go straight to the file system
+darcsRetrieve repo name Nothing = do
+  let filename = darcsRepoPath repo </> name
+  catch (liftM fromByteString $ B.readFile filename) $
+    \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
+darcsRetrieve repo name (Just revid) = do
+   (status, err, output) <- runDarcsCommand repo "query contents" ["--patch="++ show revid, name]
+   if status == ExitSuccess
+      then return $ fromByteString output
+      else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
 
 -- | Uses grep to search repository.
 darcsSearch :: DarcsFileStore -> SearchQuery -> IO [SearchMatch]
