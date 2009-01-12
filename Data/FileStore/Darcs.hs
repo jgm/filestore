@@ -62,6 +62,15 @@ searchMultiple terms results = filter (search' terms) results
  where search' :: (Eq a) => [[a]] -> [a] -> Bool
        search' sterms result = all (\x -> x `isInfixOf` result) sterms
 
+-- Escape special characters in text that will end up in an XML document.
+escapePatch :: String -> String
+escapePatch []       = []
+escapePatch ('(':xs) = "\\(" ++ escapePatch xs
+escapePatch (')':xs) = "\\)" ++ escapePatch xs
+escapePatch ('+':xs) = "\\+" ++ escapePatch xs
+escapePatch ('.':xs) = "\\." ++ escapePatch xs
+escapePatch (x:xs)   = x : escapePatch xs
+
 ---------------------------
 -- End utility functions and types
 ---------------------------
@@ -69,7 +78,17 @@ searchMultiple terms results = filter (search' terms) results
 darcsLog = undefined
 darcsLatestRevId = undefined
 darcsGetRevision = undefined
-darcsDiff = undefined
+
+-- It's - it's AAAAALIIIVVVEEEE!!!!
+-- Unholily adapted from Orchid.
+darcsDiff :: DarcsFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
+darcsDiff repo file from to = do
+  (status, err, output) <- runDarcsCommand repo "diff" [file, "--unified", "--store-in-memory",
+                                                      "--to-patch=^" ++ escapePatch to ++ "$",
+                                                     "--from-patch=^" ++ escapePatch from ++ "$"]
+  if status == ExitSuccess
+     then return $ toString output
+     else throwIO $ UnknownError $ "darcs diff returned error:\n" ++ err
 
 -- | Retrieve contents from resource.
 darcsRetrieve :: Contents a
@@ -83,7 +102,7 @@ darcsRetrieve repo name Nothing = do
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 darcsRetrieve repo name (Just revid) = do
-   (status, err, output) <- runDarcsCommand repo "query contents" ["--patch="++ show revid, name]
+   (status, err, output) <- runDarcsCommand repo "query contents" ["--patch=^" ++ escapePatch revid ++ "$", name]
    if status == ExitSuccess
       then return $ fromByteString output
       else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
