@@ -8,14 +8,11 @@ Invoke it with:
 > import Data.FileStore
 > import Test.HUnit
 > import System.Directory (removeDirectoryRecursive)
-> import Data.Maybe (isJust)
 > import Control.Monad (forM)
 > import Prelude hiding (catch)
 > import Control.Exception (catch)
 > import Data.DateTime
-> import Control.Monad (unless)
 > import System.Directory (doesFileExist)
-> import System.FilePath ((</>))
 
 > main = do
 >   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
