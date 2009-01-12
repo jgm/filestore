@@ -242,16 +242,15 @@ class FileStore b => SearchableFileStore b where
                    -> IO [SearchMatch]
 
 handleUnknownError :: SomeException -> IO a
-handleUnknownError e = throwIO $ UnknownError $ show e
+handleUnknownError = throwIO . UnknownError . show
 
 -- | A definition of 'create' in terms of 'revision' and 'save'.  Checks to see
 -- if the resource already exists: if so, throws a 'ResourceExists' error, if not, saves contents.
 genericCreate :: (Contents a, FileStore b) => b -> ResourceName -> Author -> String -> a -> IO ()
-genericCreate fs name author logMsg contents = do
-  catch (latest fs name >> throwIO ResourceExists)
-        (\e -> if e == NotFound
-                  then save fs name author logMsg contents
-                  else throwIO e)
+genericCreate fs name author logMsg contents = catch (latest fs name >> throwIO ResourceExists)
+                                                (\e -> if e == NotFound
+                                                 then save fs name author logMsg contents
+                                                 else throwIO e)
 
 -- | A definition of 'modify' in terms of 'revision', 'retrieve', and 'save'.  Checks to see if
 -- the revision that is being modified is the latest revision of the resource.  If it is,
