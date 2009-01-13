@@ -113,8 +113,24 @@ replaced_tokens
 -- End utility functions and types
 ---------------------------
 
-darcsLog = error "called darcsLog"
-darcsGetRevision = error "called getRevision"
+-- | Get revision information for a particular revision ID, or latest revision.
+darcsGetRevision :: DarcsFileStore -> RevisionId -> IO Revision
+darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Nothing)
+                                let hist = filter (\x -> darcsIdsMatch repo (revId x) hash) hists
+                                let result =  if null hist then hists else hist
+                                return $ head result
+
+-- | Return list of log entries for the list of resources.
+-- If list of resources is empty, log entries for all resources are returned.
+-- TODO: Actually implement TimeRange functionality?
+darcsLog :: DarcsFileStore -> [ResourceName] -> TimeRange -> IO [Revision]
+darcsLog repo names (TimeRange _ _) = do
+  (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names
+  if status == ExitSuccess
+     then case parseDarcsXML $ toString output of
+                Nothing      -> throwIO $ ResourceExists -- $ "Error parsing darcs changes.\n" ++ show err
+                Just parsed -> return parsed
+     else throwIO $ UnknownError $ "darcs changes returned error status.\n" ++ err
 
 -- | Return revision ID for latest commit for a resource.
 darcsLatestRevId :: DarcsFileStore -> ResourceName -> IO RevisionId
