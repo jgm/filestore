@@ -114,16 +114,17 @@ changes :: Element -> Element
 changes = fromJust . findElement (QName  "summary" Nothing Nothing)
 
 analyze :: [Element] -> [Change]
-analyze s = map foo s
-  where foo a 
-          | x == "add_directory" || x == "add_file" = Added b
-          | x == "remove_file" || x == "remove_directory" = Deleted b
-          | x == "added_lines" 
-             || x == "modify_file" 
-             || x == "removed_lines" 
-             || x == "replaced_tokens" = Modified b
-            where  x = qName . elName $ a 
-                   b = strContent a
+analyze s = map convert s
+  where convert a 
+           | x == "add_directory" || x == "add_file" = Added b
+           | x == "remove_file" || x == "remove_directory" = Deleted b
+           | x == "added_lines" 
+              || x == "modify_file" 
+              || x == "removed_lines" 
+              || x == "replaced_tokens" = Modified b
+           | otherwise = error "Unknown change type"
+             where  x = qName . elName $ a 
+                    b = strContent a
 
 filterSummary :: Element -> [Element]
 filterSummary s = filterElementsName (\(QName {qName = x}) -> x == "add_file" 
