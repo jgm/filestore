@@ -75,7 +75,7 @@ parseDarcsXML :: String -> Maybe [Revision]
 parseDarcsXML str = do a <- parseXMLDoc str
                        let duppatches = filterElementsName (\(QName n _ _) -> n == "patch") a
                        -- Darcs seems to always prefix --xml-output with 1 'created_as' duplicate patch
-                       let patches = drop 1 duppatches`
+                       let patches = drop 1 duppatches
                        return $ map parseIntoRevision patches
                   
 -- TODO: figure out how to parse the String of dateXML into a DateTime
@@ -247,61 +247,3 @@ darcsInit repo = do
      then return ()
      else throwIO $ UnknownError $ "darcs init failed:\n" ++ err
 
-{- TODO:
-gitCatFile: http://book.git-scm.com/7_browsing_git_objects.html
-* ??? Some sort of history browsing with metadata about revision ID and committer
-gitDiff: http://book.git-scm.com/3_comparing_commits_-_git_diff.html
-* Should be handleable by 'darcs diff --index=N-M ', if we can turn two patch names into
-  2 indices.
-gitGetSHA1,
-* Gets the SHA ID of the last revision to change a specified file. I think. I see no obvious way
-  to get the name of the last patch to change a file in Darcs; 'darcs diff file' doesn't have any
-  option to give you it.
-gitLog
-* Partially implemented. Just need to figure out how to parse the XML.
-gitMergeFile
-* merge-file is confusing. It's used once:
- > mergeText <- gitMergeFile (pathForPage page ++ ".edited") (pathForPage page ++ ".original") (pathForPage page ++ ".latest")
-  Can we do this automatically in Darcs? I don't yet understand what 'git merge-file' does.
--}
-
-
--- -- | Return list of log entries for the given time frame and commit author.
--- -- If author is null, return entries for all authors.
--- -- TODO: finish this. Need to parse the XML *groan*
--- darcsLog :: MonadIO m => String -> [String] -> m [LogEntry]
--- darcsLog author files = do (_, _, output) <- runDarcsCommand "changes" $ ["--xml-output"] ++ files
---                            -- logs <- map xmlParse output
---                            return undefined
-
--- -- | Add and then commit file, raising errors if either step fails.
--- darcsCommit :: MonadIO m => FilePath -> (String, String) -> String -> m ()
--- darcsCommit file (author, email) logMsg = do
---   (statusAdd, errAdd, _) <- runDarcsCommand "add" [file]
---   if statusAdd == ExitSuccess
---      then do (statusCommit, errCommit, _) <- runDarcsCommand "record" ["-A", author ++ " <" ++
---                                                email ++ ">", "-m", logMsg]
---              if statusCommit == ExitSuccess
---                 then return ()
---                 else unless (null errCommit) $ error $ "Could not darcs record " ++ file ++ "\n" ++ errCommit
---      else error $ "Could not darcs add " ++ file ++ "\n" ++ errAdd
-
--- -- gitGrep is just a grep on files; but *only* files which are tracked by Git.
--- -- Darcs doesn't support this directly, but 'darcs query manifest' will give us
--- -- the list of tracked files, and then we can work from there.
--- darcsGrep :: MonadIO m => [String] -> m String
--- darcsGrep patterns = do (_,_stderr,managedfiles) <- runDarcsCommand "query manifest" []
---                         repo <- liftM repositoryPath (query GetConfig)
---                         (_,results,_) <- runProgCommand repo Nothing "grep" (unwords patterns) (lines managedfiles)
---                         return results
-
--- darcsCatFile :: MonadIO m => String -> FilePath -> m (Maybe String)
--- darcsCatFile revision file = do
---   (status, _, output) <- runDarcsCommand "show contents" ["--patch=\"" ++ show revision ++ "\"", file]
---   return $ if status == ExitSuccess
---               then Just output
---               else Nothing
---
--- darcsMergeFile :: MonadIO m => FilePath -> FilePath -> FilePath -> m String
--- darcsMergeFile edited original latest = do repo <- liftM repositoryPath (query GetConfig)
---                                            mergeFile repo edited original latest
