@@ -86,13 +86,17 @@ parseIntoRevision a = Revision { revId = hashXML a,
                                  revDateTime = date a,
                                  revAuthor = Author { authorName=authorXML a, authorEmail=emailXML a }, 
                                  revDescription = descriptionXML a,
-                                 revChanges = [] }
+                                 revChanges = changesXML a }
+
 authorXML, dateXML, descriptionXML, emailXML, hashXML :: Element -> String
 authorXML = fst . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
 emailXML =  snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
 dateXML   = fromMaybe "" . findAttr (QName "date" Nothing Nothing)
 hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
 descriptionXML = fromMaybe "" . findAttr (QName "name" Nothing Nothing)
+
+changesXML :: Element -> [Change]
+changesXML str = analyze $ filterSummary $ changes str
 
 -- | author -> (Name, Email address)
 splitEmailAuthor :: String -> (String,String)
@@ -106,23 +110,30 @@ splitEmailAuthor x = (reverse . dropWhile (isSpace) $ reverse b, (tail $ init c)
 -- date :: Element -> UTCTime
 date = fromMaybe (posixSecondsToUTCTime $ realToFrac (0::Int)) . parseDateTime "%c" . dateXML
 
-{- TODO: Analyze 'changes'
+changes :: Element -> Element
+changes = fromJust . findElement (QName  "summary" Nothing Nothing)
 
-changesXML :: Element -> Element
-changesXML = fromJust . findElement (QName  "summary" Nothing Nothing)
-changes str = let sum = changesXML str in analyze sum
+analyze :: [Element] -> [Change]
+analyze s = map foo s
+  where foo a 
+          | x == "add_directory" || x == "add_file" = Added b
+          | x == "remove_file" || x == "remove_directory" = Deleted b
+          | x == "added_lines" 
+             || x == "modify_file" 
+             || x == "removed_lines" 
+             || x == "replaced_tokens" = Modified b
+            where  x = qName . elName $ a 
+                   b = strContent a
 
-analyze s = findElement (QName "....
-                  
-add_file
-add_directory
-remove_file
-remove_directory
-modify_file
-added_lines
-removed_lines
-replaced_tokens
--}
+filterSummary :: Element -> [Element]
+filterSummary s = filterElementsName (\(QName {qName = x}) -> x == "add_file" 
+                                || x == "add_directory" 
+                                || x == "remove_file" 
+                                || x == "remove_directory" 
+                                || x == "modify_file" 
+                                || x == "added_lines" 
+                                || x == "removed_lines" 
+                                || x == "replaced_tokens") s
 
 ---------------------------
 -- End utility functions and types
