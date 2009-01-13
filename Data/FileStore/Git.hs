@@ -213,9 +213,9 @@ pOctalChar = P.try $ do
 gitSearch :: GitFileStore -> SearchQuery -> IO [SearchMatch]
 gitSearch repo query = do
   let opts = ["-I","-n"] ++
-             (if queryIgnoreCase query then ["--ignore-case"] else []) ++
-             (if queryMatchAll query then ["--all-match"] else []) ++
-             (if queryWholeWords query then ["--word-regexp"] else [])
+             ["--ignore-case" | queryIgnoreCase query] ++
+             ["--all-match" | queryMatchAll query] ++
+             ["--word-regexp" | queryWholeWords query]
   (status, errOutput, output) <- runGitCommand repo "grep" (opts ++
                                    concatMap (\term -> ["-e", term]) (queryPatterns query))
   if status == ExitSuccess
