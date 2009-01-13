@@ -1,4 +1,4 @@
-module Data.FileStore.Darcs where
+module Data.FileStore.Darcs (DarcsFileStore(..)) where
 
 import Control.Exception (throwIO)
 import Control.Monad
@@ -62,15 +62,6 @@ searchMultiple terms results = filter (search' terms) results
  where search' :: (Eq a) => [[a]] -> [a] -> Bool
        search' sterms result = all (\x -> x `isInfixOf` result) sterms
 
--- Escape special characters in text that will end up in an XML document.
-escapePatch :: String -> String
-escapePatch []       = []
-escapePatch ('(':xs) = "\\(" ++ escapePatch xs
-escapePatch (')':xs) = "\\)" ++ escapePatch xs
-escapePatch ('+':xs) = "\\+" ++ escapePatch xs
-escapePatch ('.':xs) = "\\." ++ escapePatch xs
-escapePatch (x:xs)   = x : escapePatch xs
-
 ---------------------------
 -- End utility functions and types
 ---------------------------
@@ -79,13 +70,12 @@ darcsLog = undefined
 darcsLatestRevId = undefined
 darcsGetRevision = undefined
 
--- It's - it's AAAAALIIIVVVEEEE!!!!
--- Unholily adapted from Orchid.
+-- Use --unified and --store-in-memory per Orchid.
 darcsDiff :: DarcsFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
-darcsDiff repo file from to = do
+darcsDiff repo file fromhash tohash = do
   (status, err, output) <- runDarcsCommand repo "diff" [file, "--unified", "--store-in-memory",
-                                                      "--to-patch=^" ++ escapePatch to ++ "$",
-                                                     "--from-patch=^" ++ escapePatch from ++ "$"]
+                                                        "--match 'hash " ++ fromhash ++ "'",
+                                                        "--match 'hash " ++ tohash ++ "'"]
   if status == ExitSuccess
      then return $ toString output
      else throwIO $ UnknownError $ "darcs diff returned error:\n" ++ err
@@ -102,7 +92,7 @@ darcsRetrieve repo name Nothing = do
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 darcsRetrieve repo name (Just revid) = do
-   (status, err, output) <- runDarcsCommand repo "query contents" ["--patch=^" ++ escapePatch revid ++ "$", name]
+   (status, err, output) <- runDarcsCommand repo "query contents" ["--match 'hash " ++ revid ++ "'", name]
    if status == ExitSuccess
       then return $ fromByteString output
       else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
@@ -128,9 +118,9 @@ darcsSearch repo query = do
       else return $ map parseMatchLine results
      else error $ "grep returned error status.\n" ++ toString errOutput
 
--- at some point we'll be makign use of the hash identifiers; then we can copy gitIdsMatch
+-- copied from Git.hs
 darcsIdsMatch :: DarcsFileStore -> RevisionId -> RevisionId -> Bool
-darcsIdsMatch _ r1 r2 = r1 == r2
+darcsIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Change the name of a resource.
 darcsMove :: DarcsFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
