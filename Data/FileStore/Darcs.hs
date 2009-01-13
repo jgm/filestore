@@ -18,6 +18,7 @@ import System.FilePath ((</>), takeDirectory, dropFileName)
 import System.IO.Error (isDoesNotExistError)
 import qualified Data.ByteString.Lazy as B
 import Text.XML.Light
+import Data.DateTime
 
 -- | A filestore implemented using the darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -100,6 +101,12 @@ splitEmailAuthor :: String -> (String,String)
 splitEmailAuthor x = (reverse . dropWhile (isSpace) $ reverse b, (tail $ init c))
     -- Still need to trim the '<>' brackets in the email, and whitespace at the end of name
     where (_,b,c) = x =~ "[^<]*" :: (String,String,String)
+
+-- If we can't get a date from the XML, we default to the beginning of the POSIX era.
+-- This at least makes it easy for someone to filter out bad dates, as obviously no real DVCSs
+-- were in operation then. :)
+-- date :: Element -> UTCTime
+date = fromMaybe (posixSecondsToUTCTime $ realToFrac (0::Int)) . parseDateTime "%c" . dateXML
 
 {- TODO: Analyze 'changes'
 
