@@ -238,11 +238,10 @@ darcsSave repo name author logMsg contents = do
   unless inside $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
   B.writeFile filename $ toByteString contents
-  (statusAdd, errAdd, _) <- runDarcsCommand repo "add" [name]
-  if statusAdd == ExitSuccess
-     then darcsCommit repo [name] author logMsg
-     else throwIO $ UnknownError $ "Could not darcs add '" ++ name ++ "'\n" ++ errAdd
-
+  -- Just in case it hasn't been added yet
+  runDarcsCommand repo "add" [name]
+  darcsCommit repo [name] author logMsg
+  
 darcsIndex :: DarcsFileStore ->IO [ResourceName]
 darcsIndex repo = do
     (status, errOutput, output) <- runDarcsCommand repo "query"  ["manifest"]
