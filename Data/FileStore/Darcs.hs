@@ -1,5 +1,6 @@
 module Data.FileStore.Darcs (DarcsFileStore(..)) where
 
+import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad
 import Data.ByteString.Lazy.UTF8 (toString)
@@ -88,7 +89,7 @@ darcsRetrieve :: Contents a
             -> IO a
 -- If called with Nothing, go straight to the file system
 darcsRetrieve repo name Nothing = do
-  let filename = darcsRepoPath repo </> name
+  let filename = darcsRepoPath repo </> encodeString name
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 darcsRetrieve repo name (Just revid) = do
@@ -156,7 +157,7 @@ darcsCommit repo names author logMsg = do
 -- | Save changes (creating file and directory if needed), add, and commit.
 darcsSave :: Contents a => DarcsFileStore -> ResourceName -> Author -> String -> a -> IO ()
 darcsSave repo name author logMsg contents = do
-  let filename = darcsRepoPath repo </> name
+  let filename = darcsRepoPath repo </> encodeString name
   inside <- isInsideRepo repo filename
   unless inside $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
