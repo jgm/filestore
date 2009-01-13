@@ -68,8 +68,20 @@ searchMultiple terms results = filter (search' terms) results
 ---------------------------
 
 darcsLog = error "called darcsLog"
-darcsLatestRevId = error "called latestRevId"
 darcsGetRevision = error "called getRevision"
+
+-- | Return revision ID for latest commit for a resource.
+darcsLatestRevId :: DarcsFileStore -> ResourceName -> IO RevisionId
+darcsLatestRevId repo name = do
+  (status, _, output) <- runDarcsCommand repo "changes" ["--xml-output", name]
+  if status == ExitSuccess
+     then do
+       let patch = filter (isInfixOf "hash=\'") $ lines $ toString output
+       if null patch
+          then throwIO NotFound
+          -- Values derived empirically
+          else return $ take 61 $ drop 6 $ head $ filter (isPrefixOf "hash='") $ words $ head patch
+     else throwIO NotFound
 
 -- Use --unified and --store-in-memory per Orchid.
 darcsDiff :: DarcsFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
