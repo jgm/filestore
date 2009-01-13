@@ -171,7 +171,9 @@ darcsIndex :: DarcsFileStore ->IO [ResourceName]
 darcsIndex repo = do
     (status, errOutput, output) <- runDarcsCommand repo "query"  ["manifest"]
     if status == ExitSuccess
-     then return (lines . toString $ output)
+    -- We need to do drop 2 because Darcs returns files like ["./foobar"], and 
+    -- the ./ is unexpected.
+     then return (map (drop 2) . lines . toString $ output)
      else error $ "'darcs query manifest' returned error status.\n" ++ errOutput
 
 -- | Initialize a repository, creating the directory if needed.
