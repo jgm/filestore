@@ -1,5 +1,7 @@
 module Data.FileStore.Darcs (DarcsFileStore(..)) where
 
+import Data.Char
+import Text.Regex.Posix
 import Data.Time.Clock.POSIX
 import Data.Maybe
 import Codec.Binary.UTF8.String (encodeString)
@@ -82,15 +84,23 @@ parseDarcsXML str = do a <- parseXMLDoc str
 --       Provide real input to revChanges
 parseIntoRevision :: Element -> Revision
 parseIntoRevision a = Revision { revId = hashXML a, 
-                                 revDateTime = posixSecondsToUTCTime $ realToFrac 0, -- dateXML a,
-                                 revAuthor = Author { authorName=authorXML a, authorEmail="" }, 
+                                 revDateTime = date a,
+                                 revAuthor = Author { authorName=authorXML a, authorEmail=emailXML a }, 
                                  revDescription = descriptionXML a,
                                  revChanges = [] }
-authorXML, dateXML, descriptionXML, hashXML :: Element -> String
-authorXML = fromMaybe "" . findAttr (QName "author" Nothing Nothing)
+authorXML, dateXML, descriptionXML, emailXML, hashXML :: Element -> String
+authorXML = fst . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
+emailXML =  snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
 dateXML   = fromMaybe "" . findAttr (QName "date" Nothing Nothing)
 hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
 descriptionXML = fromMaybe "" . findAttr (QName "name" Nothing Nothing)
+
+-- | author -> (Name, Email address)
+splitEmailAuthor :: String -> (String,String)
+splitEmailAuthor x = (reverse . dropWhile (isSpace) $ reverse b, (tail $ init c))
+    -- Still need to trim the '<>' brackets in the email, and whitespace at the end of name
+    where (_,b,c) = x =~ "[^<]*" :: (String,String,String)
+
 {- TODO: Analyze 'changes'
 
 changesXML :: Element -> Element
