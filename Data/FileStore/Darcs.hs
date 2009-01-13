@@ -135,15 +135,12 @@ darcsLog repo names (TimeRange _ _) = do
 -- | Return revision ID for latest commit for a resource.
 darcsLatestRevId :: DarcsFileStore -> ResourceName -> IO RevisionId
 darcsLatestRevId repo name = do
-  (status, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
-  if status == ExitSuccess
-     then do
-       let patch = filter (isInfixOf "hash=\'") $ lines $ toString output
-       if null patch
-          then throwIO NotFound
-          -- Values derived empirically
-          else return $ take 61 $ drop 6 $ head $ filter (isPrefixOf "hash='") $ words $ head patch
-     else throwIO NotFound
+  -- changes always succeeds
+  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
+  let patchs = parseDarcsXML $ toString output
+  case patchs of
+      Nothing -> throwIO NotFound
+      Just as -> if null as then throwIO NotFound else return $ revId $ head as
 
 -- Use --unified and --store-in-memory per Orchid.
 darcsDiff :: DarcsFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
