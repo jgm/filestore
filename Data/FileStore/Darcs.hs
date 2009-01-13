@@ -223,7 +223,7 @@ darcsMove repo oldName newName author logMsg = do
   -- create destination directory if missing
   createDirectoryIfMissing True $ takeDirectory newPath
   (statusAdd,_,_) <- runDarcsCommand repo "add" [dropFileName newName]
-  (statusAdd', err, _) <- runDarcsCommand repo "mv" [oldName, newName]
+  (statusAdd',_,_) <- runDarcsCommand repo "mv" [oldName, newName]
   if statusAdd == ExitSuccess && statusAdd' == ExitSuccess
      then darcsCommit repo [oldName, newName] author logMsg
      else throwIO NotFound
@@ -254,7 +254,8 @@ darcsSave repo name author logMsg contents = do
   unless inside $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
   B.writeFile filename $ toByteString contents
-  -- Just in case it hasn't been added yet
+  -- Just in case it hasn't been added yet; we ignore failures since darcs will
+  -- fail if the file doesn't exist *and* if the file exists but has been added already.
   runDarcsCommand repo "add" [name]
   darcsCommit repo [name] author logMsg
   
