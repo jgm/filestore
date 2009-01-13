@@ -206,9 +206,9 @@ darcsMove repo oldName newName author logMsg = do
   unless inside $ throwIO IllegalResourceName
   -- create destination directory if missing
   createDirectoryIfMissing True $ takeDirectory newPath
-  runDarcsCommand repo "add" [dropFileName newName]
-  (statusAdd, err, _) <- runDarcsCommand repo "mv" [oldName, newName]
-  if statusAdd == ExitSuccess
+  (statusAdd,_,_) <- runDarcsCommand repo "add" [dropFileName newName]
+  (statusAdd', err, _) <- runDarcsCommand repo "mv" [oldName, newName]
+  if statusAdd == ExitSuccess && statusAdd' == ExitSuccess
      then darcsCommit repo [oldName, newName] author logMsg
      else throwIO $ UnknownError $ "Could not darcs mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
 
