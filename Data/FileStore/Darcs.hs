@@ -66,9 +66,9 @@ searchMultiple terms results = filter (search' terms) results
 -- End utility functions and types
 ---------------------------
 
-darcsLog = undefined
-darcsLatestRevId = undefined
-darcsGetRevision = undefined
+darcsLog = error "called darcsLog"
+darcsLatestRevId = error "called latestRevId"
+darcsGetRevision = error "called getRevision"
 
 -- Use --unified and --store-in-memory per Orchid.
 darcsDiff :: DarcsFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
