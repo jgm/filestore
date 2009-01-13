@@ -223,10 +223,16 @@ This can be removed once Data.FileStore imports it:
 
 > diffTest fs = TestCase $ do
 
->   hist <- history fs [testTitle] (TimeRange Nothing Nothing)
->   diff' <- diff fs testTitle (revId $ hist !! 1) (revId $ hist !! 0)
->   let added = filter (\x -> take 1 x == "+") $ drop 5 $ lines diff'
->   assertEqual "added lines" ["+","+Third line"] added
+  Create a file and modiy it.
+
+>   let diffTitle = "difftest.txt"
+>   create fs diffTitle testAuthor "description of change" testContents
+>   save fs diffTitle testAuthor "removed a line" (unlines . init . lines $ testContents)
+
+>   hist <- history fs [diffTitle] (TimeRange Nothing Nothing)
+>   diff' <- diff fs diffTitle (revId $ hist !! 1) (revId $ hist !! 0)
+>   let subtracted = filter (\x -> take 1 x == "-") $ drop 5 $ lines diff'
+>   assertEqual "subtracted lines" ["-" ++ last (lines testContents)] subtracted
 
 *** Test search
 
