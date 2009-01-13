@@ -169,7 +169,7 @@ darcsSave repo name author logMsg contents = do
 
 darcsIndex :: DarcsFileStore ->IO [ResourceName]
 darcsIndex repo = do
-    (status, errOutput, output) <- runDarcsCommand repo "query manifest" []
+    (status, errOutput, output) <- runDarcsCommand repo "query"  ["manifest"]
     if status == ExitSuccess
      then return (lines . toString $ output)
      else error $ "'darcs query manifest' returned error status.\n" ++ errOutput
