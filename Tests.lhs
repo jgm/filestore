@@ -14,13 +14,17 @@ Invoke it with:
 > import Data.DateTime
 > import System.Directory (doesFileExist)
 
+This can be removed once Data.FileStore imports it:
+
+> import Data.FileStore.Darcs
+
 > main = do
->   let fileStores = [(GitFileStore { gitRepoPath = "tmp/gitfs"}, "Data.FileStore.Git")]
->   forM fileStores testFileStore
+>   testFileStore GitFileStore{ gitRepoPath = "tmp/gitfs" } "Data.FileStore.Git"
+>   testFileStore DarcsFileStore{ darcsRepoPath = "tmp/darcsfs" } "Data.FileStore.Darcs"
 >   removeDirectoryRecursive "tmp"
 
-> testFileStore :: SearchableFileStore a => (a, String) -> IO Counts 
-> testFileStore (fs, fsName) = do
+> testFileStore :: SearchableFileStore a => a -> String -> IO Counts 
+> testFileStore fs fsName = do
 >   putStrLn $ "**********************************"
 >   putStrLn $ "Testing " ++ fsName
 >   putStrLn $ "**********************************"
