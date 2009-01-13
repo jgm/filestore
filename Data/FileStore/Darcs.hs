@@ -166,7 +166,8 @@ darcsRetrieve repo name Nothing = do
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 darcsRetrieve repo name (Just revid) = do
-   (status, err, output) <- runDarcsCommand repo "query contents" ["--match 'hash " ++ revid ++ "'", name]
+   let opts = ["contents", "--match=hash " ++ revid, name]
+   (status, err, output) <- runDarcsCommand repo "query" opts
    if status == ExitSuccess
       then return $ fromByteString output
       else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
