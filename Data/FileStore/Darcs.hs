@@ -222,7 +222,7 @@ darcsDelete repo name author logMsg = do
 -- no changes.
 darcsCommit :: DarcsFileStore -> [ResourceName] -> Author -> String -> IO ()
 darcsCommit repo names author logMsg = do
-  let args = ["--all", "-A", show (authorName author ++ " <" ++ authorEmail author ++ ">"), "-m", logMsg] ++ names
+  let args = ["--all", "-A", (authorName author ++ " <" ++ authorEmail author ++ ">"), "-m", logMsg] ++ names
   (statusCommit, errCommit, _) <- runDarcsCommand repo "record" args
   if statusCommit == ExitSuccess
      then return ()
