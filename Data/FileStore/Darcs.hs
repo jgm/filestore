@@ -200,7 +200,6 @@ darcsIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 -- | Change the name of a resource.
 darcsMove :: DarcsFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
 darcsMove repo oldName newName author logMsg = do
-  darcsLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
   let newPath = darcsRepoPath repo </> newName
   inside <- isInsideRepo repo newPath
   unless inside $ throwIO IllegalResourceName
