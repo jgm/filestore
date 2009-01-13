@@ -210,7 +210,7 @@ darcsMove repo oldName newName author logMsg = do
   (statusAdd', err, _) <- runDarcsCommand repo "mv" [oldName, newName]
   if statusAdd == ExitSuccess && statusAdd' == ExitSuccess
      then darcsCommit repo [oldName, newName] author logMsg
-     else throwIO $ UnknownError $ "Could not darcs mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
+     else throwIO NotFound
 
 -- | Delete a resource from the repository.
 darcsDelete :: DarcsFileStore -> ResourceName -> Author -> String -> IO ()
