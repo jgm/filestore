@@ -148,9 +148,11 @@ darcsLatestRevId repo name = do
 -- Use --unified and --store-in-memory per Orchid.
 darcsDiff :: DarcsFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
 darcsDiff repo file fromhash tohash = do
-  (status, err, output) <- runDarcsCommand repo "diff" [file, "--unified", "--store-in-memory",
-                                                        "--match 'hash " ++ fromhash ++ "'",
-                                                        "--match 'hash " ++ tohash ++ "'"]
+  let opts = ["--store-in-memory", "--unified",
+              "--match=hash " ++ tohash ++ "",
+              "--match=hash " ++ fromhash ++ "",
+              file]
+  (status, err, output) <- runDarcsCommand repo "diff" opts
   if status == ExitSuccess
      then return $ toString output
      else throwIO $ UnknownError $ "darcs diff returned error:\n" ++ err
