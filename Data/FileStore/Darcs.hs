@@ -52,8 +52,8 @@ isInsideRepo fs name = do
 -- Copied from Git.hs
 parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
-  let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
-  in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
+  let (fn:n:res:_) = filter (not . (==) ":") $ split (==':') str
+  in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
 
 -- | Match multiple terms against multiple search items.
 --
@@ -62,6 +62,12 @@ searchMultiple :: (Eq a) =>[[a]] -> [[a]] -> [[a]]
 searchMultiple terms results = filter (search' terms) results
  where search' :: (Eq a) => [[a]] -> [a] -> Bool
        search' sterms result = all (\x -> x `isInfixOf` result) sterms
+
+split :: (a -> Bool) -> [a] -> [[a]]
+split _ [] = []
+split p s = let (l,s') = break p s in l : case s' of
+                                           [] -> []
+                                           (r:s'') -> [r] : split p s''
 
 ---------------------------
 -- End utility functions and types
