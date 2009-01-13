@@ -75,10 +75,8 @@ split p s = let (l,s') = break p s in l : case s' of
                                            (r:s'') -> [r] : split p s''
 
 parseDarcsXML :: String -> Maybe [Revision]
-parseDarcsXML str = do a <- parseXMLDoc str
-                       let duppatches = filterElementsName (\(QName n _ _) -> n == "patch") a
-                       -- Darcs seems to always prefix --xml-output with 1 'created_as' duplicate patch
-                       let patches = drop 1 duppatches
+parseDarcsXML str = do changelog <- parseXMLDoc str
+                       let patches = filterChildrenName (\(QName n _ _) -> n == "patch") changelog
                        return $ map parseIntoRevision patches
                   
 -- TODO: figure out how to parse the String of dateXML into a DateTime
