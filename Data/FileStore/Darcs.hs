@@ -119,8 +119,9 @@ darcsRetrieve repo name (Just revid) = do
 -- | Uses grep to search repository.
 darcsSearch :: DarcsFileStore -> SearchQuery -> IO [SearchMatch]
 darcsSearch repo query = do
-  let opts = ["-i" | queryIgnoreCase query] ++
-             ["--word-regexp" | queryWholeWords query]
+  let opts = ["--line-number"] ++
+             (if queryIgnoreCase query then ["-i"] else []) ++
+             (if queryWholeWords query then ["--word-regexp"] else [])
   let regexps = queryPatterns query
   files <- darcsIndex repo
   -- We have to do something clever since grep doesn't support git-grep's --all-match option. What we do
