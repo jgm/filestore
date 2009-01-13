@@ -10,7 +10,7 @@ import Data.List (isInfixOf, isPrefixOf)
 import System.Directory (canonicalizePath)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit
-import System.FilePath ((</>), takeDirectory)
+import System.FilePath ((</>), takeDirectory, dropFileName)
 import System.IO.Error (isDoesNotExistError)
 import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
@@ -131,6 +131,7 @@ darcsMove repo oldName newName author logMsg = do
   unless inside $ throwIO IllegalResourceName
   -- create destination directory if missing
   createDirectoryIfMissing True $ takeDirectory newPath
+  runDarcsCommand repo "add" [dropFileName newName]
   (statusAdd, err, _) <- runDarcsCommand repo "mv" [oldName, newName]
   if statusAdd == ExitSuccess
      then darcsCommit repo [oldName, newName] author logMsg
