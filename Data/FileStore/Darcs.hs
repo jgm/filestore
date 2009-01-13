@@ -1,5 +1,7 @@
 module Data.FileStore.Darcs (DarcsFileStore(..)) where
 
+import Data.Time.Clock.POSIX
+import Data.Maybe
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad
@@ -12,8 +14,8 @@ import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit
 import System.FilePath ((</>), takeDirectory, dropFileName)
 import System.IO.Error (isDoesNotExistError)
-import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
+import Text.XML.Light
 
 -- | A filestore implemented using the darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -69,6 +71,44 @@ split p s = let (l,s') = break p s in l : case s' of
                                            [] -> []
                                            (r:s'') -> [r] : split p s''
 
+parseDarcsXML :: String -> Maybe [Revision]
+parseDarcsXML str = do a <- parseXMLDoc str
+                       let duppatches = filterElementsName (\(QName n _ _) -> n == "patch") a
+                       -- Darcs seems to always prefix --xml-output with 1 'created_as' duplicate patch
+                       let patches = drop 1 duppatches`
+                       return $ map parseIntoRevision patches
+                  
+-- TODO: figure out how to parse the String of dateXML into a DateTime
+--       Provide real input to revChanges
+parseIntoRevision :: Element -> Revision
+parseIntoRevision a = Revision { revId = hashXML a, 
+                                 revDateTime = posixSecondsToUTCTime $ realToFrac 0, -- dateXML a,
+                                 revAuthor = Author { authorName=authorXML a, authorEmail="" }, 
+                                 revDescription = descriptionXML a,
+                                 revChanges = [] }
+authorXML, dateXML, descriptionXML, hashXML :: Element -> String
+authorXML = fromMaybe "" . findAttr (QName "author" Nothing Nothing)
+dateXML   = fromMaybe "" . findAttr (QName "date" Nothing Nothing)
+hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
+descriptionXML = fromMaybe "" . findAttr (QName "name" Nothing Nothing)
+{- TODO: Analyze 'changes'
+
+changesXML :: Element -> Element
+changesXML = fromJust . findElement (QName  "summary" Nothing Nothing)
+changes str = let sum = changesXML str in analyze sum
+
+analyze s = findElement (QName "....
+                  
+add_file
+add_directory
+remove_file
+remove_directory
+modify_file
+added_lines
+removed_lines
+replaced_tokens
+-}
+
 ---------------------------
 -- End utility functions and types
 ---------------------------
@@ -79,7 +119,7 @@ darcsGetRevision = error "called getRevision"
 -- | Return revision ID for latest commit for a resource.
 darcsLatestRevId :: DarcsFileStore -> ResourceName -> IO RevisionId
 darcsLatestRevId repo name = do
-  (status, _, output) <- runDarcsCommand repo "changes" ["--xml-output", name]
+  (status, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
   if status == ExitSuccess
      then do
        let patch = filter (isInfixOf "hash=\'") $ lines $ toString output
