@@ -17,7 +17,8 @@ Maintainer:          jgm@berkeley.edu
 Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
                      parsec >= 2 && < 3, process, time, datetime, regex-posix, xml
 Extra-source-files:  Tests.lhs
-Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs, Data.FileStore.Utils
+Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs,
+                     Data.FileStore.Utils, Data.FileStore.Generic
 Other-modules:       Paths_filestore
 Hs-Source-Dirs:      .
 Data-Files:          post-update
