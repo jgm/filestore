@@ -231,9 +231,10 @@ darcsSearch repo query = do
   files <- darcsIndex repo
   if (queryMatchAll query) then do 
                                   filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (go repo files) $ regexps
-                                  let opts' = opts ++ regexps 
-                                  (_,_,output) <- runShellCommand (darcsRepoPath repo) Nothing  "grep" (opts' ++ filesMatchingAllPatterns)
-                                  let results = lines $ toString output
+                                  -- let opts' = opts ++ regexps 
+                                  -- (_,_,output) <- runShellCommand (darcsRepoPath repo) Nothing  "grep" (opts' ++ filesMatchingAllPatterns)
+                                  output <- mapM (go' opts repo regexps) filesMatchingAllPatterns
+                                  let results = concat $ output
                                   return $ map parseMatchLine results
    else do (_status, _errOutput, output) <-
                 runShellCommand (darcsRepoPath repo) Nothing "grep" $ opts ++
@@ -241,12 +242,20 @@ darcsSearch repo query = do
            let results = lines $ toString output
            return $ map parseMatchLine results
 
+-- | Search multiple files with a single regexp
 go :: DarcsFileStore -> [String] -> String -> IO [String]
 go repo filesToCheck pattern = do (_, _, result) <- runShellCommand (darcsRepoPath repo)
                                                Nothing  "grep" $ ["--line-number", "-l", "-E", "-e", pattern] ++ filesToCheck
                                   let results = intersect filesToCheck $ lines $ toString result
                                   return results
 
+-- | Search a single file with multiple regexps
+go' :: [String] -> DarcsFileStore -> [String] -> String -> IO [String]
+go' os repo patterns file = do res <- mapM (\x -> run file x) patterns
+                               return $ nub $ concat res
+      where run f p = do (_,_,r) <- runShellCommand (darcsRepoPath repo) Nothing "grep" $
+                                        os ++ [p, f]
+                         return $ lines $ toString r
 
 -- copied from Git.hs
 darcsIdsMatch :: DarcsFileStore -> RevisionId -> RevisionId -> Bool
