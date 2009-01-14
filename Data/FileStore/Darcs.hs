@@ -47,6 +47,11 @@ runDarcsCommand repo command args = do
   (status, err, out) <- runShellCommand (darcsRepoPath repo) Nothing "darcs" (command : args)
   return (status, toString err, out)
 
+darcsFileStoreInfo :: DarcsFileStore -> IO FileStoreInfo
+darcsFileStoreInfo repo = do
+  fullpath <- canonicalizePath $ darcsRepoPath repo
+  return $ FileStoreInfo { fileStoreType = "Darcs", fileStorePath = Just fullpath }
+
 -- ??? Couldn't this work over all backends...
 isInsideRepo :: DarcsFileStore -> ResourceName -> IO Bool
 isInsideRepo fs name = do
