@@ -229,18 +229,24 @@ darcsSearch repo query = do
              (if queryWholeWords query then ["--word-regexp"] else ["-E"])
   let regexps = queryPatterns query
   files <- darcsIndex repo
-  -- We have to do something clever since grep doesn't support git-grep's --all-match option. What we do
-  -- is search for the *first* term, and then we process it later in Haskell-land against all the other terms
-  -- with 'searchMultiply', which operates on a list (the results of grepping for the first term) and only lets
-  -- through entries which contain (infix) all our other expressions. Tho it isn't a regexp search.
-  (status, errOutput, output) <-
-   runShellCommand (darcsRepoPath repo) Nothing "grep" ((opts ++
-                                                       concatMap (\term -> ["-e", term]) (take 1 regexps)) ++ files)
-  let results = lines $ toString output
-  if status == ExitSuccess
-     then if queryMatchAll query then return $ map parseMatchLine $ searchMultiple regexps results
-      else return $ map parseMatchLine results
-     else error $ "grep returned error status.\n" ++ toString errOutput
+  if (queryMatchAll query) then do 
+                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (go repo files) $ regexps
+                                  let opts' = opts ++ regexps 
+                                  (_,_,output) <- runShellCommand (darcsRepoPath repo) Nothing  "grep" (opts' ++ filesMatchingAllPatterns)
+                                  let results = lines $ toString output
+                                  return $ map parseMatchLine results
+   else do (_status, _errOutput, output) <-
+                runShellCommand (darcsRepoPath repo) Nothing "grep" $ opts ++
+                                                       (concatMap (\term -> ["-e", term]) regexps) ++ files
+           let results = lines $ toString output
+           return $ map parseMatchLine results
+
+go :: DarcsFileStore -> [String] -> String -> IO [String]
+go repo filesToCheck pattern = do (_, _, result) <- runShellCommand (darcsRepoPath repo)
+                                               Nothing  "grep" $ ["--line-number", "-l", "-E", "-e", pattern] ++ filesToCheck
+                                  let results = intersect filesToCheck $ lines $ toString result
+                                  return results
+
 
 -- copied from Git.hs
 darcsIdsMatch :: DarcsFileStore -> RevisionId -> RevisionId -> Bool
