@@ -129,7 +129,7 @@ analyze s = map convert s
               || x == "replaced_tokens" = Modified b
            | otherwise = error "Unknown change type"
              where  x = qName . elName $ a 
-                    b = takeWhile (/='\n') $ dropWhile (`elem` " \t\n\r") $ strContent a
+                    b = takeWhile (/='\n') $ dropWhile isSpace $ strContent a
 
 filterSummary :: Element -> [Element]
 filterSummary s = filterElementsName (\(QName {qName = x}) -> x == "add_file" 
