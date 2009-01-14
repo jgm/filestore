@@ -13,6 +13,7 @@ Invoke it with:
 > import Control.Exception (catch)
 > import Data.DateTime
 > import System.Directory (doesFileExist)
+> import System.Process
 
 This can be removed once Data.FileStore imports it:
 
@@ -216,6 +217,7 @@ This can be removed once Data.FileStore imports it:
 >   assertBool "revDescription non-null" (not (null (revDescription rev)))
 >   assertEqual "revChanges" [Modified testTitle] (revChanges rev)
 >   let revtime = revDateTime rev
+>   runCommand "sleep 1" >>= waitForProcess
 >   histNow <- history fs [testTitle] (TimeRange (Just now) Nothing)
 >   assertBool "history from now onwards is empty" (null histNow)
 
