@@ -93,7 +93,7 @@ authorXML = snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Not
 emailXML =  fromMaybe"" . fst . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
 dateXML   = fromMaybe "" . findAttr (QName "date" Nothing Nothing)
 hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
-descriptionXML = fromMaybe "" . findAttr (QName "name" Nothing Nothing)
+descriptionXML = fromMaybe "" . liftM strContent . findChild (QName "name" Nothing Nothing)
 
 changesXML :: Element -> [Change]
 changesXML str = analyze $ filterSummary $ changes str
