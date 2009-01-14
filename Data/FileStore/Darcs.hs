@@ -96,7 +96,7 @@ hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
 descriptionXML = fromMaybe "" . liftM strContent . findChild (QName "name" Nothing Nothing)
 
 changesXML :: Element -> [Change]
-changesXML str = analyze $ filterSummary $ changes str
+changesXML = analyze . filterSummary . changes
 
 -- | Our policy is: if the input is clearly a "name <e@mail.com>" input, then we return (Just Address, Name)
 --   If there is no '<' in the input, then it clearly can't be of that format, and so we just return (Nothing, Name)
@@ -104,7 +104,7 @@ changesXML str = analyze $ filterSummary $ changes str
 -- > splitEmailAuthor "foo bar baz@gmail.com" ~> (Nothing,"foo bar baz@gmail.com")
 -- > splitEmailAuthor "foo bar <baz@gmail.com>" ~> (Just "baz@gmail.com","foo bar")
 splitEmailAuthor :: String -> (Maybe String, String)
-splitEmailAuthor x = if '<' `elem` x then (Just (tail $ init c), reverse . dropWhile (isSpace) $ reverse b)
+splitEmailAuthor x = if '<' `elem` x then (Just (tail $ init c), reverse . dropWhile isSpace $ reverse b)
                                      else (Nothing,x)
     -- Still need to trim the '<>' brackets in the email, and whitespace at the end of name
     where (_,b,c) = x =~ "[^<]*" :: (String,String,String)
@@ -132,14 +132,14 @@ analyze s = map convert s
                     b = takeWhile (/='\n') $ dropWhile isSpace $ strContent a
 
 filterSummary :: Element -> [Element]
-filterSummary s = filterElementsName (\(QName {qName = x}) -> x == "add_file" 
+filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file" 
                                 || x == "add_directory" 
                                 || x == "remove_file" 
                                 || x == "remove_directory" 
                                 || x == "modify_file" 
                                 || x == "added_lines" 
                                 || x == "removed_lines" 
-                                || x == "replaced_tokens") s
+                                || x == "replaced_tokens")
 
 ---------------------------
 -- End utility functions and types
@@ -161,7 +161,7 @@ darcsLog repo names (TimeRange begin end) = do
     do (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names ++ opts
        if status == ExitSuccess
         then case parseDarcsXML $ toString output of
-            Nothing      -> throwIO $ ResourceExists -- $ "Error parsing darcs changes.\n" ++ show err
+            Nothing      -> throwIO ResourceExists
             Just parsed -> return parsed
         else throwIO $ UnknownError $ "darcs changes returned error status.\n" ++ err
     where 
