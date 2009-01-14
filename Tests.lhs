@@ -16,11 +16,11 @@ Invoke it with:
 > import System.Process
 
 > main = do
->   testFileStore GitFileStore{ gitRepoPath = "tmp/gitfs" } "Data.FileStore.Git"
->   testFileStore DarcsFileStore{ darcsRepoPath = "tmp/darcsfs" } "Data.FileStore.Darcs"
+>   testFileStore (gitFileStore "tmp/gitfs") "Data.FileStore.Git"
+>   testFileStore (darcsFileStore "tmp/darcsfs") "Data.FileStore.Darcs"
 >   removeDirectoryRecursive "tmp"
 
-> testFileStore :: SearchableFileStore a => a -> String -> IO Counts 
+> testFileStore :: FileStore -> String -> IO Counts 
 > testFileStore fs fsName = do
 >   putStrLn $ "**********************************"
 >   putStrLn $ "Testing " ++ fsName
