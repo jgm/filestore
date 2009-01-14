@@ -21,6 +21,7 @@ module Data.FileStore.Types
            , TimeRange(..)
            , MergeInfo(..)
            , FileStoreError(..)
+           , FileStoreInfo(..)
            , SearchMatch(..)
            , SearchQuery(..)
            , defaultSearchQuery
@@ -122,14 +123,24 @@ data SearchMatch =
   , matchLine         :: String
   } deriving (Show, Read, Eq)
 
+data FileStoreInfo =
+  FileStoreInfo {
+      fileStoreType     :: String
+    , fileStorePath     :: Maybe FilePath
+    } deriving (Show, Read, Eq)
+
 -- | An abstract class for a versioning filestore, which can be
 -- implemented using the file system, a database, or revision-control
--- software. A minimal instance definition will define 'initialize',
+-- software. A minimal instance definition will define 'fileStoreInfo', 'initialize',
 -- 'save', 'retrieve', 'delete', 'rename', 'history', 'latest', 'revision',
 -- and 'index'. Sensible defaults are provided for 'modify', 'create',
 -- 'diff', and 'idsMatch', so these normally do not need to be
 -- implemented.
 class FileStore b where
+
+    -- | Return information about the filestore.
+    fileStoreInfo  :: b
+                   -> IO FileStoreInfo
 
     -- | Initialize a new filestore.
     initialize     :: b

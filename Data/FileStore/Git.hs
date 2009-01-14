@@ -43,21 +43,22 @@ newtype GitFileStore = GitFileStore {
                           } deriving (Read, Eq, Show)
 
 instance FileStore GitFileStore where
-    initialize = gitInit
-    save       = gitSave
-    retrieve   = gitRetrieve
-    delete     = gitDelete
-    rename     = gitMove
-    history    = gitLog
-    latest     = gitLatestRevId
-    revision   = gitGetRevision
-    index      = gitIndex
-    diff       = gitDiff
-    idsMatch   = gitIdsMatch
+    fileStoreInfo = gitFileStoreInfo
+    initialize    = gitInit
+    save          = gitSave
+    retrieve      = gitRetrieve
+    delete        = gitDelete
+    rename        = gitMove
+    history       = gitLog
+    latest        = gitLatestRevId
+    revision      = gitGetRevision
+    index         = gitIndex
+    diff          = gitDiff
+    idsMatch      = gitIdsMatch
     -- modify, create: defaults
 
 instance SearchableFileStore GitFileStore where 
-    search     = gitSearch
+    search        = gitSearch
 
 -- | Run a git command and return error status, error output, standard output.  The repository
 -- is used as working directory.
@@ -66,6 +67,11 @@ runGitCommand repo command args = do
   let env = Just [("GIT_DIFF_OPTS","-u100000")]
   (status, err, out) <- runShellCommand (gitRepoPath repo) env "git" (command : args)
   return (status, toString err, out)
+
+gitFileStoreInfo :: GitFileStore -> IO FileStoreInfo
+gitFileStoreInfo repo = do
+  fullpath <- canonicalizePath $ gitRepoPath repo
+  return $ FileStoreInfo { fileStoreType = "Git", fileStorePath = Just fullpath }
 
 -- | Initialize a repository, creating the directory if needed.
 gitInit :: GitFileStore -> IO ()

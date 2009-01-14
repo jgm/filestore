@@ -26,19 +26,20 @@ newtype DarcsFileStore = DarcsFileStore {
                           darcsRepoPath :: FilePath
                           } deriving (Read, Eq, Show)
 instance FileStore DarcsFileStore where
-    initialize = darcsInit
-    save       = darcsSave
-    retrieve   = darcsRetrieve
-    delete     = darcsDelete
-    rename     = darcsMove
-    history    = darcsLog
-    latest     = darcsLatestRevId
-    revision   = darcsGetRevision
-    index      = darcsIndex
-    diff       = darcsDiff
-    idsMatch   = darcsIdsMatch
+    fileStoreInfo = darcsFileStoreInfo
+    initialize    = darcsInit
+    save          = darcsSave
+    retrieve      = darcsRetrieve
+    delete        = darcsDelete
+    rename        = darcsMove
+    history       = darcsLog
+    latest        = darcsLatestRevId
+    revision      = darcsGetRevision
+    index         = darcsIndex
+    diff          = darcsDiff
+    idsMatch      = darcsIdsMatch
 instance SearchableFileStore DarcsFileStore where
-    search     = darcsSearch
+    search        = darcsSearch
 
 -- | Run a darcs command and return error status, error output, standard output.  The repository
 -- is used as working directory.
@@ -46,6 +47,11 @@ runDarcsCommand :: DarcsFileStore -> String -> [String] -> IO (ExitCode, String,
 runDarcsCommand repo command args = do
   (status, err, out) <- runShellCommand (darcsRepoPath repo) Nothing "darcs" (command : args)
   return (status, toString err, out)
+
+darcsFileStoreInfo :: DarcsFileStore -> IO FileStoreInfo
+darcsFileStoreInfo repo = do
+  fullpath <- canonicalizePath $ darcsRepoPath repo
+  return $ FileStoreInfo { fileStoreType = "Darcs", fileStorePath = Just fullpath }
 
 -- ??? Couldn't this work over all backends...
 isInsideRepo :: DarcsFileStore -> ResourceName -> IO Bool
