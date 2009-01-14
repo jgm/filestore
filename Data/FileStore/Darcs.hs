@@ -1,12 +1,14 @@
-module Data.FileStore.Darcs (DarcsFileStore(..)) where
-
+module Data.FileStore.Darcs (
+             darcsFileStore
+           )
+where
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad (liftM, unless, when)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.DateTime (formatDateTime, parseDateTime)
-import Data.FileStore.Types 
+import Data.FileStore.Types
 import Data.FileStore.Utils (runShellCommand)
 import Data.List (intersect, isPrefixOf, nub)
 import Data.Maybe (fromMaybe, fromJust)
@@ -19,36 +21,30 @@ import Text.Regex.Posix ((=~))
 import Text.XML.Light
 import qualified Data.ByteString.Lazy as B (ByteString, readFile, writeFile)
 
--- | A filestore implemented using the darcs distributed revision control system
--- (<http://darcs.net/>).
-newtype DarcsFileStore = DarcsFileStore {
-                          darcsRepoPath :: FilePath
-                          } deriving (Read, Eq, Show)
-instance FileStore DarcsFileStore where
-    fileStoreInfo = darcsFileStoreInfo
-    initialize    = darcsInit
-    save          = darcsSave
-    retrieve      = darcsRetrieve
-    delete        = darcsDelete
-    rename        = darcsMove
-    history       = darcsLog
-    latest        = darcsLatestRevId
-    revision      = darcsGetRevision
-    index         = darcsIndex
-    diff          = darcsDiff
-    idsMatch      = darcsIdsMatch
-instance SearchableFileStore DarcsFileStore where
-    search        = darcsSearch
 
-darcsFileStoreInfo :: DarcsFileStore -> IO FileStoreInfo
-darcsFileStoreInfo repo = do
-  fullpath <- canonicalizePath $ darcsRepoPath repo
-  return $ FileStoreInfo { fileStoreType = "Darcs", fileStorePath = Just fullpath }
+-- | Return a filestore implemented using the darcs distributed revision control system
+-- (<http://darcs.net/>).
+darcsFileStore :: FilePath -> FileStore
+darcsFileStore repo = FileStore {
+    fsType            = "Darcs"
+  , fsPath            = Just repo
+  , initialize        = darcsInit repo
+  , save              = darcsSave repo 
+  , retrieve          = darcsRetrieve repo
+  , delete            = darcsDelete repo
+  , rename            = darcsMove repo
+  , history           = darcsLog repo
+  , latest            = darcsLatestRevId repo
+  , revision          = darcsGetRevision repo
+  , index             = darcsIndex repo
+  , search            = darcsSearch repo 
+  , idsMatch          = darcsIdsMatch repo
+  }
 
 -- ??? Couldn't this work over all backends...
-isInsideRepo :: DarcsFileStore -> ResourceName -> IO Bool
-isInsideRepo fs name = do
-  darcsRepoPathCanon <- canonicalizePath $ darcsRepoPath fs
+isInsideRepo :: FilePath -> ResourceName -> IO Bool
+isInsideRepo repo name = do
+  darcsRepoPathCanon <- canonicalizePath repo
   filenameCanon <- canonicalizePath name
   return (darcsRepoPathCanon `isPrefixOf` filenameCanon)
 
@@ -60,9 +56,9 @@ parseMatchLine str =
 
 -- | Run a darcs command and return error status, error output, standard output.  The repository
 -- is used as working directory.
-runDarcsCommand :: DarcsFileStore -> String -> [String] -> IO (ExitCode, String, B.ByteString)
+runDarcsCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
 runDarcsCommand repo command args = do
-  (status, err, out) <- runShellCommand (darcsRepoPath repo) Nothing "darcs" (command : args)
+  (status, err, out) <- runShellCommand repo Nothing "darcs" (command : args)
   return (status, toString err, out)
 
 split :: (a -> Bool) -> [a] -> [[a]]
@@ -141,7 +137,7 @@ filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file"
 ---------------------------
 
 -- | Get revision information for a particular revision ID, or latest revision.
-darcsGetRevision :: DarcsFileStore -> RevisionId -> IO Revision
+darcsGetRevision :: FilePath -> RevisionId -> IO Revision
 darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Nothing)
                                 let hist = filter (\x -> darcsIdsMatch repo (revId x) hash) hists
                                 let result =  if null hist then hists else hist
@@ -150,7 +146,7 @@ darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Not
 -- | Return list of log entries for the list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
 -- TODO: Actually implement TimeRange functionality?
-darcsLog :: DarcsFileStore -> [ResourceName] -> TimeRange -> IO [Revision]
+darcsLog :: FilePath -> [ResourceName] -> TimeRange -> IO [Revision]
 darcsLog repo names (TimeRange begin end) = do
     let opts = timeOpts begin end
     do (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names ++ opts
@@ -171,7 +167,7 @@ darcsLog repo names (TimeRange begin end) = do
                       undate = formatDateTime "%c"
 
 -- | Return revision ID for latest commit for a resource.
-darcsLatestRevId :: DarcsFileStore -> ResourceName -> IO RevisionId
+darcsLatestRevId :: FilePath -> ResourceName -> IO RevisionId
 darcsLatestRevId repo name = do
   -- changes always succeeds
   (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
@@ -180,8 +176,9 @@ darcsLatestRevId repo name = do
       Nothing -> throwIO NotFound
       Just as -> if null as then throwIO NotFound else return $ revId $ head as
 
+{-
 -- Use --unified and --store-in-memory per Orchid.
-darcsDiff :: DarcsFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
+darcsDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
 darcsDiff repo file fromhash tohash = do
   let opts = ["--store-in-memory", "--unified",
               "--match=hash " ++ tohash ++ "",
@@ -191,16 +188,17 @@ darcsDiff repo file fromhash tohash = do
   if status == ExitSuccess
      then return $ toString output
      else throwIO $ UnknownError $ "darcs diff returned error:\n" ++ err
+-}
 
 -- | Retrieve contents from resource.
 darcsRetrieve :: Contents a
-            => DarcsFileStore
+            => FilePath
             -> ResourceName
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
 -- If called with Nothing, go straight to the file system
 darcsRetrieve repo name Nothing = do
-  let filename = darcsRepoPath repo </> encodeString name
+  let filename = repo </> encodeString name
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 darcsRetrieve repo name (Just revid) = do
@@ -211,7 +209,7 @@ darcsRetrieve repo name (Just revid) = do
       else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
 
 -- | Uses grep to search repository.
-darcsSearch :: DarcsFileStore -> SearchQuery -> IO [SearchMatch]
+darcsSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
 darcsSearch repo query = do
   let opts = ["--line-number", "--with-filename"] ++
              (if queryIgnoreCase query then ["-i"] else []) ++
@@ -221,39 +219,39 @@ darcsSearch repo query = do
   if queryMatchAll query then do 
                                   filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (go repo files) regexps
                                   -- let opts' = opts ++ regexps 
-                                  -- (_,_,output) <- runShellCommand (darcsRepoPath repo) Nothing  "grep" (opts' ++ filesMatchingAllPatterns)
+                                  -- (_,_,output) <- runShellCommand repo Nothing  "grep" (opts' ++ filesMatchingAllPatterns)
                                   output <- mapM (go' opts repo regexps) filesMatchingAllPatterns
                                   return $ map parseMatchLine $ concat output
    else do (_status, _errOutput, output) <-
-                runShellCommand (darcsRepoPath repo) Nothing "grep" $ opts ++
+                runShellCommand repo Nothing "grep" $ opts ++
                                                        concatMap (\term -> ["-e", term]) regexps ++ 
                                                        files
            let results = lines $ toString output
            return $ map parseMatchLine results
 
 -- | Search multiple files with a single regexp
-go :: DarcsFileStore -> [String] -> String -> IO [String]
-go repo filesToCheck pattern = do (_, _, result) <- runShellCommand (darcsRepoPath repo)
+go :: FilePath -> [String] -> String -> IO [String]
+go repo filesToCheck pattern = do (_, _, result) <- runShellCommand repo
                                                Nothing  "grep" $ ["--line-number", "-l", "-E", "-e", pattern] ++ filesToCheck
                                   let results = intersect filesToCheck $ lines $ toString result
                                   return results
 
 -- | Search a single file with multiple regexps
-go' :: [String] -> DarcsFileStore -> [String] -> String -> IO [String]
+go' :: [String] -> FilePath -> [String] -> String -> IO [String]
 go' os repo patterns file = do res <- mapM (\x -> run file x) patterns
                                return $ nub $ concat res
-      where run f p = do (_,_,r) <- runShellCommand (darcsRepoPath repo) Nothing "grep" $
+      where run f p = do (_,_,r) <- runShellCommand repo Nothing "grep" $
                                         os ++ [p, f]
                          return $ lines $ toString r
 
 -- copied from Git.hs
-darcsIdsMatch :: DarcsFileStore -> RevisionId -> RevisionId -> Bool
+darcsIdsMatch :: FilePath -> RevisionId -> RevisionId -> Bool
 darcsIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Change the name of a resource.
-darcsMove :: DarcsFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
+darcsMove :: FilePath -> ResourceName -> ResourceName -> Author -> String -> IO ()
 darcsMove repo oldName newName author logMsg = do
-  let newPath = darcsRepoPath repo </> newName
+  let newPath = repo </> newName
   inside <- isInsideRepo repo newPath
   unless inside $ throwIO IllegalResourceName
   -- create destination directory if missing
@@ -265,14 +263,14 @@ darcsMove repo oldName newName author logMsg = do
      else throwIO NotFound
 
 -- | Delete a resource from the repository.
-darcsDelete :: DarcsFileStore -> ResourceName -> Author -> String -> IO ()
+darcsDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
 darcsDelete repo name author logMsg = do
-  runShellCommand (darcsRepoPath repo) Nothing "rm" [name]
+  runShellCommand repo Nothing "rm" [name]
   darcsCommit repo [name] author logMsg
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.
-darcsCommit :: DarcsFileStore -> [ResourceName] -> Author -> String -> IO ()
+darcsCommit :: FilePath -> [ResourceName] -> Author -> String -> IO ()
 darcsCommit repo names author logMsg = do
   let args = ["--all", "-A", (authorName author ++ " <" ++ authorEmail author ++ ">"), "-m", logMsg] ++ names
   (statusCommit, errCommit, _) <- runDarcsCommand repo "record" args
@@ -283,9 +281,9 @@ darcsCommit repo names author logMsg = do
                        else UnknownError $ "Could not darcs record " ++ unwords names ++ "\n" ++ errCommit
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-darcsSave :: Contents a => DarcsFileStore -> ResourceName -> Author -> String -> a -> IO ()
+darcsSave :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()
 darcsSave repo name author logMsg contents = do
-  let filename = darcsRepoPath repo </> encodeString name
+  let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
   unless inside $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
@@ -295,7 +293,7 @@ darcsSave repo name author logMsg contents = do
   runDarcsCommand repo "add" [name]
   darcsCommit repo [name] author logMsg
   
-darcsIndex :: DarcsFileStore ->IO [ResourceName]
+darcsIndex :: FilePath ->IO [ResourceName]
 darcsIndex repo = do
     (status, errOutput, output) <- runDarcsCommand repo "query"  ["manifest"]
     if status == ExitSuccess
@@ -305,11 +303,11 @@ darcsIndex repo = do
      else error $ "'darcs query manifest' returned error status.\n" ++ errOutput
 
 -- | Initialize a repository, creating the directory if needed.
-darcsInit :: DarcsFileStore -> IO ()
+darcsInit :: FilePath -> IO ()
 darcsInit repo = do
-  exists <- doesDirectoryExist (darcsRepoPath repo)
+  exists <- doesDirectoryExist repo
   when exists $ throwIO RepositoryExists
-  createDirectoryIfMissing True (darcsRepoPath repo)
+  createDirectoryIfMissing True repo
   (status, err, _) <- runDarcsCommand repo "init" []
   if status == ExitSuccess
      then return ()

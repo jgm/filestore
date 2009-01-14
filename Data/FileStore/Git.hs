@@ -13,7 +13,8 @@
 -}
 
 module Data.FileStore.Git
-           ( GitFileStore(..) )
+           ( gitFileStore
+           )
 where
 import Data.FileStore.Types
 import System.Exit
@@ -36,49 +37,39 @@ import System.Directory (canonicalizePath, getPermissions, setPermissions, execu
 import Data.List (isPrefixOf)
 import Paths_filestore
 
--- | A filestore implemented using the git distributed revision control system
+-- | Return a filestore implemented using the git distributed revision control system
 -- (<http://git-scm.com/>).
-newtype GitFileStore = GitFileStore {
-                          gitRepoPath :: FilePath
-                          } deriving (Read, Eq, Show)
-
-instance FileStore GitFileStore where
-    fileStoreInfo = gitFileStoreInfo
-    initialize    = gitInit
-    save          = gitSave
-    retrieve      = gitRetrieve
-    delete        = gitDelete
-    rename        = gitMove
-    history       = gitLog
-    latest        = gitLatestRevId
-    revision      = gitGetRevision
-    index         = gitIndex
-    diff          = gitDiff
-    idsMatch      = gitIdsMatch
-    -- modify, create: defaults
-
-instance SearchableFileStore GitFileStore where 
-    search        = gitSearch
+gitFileStore :: FilePath -> FileStore
+gitFileStore repo = FileStore {
+    fsType            = "Git"
+  , fsPath            = Just repo
+  , initialize        = gitInit repo
+  , save              = gitSave repo 
+  , retrieve          = gitRetrieve repo
+  , delete            = gitDelete repo
+  , rename            = gitMove repo
+  , history           = gitLog repo
+  , latest            = gitLatestRevId repo
+  , revision          = gitGetRevision repo
+  , index             = gitIndex repo
+  , search            = gitSearch repo 
+  , idsMatch          = gitIdsMatch repo
+  }
 
 -- | Run a git command and return error status, error output, standard output.  The repository
 -- is used as working directory.
-runGitCommand :: GitFileStore -> String -> [String] -> IO (ExitCode, String, B.ByteString)
+runGitCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
 runGitCommand repo command args = do
   let env = Just [("GIT_DIFF_OPTS","-u100000")]
-  (status, err, out) <- runShellCommand (gitRepoPath repo) env "git" (command : args)
+  (status, err, out) <- runShellCommand repo env "git" (command : args)
   return (status, toString err, out)
 
-gitFileStoreInfo :: GitFileStore -> IO FileStoreInfo
-gitFileStoreInfo repo = do
-  fullpath <- canonicalizePath $ gitRepoPath repo
-  return $ FileStoreInfo { fileStoreType = "Git", fileStorePath = Just fullpath }
-
 -- | Initialize a repository, creating the directory if needed.
-gitInit :: GitFileStore -> IO ()
+gitInit :: FilePath -> IO ()
 gitInit repo = do
-  exists <- doesDirectoryExist (gitRepoPath repo)
+  exists <- doesDirectoryExist repo
   when exists $ throwIO RepositoryExists
-  createDirectoryIfMissing True (gitRepoPath repo)
+  createDirectoryIfMissing True repo
   (status, err, _) <- runGitCommand repo "init" []
   if status == ExitSuccess
      then do
@@ -86,7 +77,7 @@ gitInit repo = do
        -- will be reflected in the working directory.
        postupdatepath <- getDataFileName "post-update"
        postupdatecontents <- B.readFile postupdatepath
-       let postupdate = gitRepoPath repo </> ".git" </> "hooks" </> "post-update"
+       let postupdate = repo </> ".git" </> "hooks" </> "post-update"
        B.writeFile postupdate postupdatecontents
        perms <- getPermissions postupdate
        setPermissions postupdate (perms {executable = True})
@@ -96,12 +87,12 @@ gitInit repo = do
 -- | Returns True if the revision ids match -- that is, if one
 -- is a sublist of the other.  Note that git allows prefixes of complete sha1
 -- hashes to be used as identifiers.
-gitIdsMatch :: GitFileStore -> RevisionId -> RevisionId -> Bool
+gitIdsMatch :: FilePath -> RevisionId -> RevisionId -> Bool
 gitIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.
-gitCommit :: GitFileStore -> [ResourceName] -> Author -> String -> IO ()
+gitCommit :: FilePath -> [ResourceName] -> Author -> String -> IO ()
 gitCommit repo names author logMsg = do
   (statusCommit, errCommit, _) <- runGitCommand repo "commit" $ ["--author", authorName author ++ " <" ++
                                     authorEmail author ++ ">", "-m", logMsg] ++ names
@@ -111,16 +102,16 @@ gitCommit repo names author logMsg = do
                        then Unchanged
                        else UnknownError $ "Could not git commit " ++ unwords names ++ "\n" ++ errCommit
 
-isInsideRepo :: GitFileStore -> ResourceName -> IO Bool
-isInsideRepo fs name = do
-  gitRepoPathCanon <- canonicalizePath $ gitRepoPath fs
+isInsideRepo :: FilePath -> ResourceName -> IO Bool
+isInsideRepo repo name = do
+  gitRepoPathCanon <- canonicalizePath repo
   filenameCanon <- canonicalizePath name
   return (gitRepoPathCanon `isPrefixOf` filenameCanon)
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-gitSave :: Contents a => GitFileStore -> ResourceName -> Author -> String -> a -> IO ()
+gitSave :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()
 gitSave repo name author logMsg contents = do
-  let filename = gitRepoPath repo </> encodeString name
+  let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
   unless inside $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
@@ -132,13 +123,13 @@ gitSave repo name author logMsg contents = do
 
 -- | Retrieve contents from resource.
 gitRetrieve :: Contents a
-            => GitFileStore
+            => FilePath
             -> ResourceName
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
 gitRetrieve repo name Nothing = do
   -- If called with Nothing, go straight to the file system
-  let filename = gitRepoPath repo </> encodeString name
+  let filename = repo </> encodeString name
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 gitRetrieve repo name (Just revid) = do
@@ -148,7 +139,7 @@ gitRetrieve repo name (Just revid) = do
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
 
 -- | Delete a resource from the repository.
-gitDelete :: GitFileStore -> ResourceName -> Author -> String -> IO ()
+gitDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
@@ -156,10 +147,10 @@ gitDelete repo name author logMsg = do
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
 -- | Change the name of a resource.
-gitMove :: GitFileStore -> ResourceName -> ResourceName -> Author -> String -> IO ()
+gitMove :: FilePath -> ResourceName -> ResourceName -> Author -> String -> IO ()
 gitMove repo oldName newName author logMsg = do
   gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
-  let newPath = gitRepoPath repo </> encodeString newName
+  let newPath = repo </> encodeString newName
   inside <- isInsideRepo repo newPath
   unless inside $ throwIO IllegalResourceName
   -- create destination directory if missing
@@ -170,7 +161,7 @@ gitMove repo oldName newName author logMsg = do
      else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
 
 -- | Return revision ID for latest commit for a resource.
-gitLatestRevId :: GitFileStore -> ResourceName -> IO RevisionId
+gitLatestRevId :: FilePath -> ResourceName -> IO RevisionId
 gitLatestRevId repo name = do
   (status, _, output) <- runGitCommand repo "rev-list" ["--max-count=1", "HEAD", "--", name]
   if status == ExitSuccess
@@ -182,7 +173,7 @@ gitLatestRevId repo name = do
      else throwIO NotFound
 
 -- | Get revision information for a particular revision ID, or latest revision.
-gitGetRevision :: GitFileStore -> RevisionId -> IO Revision
+gitGetRevision :: FilePath -> RevisionId -> IO Revision
 gitGetRevision repo revid = do
   (status, _, output) <- runGitCommand repo "whatchanged" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid]
   if status == ExitSuccess
@@ -194,7 +185,7 @@ gitGetRevision repo revid = do
      else throwIO NotFound
 
 -- | Get list of files in repository.
-gitIndex :: GitFileStore -> IO [ResourceName]
+gitIndex :: FilePath -> IO [ResourceName]
 gitIndex repo = do
   (status, errOutput, output) <- runGitCommand repo "ls-files" []
   if status == ExitSuccess
@@ -226,7 +217,7 @@ pOctalChar = P.try $ do
   return $ chr num
 
 -- | Uses git-grep to search repository.
-gitSearch :: GitFileStore -> SearchQuery -> IO [SearchMatch]
+gitSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
 gitSearch repo query = do
   let opts = ["-I","-n"] ++
              ["--ignore-case" | queryIgnoreCase query] ++
@@ -244,8 +235,9 @@ parseMatchLine str =
   let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
   in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
 
+{-
 -- | Uses git-diff to get a dif between two revisions.
-gitDiff :: GitFileStore -> ResourceName -> RevisionId -> RevisionId -> IO String
+gitDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
 gitDiff repo name from to = do
   (status, _, output) <- runGitCommand repo "diff" [from, to, name]
   if status == ExitSuccess
@@ -256,10 +248,11 @@ gitDiff repo name from to = do
        if status' == ExitSuccess
           then return $ toString output'
           else throwIO $ UnknownError $ "git diff returned error:\n" ++ err'
+-}
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-gitLog :: GitFileStore -> [ResourceName] -> TimeRange -> IO [Revision]
+gitLog :: FilePath -> [ResourceName] -> TimeRange -> IO [Revision]
 gitLog repo names (TimeRange mbSince mbUntil) = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
                            ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n"] ++

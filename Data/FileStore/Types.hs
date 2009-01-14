@@ -32,8 +32,7 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Typeable
 import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.DateTime (DateTime)
-import Control.Exception (Exception, throwIO, catch, SomeException)
-import Data.FileStore.Utils (mergeContents, diffContents)
+import Control.Exception (Exception)
 import Prelude hiding (catch)
 
 type RevisionId   = String
@@ -126,11 +125,11 @@ data SearchMatch =
 data FileStore = FileStore {
 
     -- | Return the type of the filestore (e.g. "Git")
-    fsType         :: IO String
+    fsType         :: String
    
     -- | Return @Just@ the path of the filestore, if it is implemented
     -- in the filesystem, or @Nothing@ otherwise.
-  , fsPath         :: IO (Maybe FilePath)
+  , fsPath         :: Maybe FilePath
 
     -- | Initialize a new filestore.
   , initialize     :: IO ()
