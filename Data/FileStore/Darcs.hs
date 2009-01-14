@@ -156,13 +156,24 @@ darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Not
 -- If list of resources is empty, log entries for all resources are returned.
 -- TODO: Actually implement TimeRange functionality?
 darcsLog :: DarcsFileStore -> [ResourceName] -> TimeRange -> IO [Revision]
-darcsLog repo names (TimeRange _ _) = do
-  (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names
-  if status == ExitSuccess
-     then case parseDarcsXML $ toString output of
-                Nothing      -> throwIO $ ResourceExists -- $ "Error parsing darcs changes.\n" ++ show err
-                Just parsed -> return parsed
-     else throwIO $ UnknownError $ "darcs changes returned error status.\n" ++ err
+darcsLog repo names (TimeRange begin end) = do
+    let opts = timeOpts begin end
+    do (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names ++ opts
+       if status == ExitSuccess
+        then case parseDarcsXML $ toString output of
+            Nothing      -> throwIO $ ResourceExists -- $ "Error parsing darcs changes.\n" ++ show err
+            Just parsed -> return parsed
+        else throwIO $ UnknownError $ "darcs changes returned error status.\n" ++ err
+    where 
+        timeOpts :: Maybe DateTime -> Maybe DateTime ->[String]
+        timeOpts b e = case (b,e) of 
+                (Nothing,Nothing) -> []
+                (Just b', Just e') -> from b' ++ to e'
+                (Just b', Nothing) -> from b'
+                (Nothing, Just e') -> to e'
+                where from z = ["--from-match=date \"" ++ undate z ++ "\""]
+                      to z = ["--to-match=date \"" ++ undate z ++ "\""]
+                      undate = formatDateTime "%c"
 
 -- | Return revision ID for latest commit for a resource.
 darcsLatestRevId :: DarcsFileStore -> ResourceName -> IO RevisionId
