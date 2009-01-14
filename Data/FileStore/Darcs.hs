@@ -87,6 +87,12 @@ parseIntoRevision a = Revision { revId = hashXML a,
                                  revAuthor = Author { authorName=authorXML a, authorEmail=emailXML a }, 
                                  revDescription = descriptionXML a,
                                  revChanges = changesXML a }
+    where
+        -- If we can't get a date from the XML, we default to the beginning of the POSIX era.
+        -- This at least makes it easy for someone to filter out bad dates, as obviously no real DVCSs
+        -- were in operation then. :)
+        -- date :: Element -> UTCTime
+        date = fromMaybe (posixSecondsToUTCTime $ realToFrac (0::Int)) . parseDateTime "%c" . dateXML
 
 authorXML, dateXML, descriptionXML, emailXML, hashXML :: Element -> String
 authorXML = snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
@@ -108,12 +114,6 @@ splitEmailAuthor x = if '<' `elem` x then (Just (tail $ init c), reverse . dropW
                                      else (Nothing,x)
     -- Still need to trim the '<>' brackets in the email, and whitespace at the end of name
     where (_,b,c) = x =~ "[^<]*" :: (String,String,String)
-
--- If we can't get a date from the XML, we default to the beginning of the POSIX era.
--- This at least makes it easy for someone to filter out bad dates, as obviously no real DVCSs
--- were in operation then. :)
--- date :: Element -> UTCTime
-date = fromMaybe (posixSecondsToUTCTime $ realToFrac (0::Int)) . parseDateTime "%c" . dateXML
 
 changes :: Element -> Element
 changes = fromJust . findElement (QName  "summary" Nothing Nothing)
