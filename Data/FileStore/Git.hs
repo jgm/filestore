@@ -32,8 +32,9 @@ import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
 import Text.Regex.Posix ((=~))
-import System.Directory (canonicalizePath)
+import System.Directory (canonicalizePath, getPermissions, setPermissions, executable)
 import Data.List (isPrefixOf)
+import Paths_filestore
 
 -- | A filestore implemented using the git distributed revision control system
 -- (<http://git-scm.com/>).
@@ -74,7 +75,16 @@ gitInit repo = do
   createDirectoryIfMissing True (gitRepoPath repo)
   (status, err, _) <- runGitCommand repo "init" []
   if status == ExitSuccess
-     then return ()
+     then do
+       -- Add the post-update hook, so that changes made remotely via git
+       -- will be reflected in the working directory.
+       postupdatepath <- getDataFileName "post-update"
+       postupdatecontents <- B.readFile postupdatepath
+       let postupdate = gitRepoPath repo </> ".git" </> "hooks" </> "post-update"
+       B.writeFile postupdate postupdatecontents
+       perms <- getPermissions postupdate
+       setPermissions postupdate (perms {executable = True})
+       return ()
      else throwIO $ UnknownError $ "git-init failed:\n" ++ err 
 
 -- | Returns True if the revision ids match -- that is, if one
