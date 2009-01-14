@@ -57,9 +57,10 @@ diffContents cont1 cont2 = do
   B.hPutStr h2 cont2 >> hClose h2
   diffExists <- liftM isJust (findExecutable "diff")
   unless diffExists $ error "diffContents requires 'diff' in path"
-  (status, err, out) <- runShellCommand tempPath Nothing "git" ["-U", "10000", path1, path2]
+  (status, err, out) <- runShellCommand tempPath Nothing "diff" ["--unified=10000", path1, path2]
   returnVal <- case status of
                     ExitSuccess             -> return (toString out) 
+                    ExitFailure 1           -> return (toString out)  -- diff returns 1 when there are differences
                     _                       -> error $ "diff failed: " ++ toString err
   removeFile path1
   removeFile path2
