@@ -40,13 +40,6 @@ instance FileStore DarcsFileStore where
 instance SearchableFileStore DarcsFileStore where
     search        = darcsSearch
 
--- | Run a darcs command and return error status, error output, standard output.  The repository
--- is used as working directory.
-runDarcsCommand :: DarcsFileStore -> String -> [String] -> IO (ExitCode, String, B.ByteString)
-runDarcsCommand repo command args = do
-  (status, err, out) <- runShellCommand (darcsRepoPath repo) Nothing "darcs" (command : args)
-  return (status, toString err, out)
-
 darcsFileStoreInfo :: DarcsFileStore -> IO FileStoreInfo
 darcsFileStoreInfo repo = do
   fullpath <- canonicalizePath $ darcsRepoPath repo
