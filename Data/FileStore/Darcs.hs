@@ -1,24 +1,23 @@
 module Data.FileStore.Darcs (DarcsFileStore(..)) where
 
-import Data.Char
-import Text.Regex.Posix
-import Data.Time.Clock.POSIX
-import Data.Maybe
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad
 import Data.ByteString.Lazy.UTF8 (toString)
+import Data.Char
+import Data.DateTime
 import Data.FileStore.Types
 import Data.FileStore.Utils (runShellCommand)
-import Data.List (isInfixOf, isPrefixOf)
-import System.Directory (canonicalizePath)
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
+import Data.List (intersect, isPrefixOf, nub)
+import Data.Maybe
+import Data.Time.Clock.POSIX
+import System.Directory (canonicalizePath, doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit
 import System.FilePath ((</>), takeDirectory, dropFileName)
 import System.IO.Error (isDoesNotExistError)
-import qualified Data.ByteString.Lazy as B
+import Text.Regex.Posix
 import Text.XML.Light
-import Data.DateTime
+import qualified Data.ByteString.Lazy as B
 
 -- | A filestore implemented using the darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -65,14 +64,6 @@ parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
   let (fn:n:res:_) = filter (not . (==) ":") $ split (==':') str
   in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
-
--- | Match multiple terms against multiple search items.
---
--- > searchMultiple ["f", "g"] ["fbar", "gfar", "Zaptos", "Moltres"] ~> ["gfar"]
-searchMultiple :: (Eq a) =>[[a]] -> [[a]] -> [[a]]
-searchMultiple terms results = filter (search' terms) results
- where search' :: (Eq a) => [[a]] -> [a] -> Bool
-       search' sterms result = all (\x -> x `isInfixOf` result) sterms
 
 split :: (a -> Bool) -> [a] -> [[a]]
 split _ [] = []
