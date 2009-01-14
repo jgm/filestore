@@ -2,22 +2,22 @@ module Data.FileStore.Darcs (DarcsFileStore(..)) where
 
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
-import Control.Monad
+import Control.Monad (liftM, unless, when)
 import Data.ByteString.Lazy.UTF8 (toString)
-import Data.Char
-import Data.DateTime
-import Data.FileStore.Types
+import Data.Char (isSpace)
+import Data.DateTime (formatDateTime, parseDateTime)
+import Data.FileStore.Types 
 import Data.FileStore.Utils (runShellCommand)
 import Data.List (intersect, isPrefixOf, nub)
-import Data.Maybe
-import Data.Time.Clock.POSIX
+import Data.Maybe (fromMaybe, fromJust)
+import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import System.Directory (canonicalizePath, doesDirectoryExist, createDirectoryIfMissing)
-import System.Exit
+import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName)
 import System.IO.Error (isDoesNotExistError)
-import Text.Regex.Posix
+import Text.Regex.Posix ((=~))
 import Text.XML.Light
-import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy as B (ByteString, readFile, writeFile)
 
 -- | A filestore implemented using the darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -47,11 +47,6 @@ runDarcsCommand repo command args = do
   (status, err, out) <- runShellCommand (darcsRepoPath repo) Nothing "darcs" (command : args)
   return (status, toString err, out)
 
-darcsFileStoreInfo :: DarcsFileStore -> IO FileStoreInfo
-darcsFileStoreInfo repo = do
-  fullpath <- canonicalizePath $ darcsRepoPath repo
-  return $ FileStoreInfo { fileStoreType = "Darcs", fileStorePath = Just fullpath }
-
 -- ??? Couldn't this work over all backends...
 isInsideRepo :: DarcsFileStore -> ResourceName -> IO Bool
 isInsideRepo fs name = do
@@ -65,6 +60,13 @@ parseMatchLine str =
   let (fn:n:res:_) = filter (not . (==) ":") $ split (==':') str
   in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
 
+-- | Run a darcs command and return error status, error output, standard output.  The repository
+-- is used as working directory.
+runDarcsCommand :: DarcsFileStore -> String -> [String] -> IO (ExitCode, String, B.ByteString)
+runDarcsCommand repo command args = do
+  (status, err, out) <- runShellCommand (darcsRepoPath repo) Nothing "darcs" (command : args)
+  return (status, toString err, out)
+
 split :: (a -> Bool) -> [a] -> [[a]]
 split _ [] = []
 split p s = let (l,s') = break p s in l : case s' of
@@ -76,8 +78,6 @@ parseDarcsXML str = do changelog <- parseXMLDoc str
                        let patches = filterChildrenName (\(QName n _ _) -> n == "patch") changelog
                        return $ map parseIntoRevision patches
                   
--- TODO: figure out how to parse the String of dateXML into a DateTime
---       Provide real input to revChanges
 parseIntoRevision :: Element -> Revision
 parseIntoRevision a = Revision { revId = hashXML a, 
                                  revDateTime = date a,
@@ -220,16 +220,16 @@ darcsSearch repo query = do
              (if queryWholeWords query then ["--word-regexp"] else ["-E"])
   let regexps = queryPatterns query
   files <- darcsIndex repo
-  if (queryMatchAll query) then do 
-                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (go repo files) $ regexps
+  if queryMatchAll query then do 
+                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (go repo files) regexps
                                   -- let opts' = opts ++ regexps 
                                   -- (_,_,output) <- runShellCommand (darcsRepoPath repo) Nothing  "grep" (opts' ++ filesMatchingAllPatterns)
                                   output <- mapM (go' opts repo regexps) filesMatchingAllPatterns
-                                  let results = concat $ output
-                                  return $ map parseMatchLine results
+                                  return $ map parseMatchLine $ concat output
    else do (_status, _errOutput, output) <-
                 runShellCommand (darcsRepoPath repo) Nothing "grep" $ opts ++
-                                                       (concatMap (\term -> ["-e", term]) regexps) ++ files
+                                                       concatMap (\term -> ["-e", term]) regexps ++ 
+                                                       files
            let results = lines $ toString output
            return $ map parseMatchLine results
 
