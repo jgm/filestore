@@ -16,9 +16,11 @@
 module Data.FileStore
            ( module Data.FileStore.Types
            , module Data.FileStore.Git
+           , module Data.FileStore.Darcs
            )
 where
 
 import Data.FileStore.Git
+import Data.FileStore.Darcs
 import Data.FileStore.Types
 

@@ -15,10 +15,6 @@ Invoke it with:
 > import System.Directory (doesFileExist)
 > import System.Process
 
-This can be removed once Data.FileStore imports it:
-
-> import Data.FileStore.Darcs
-
 > main = do
 >   testFileStore GitFileStore{ gitRepoPath = "tmp/gitfs" } "Data.FileStore.Git"
 >   testFileStore DarcsFileStore{ darcsRepoPath = "tmp/darcsfs" } "Data.FileStore.Darcs"
