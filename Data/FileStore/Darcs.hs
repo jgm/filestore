@@ -9,7 +9,7 @@ import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.DateTime (formatDateTime, parseDateTime)
 import Data.FileStore.Types
-import Data.FileStore.Utils (runShellCommand)
+import Data.FileStore.Utils (hashsMatch, runShellCommand)
 import Data.List (intersect, isPrefixOf, nub)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -38,7 +38,7 @@ darcsFileStore repo = FileStore {
   , revision          = darcsGetRevision repo
   , index             = darcsIndex repo
   , search            = darcsSearch repo 
-  , idsMatch          = darcsIdsMatch repo
+  , idsMatch          = const hashsMatch repo
   }
 
 -- ??? Couldn't this work over all backends...
@@ -139,7 +139,7 @@ filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file"
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
 darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Nothing)
-                                let hist = filter (\x -> darcsIdsMatch repo (revId x) hash) hists
+                                let hist = filter (\x -> hashsMatch (revId x) hash) hists
                                 let result =  if null hist then hists else hist
                                 return $ head result
 
@@ -243,10 +243,6 @@ go' os repo patterns file = do res <- mapM (\x -> run file x) patterns
       where run f p = do (_,_,r) <- runShellCommand repo Nothing "grep" $
                                         os ++ [p, f]
                          return $ lines $ toString r
-
--- copied from Git.hs
-darcsIdsMatch :: FilePath -> RevisionId -> RevisionId -> Bool
-darcsIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Change the name of a resource.
 darcsMove :: FilePath -> ResourceName -> ResourceName -> Author -> String -> IO ()

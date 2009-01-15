@@ -20,7 +20,7 @@ import Data.FileStore.Types
 import System.Exit
 import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (runShellCommand) 
+import Data.FileStore.Utils (hashsMatch, runShellCommand) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -53,7 +53,7 @@ gitFileStore repo = FileStore {
   , revision          = gitGetRevision repo
   , index             = gitIndex repo
   , search            = gitSearch repo 
-  , idsMatch          = gitIdsMatch repo
+  , idsMatch          = const hashsMatch repo
   }
 
 -- | Run a git command and return error status, error output, standard output.  The repository
@@ -83,12 +83,6 @@ gitInit repo = do
        setPermissions postupdate (perms {executable = True})
        return ()
      else throwIO $ UnknownError $ "git-init failed:\n" ++ err 
-
--- | Returns True if the revision ids match -- that is, if one
--- is a sublist of the other.  Note that git allows prefixes of complete sha1
--- hashes to be used as identifiers.
-gitIdsMatch :: FilePath -> RevisionId -> RevisionId -> Bool
-gitIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.

@@ -13,7 +13,8 @@
 module Data.FileStore.Utils (
           runShellCommand
         , diffContents
-        , mergeContents)
+        , mergeContents
+        , hashsMatch)
 where
 
 import System.Directory (getTemporaryDirectory, removeFile, findExecutable)
@@ -25,6 +26,7 @@ import Codec.Binary.UTF8.String (encodeString)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Control.Monad (liftM, unless)
 import Data.Maybe (isJust)
+import Data.List (isPrefixOf)
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale.
@@ -106,3 +108,13 @@ mergeContents (newLabel, newContents) (originalLabel, originalContents) (latestL
   removeFile newPath
   return (conflicts, toString mergedContents)
 
+
+-- | A number of VCS systems uniquely identify a particular revision or change via a
+--   cryptographic hash of some sort. These hashs can be very long, and so systems like
+--   Git and Darcs don't require the entire hash - a *unique prefix*. Thus a definition
+--   of hash equality is '==', certainly, but also simply whether either is a prefix of the
+--   other. If both are reasonably long, then the likelihood the shorter one is not a unique
+--   prefix of the longer (that is, clashes with another hash) is small.
+--   The burden of proof is on the caller to not pass a uselessly short short-hash like '1', however.
+hashsMatch :: (Eq a) => [a] -> [a] -> Bool
+hashsMatch r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
