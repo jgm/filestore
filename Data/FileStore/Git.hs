@@ -75,7 +75,7 @@ gitInit repo = do
      then do
        -- Add the post-update hook, so that changes made remotely via git
        -- will be reflected in the working directory.
-       postupdatepath <- getDataFileName "post-update"
+       postupdatepath <- getDataFileName $ "extra" </> "post-update"
        postupdatecontents <- B.readFile postupdatepath
        let postupdate = repo </> ".git" </> "hooks" </> "post-update"
        B.writeFile postupdate postupdatecontents

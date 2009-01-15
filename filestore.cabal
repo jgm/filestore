@@ -21,5 +21,5 @@ Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, D
                      Data.FileStore.Utils, Data.FileStore.Generic
 Other-modules:       Paths_filestore
 Hs-Source-Dirs:      .
-Data-Files:          post-update
+Data-Files:          extra/post-update
 Ghc-Options:         -Wall
