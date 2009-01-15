@@ -9,11 +9,11 @@ import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.DateTime (formatDateTime, parseDateTime)
 import Data.FileStore.Types
-import Data.FileStore.Utils (hashsMatch, runShellCommand)
-import Data.List (intersect, isPrefixOf, nub)
+import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand)
+import Data.List (intersect, nub)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import System.Directory (canonicalizePath, doesDirectoryExist, createDirectoryIfMissing)
+import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName)
 import System.IO.Error (isDoesNotExistError)
@@ -40,13 +40,6 @@ darcsFileStore repo = FileStore {
   , search            = darcsSearch repo 
   , idsMatch          = const hashsMatch repo
   }
-
--- ??? Couldn't this work over all backends...
-isInsideRepo :: FilePath -> ResourceName -> IO Bool
-isInsideRepo repo name = do
-  darcsRepoPathCanon <- canonicalizePath repo
-  filenameCanon <- canonicalizePath name
-  return (darcsRepoPathCanon `isPrefixOf` filenameCanon)
 
 -- Copied from Git.hs
 parseMatchLine :: String -> SearchMatch

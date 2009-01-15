@@ -20,7 +20,7 @@ import Data.FileStore.Types
 import System.Exit
 import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (hashsMatch, runShellCommand) 
+import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -33,7 +33,7 @@ import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
 import Text.Regex.Posix ((=~))
-import System.Directory (canonicalizePath, getPermissions, setPermissions, executable)
+import System.Directory (getPermissions, setPermissions, executable)
 import Data.List (isPrefixOf)
 import Paths_filestore
 
@@ -95,12 +95,6 @@ gitCommit repo names author logMsg = do
      else throwIO $ if null errCommit
                        then Unchanged
                        else UnknownError $ "Could not git commit " ++ unwords names ++ "\n" ++ errCommit
-
-isInsideRepo :: FilePath -> ResourceName -> IO Bool
-isInsideRepo repo name = do
-  gitRepoPathCanon <- canonicalizePath repo
-  filenameCanon <- canonicalizePath name
-  return (gitRepoPathCanon `isPrefixOf` filenameCanon)
 
 -- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()

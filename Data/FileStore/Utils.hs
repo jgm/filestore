@@ -14,9 +14,11 @@ module Data.FileStore.Utils (
           runShellCommand
         , diffContents
         , mergeContents
-        , hashsMatch)
+        , hashsMatch
+        , isInsideRepo )
 where
 
+import System.Directory (canonicalizePath)
 import System.Directory (getTemporaryDirectory, removeFile, findExecutable)
 import System.Exit (ExitCode(..))
 import System.IO (openTempFile, hClose)
@@ -118,3 +120,12 @@ mergeContents (newLabel, newContents) (originalLabel, originalContents) (latestL
 --   The burden of proof is on the caller to not pass a uselessly short short-hash like '1', however.
 hashsMatch :: (Eq a) => [a] -> [a] -> Bool
 hashsMatch r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
+
+-- | Inquire of a certain repository whether another file lies within its ambit.
+--   This is basically asking whether the file is 'above' the repository in the filesystems's
+--   directory tree. Useful for checking the legality of a filename.
+isInsideRepo :: FilePath -> FilePath -> IO Bool
+isInsideRepo repo name = do
+  gitRepoPathCanon <- canonicalizePath repo
+  filenameCanon <- canonicalizePath name
+  return (gitRepoPathCanon `isPrefixOf` filenameCanon)
