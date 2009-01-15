@@ -67,11 +67,11 @@ modify fs name originalRevId author msg contents = do
 -- program.
 diff :: FileStore
      -> ResourceName      -- ^ Resource name to get diff for.
-     -> RevisionId        -- ^ Old revision ID.
-     -> RevisionId        -- ^ New revision ID.
+     -> Maybe RevisionId  -- ^ @Just@ old revision ID, or @Nothing@ for latest. 
+     -> Maybe RevisionId  -- ^ @Just@ oew revision ID, or @Nothing@ for latest.
      -> IO String
 diff fs name id1 id2 = do
-  contents1 <- retrieve fs name (Just id1)
-  contents2 <- retrieve fs name (Just id2)
+  contents1 <- retrieve fs name id1
+  contents2 <- retrieve fs name id2
   diffContents contents1 contents2
 
