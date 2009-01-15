@@ -95,8 +95,8 @@ descriptionXML = fromMaybe "" . liftM strContent . findChild (QName "name" Nothi
 changesXML :: Element -> [Change]
 changesXML = analyze . filterSummary . changes
 
--- | Our policy is: if the input is clearly a "name <e@mail.com>" input, then we return (Just Address, Name)
---   If there is no '<' in the input, then it clearly can't be of that format, and so we just return (Nothing, Name)
+-- | Our policy is: if the input is clearly a "name \<e\@mail.com\>" input, then we return "(Just Address, Name)"
+--   If there is no '<' in the input, then it clearly can't be of that format, and so we just return "(Nothing, Name)"
 --
 -- > splitEmailAuthor "foo bar baz@gmail.com" ~> (Nothing,"foo bar baz@gmail.com")
 -- > splitEmailAuthor "foo bar <baz@gmail.com>" ~> (Just "baz@gmail.com","foo bar")
