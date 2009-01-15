@@ -32,6 +32,7 @@ import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
+import Control.Monad.Trans (MonadIO(..))
 import Text.Regex.Posix ((=~))
 import System.Directory (canonicalizePath, getPermissions, setPermissions, executable)
 import Data.List (isPrefixOf)
@@ -44,7 +45,7 @@ gitFileStore repo = FileStore {
     fsType            = "Git"
   , fsPath            = Just repo
   , initialize        = gitInit repo
-  , save              = gitSave repo 
+  , save              = gitSave repo
   , retrieve          = gitRetrieve repo
   , delete            = gitDelete repo
   , rename            = gitMove repo
@@ -52,8 +53,8 @@ gitFileStore repo = FileStore {
   , latest            = gitLatestRevId repo
   , revision          = gitGetRevision repo
   , index             = gitIndex repo
-  , search            = gitSearch repo 
-  , idsMatch          = gitIdsMatch repo
+  , search            = gitSearch repo
+  , idsMatch          = gitIdsMatch
   }
 
 -- | Run a git command and return error status, error output, standard output.  The repository
@@ -65,8 +66,8 @@ runGitCommand repo command args = do
   return (status, toString err, out)
 
 -- | Initialize a repository, creating the directory if needed.
-gitInit :: FilePath -> IO ()
-gitInit repo = do
+gitInit :: MonadIO m => FilePath -> m ()
+gitInit repo = liftIO $ do
   exists <- doesDirectoryExist repo
   when exists $ throwIO RepositoryExists
   createDirectoryIfMissing True repo
@@ -87,13 +88,13 @@ gitInit repo = do
 -- | Returns True if the revision ids match -- that is, if one
 -- is a sublist of the other.  Note that git allows prefixes of complete sha1
 -- hashes to be used as identifiers.
-gitIdsMatch :: FilePath -> RevisionId -> RevisionId -> Bool
-gitIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
+gitIdsMatch :: RevisionId -> RevisionId -> Bool
+gitIdsMatch r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.
-gitCommit :: FilePath -> [ResourceName] -> Author -> String -> IO ()
-gitCommit repo names author logMsg = do
+gitCommit :: MonadIO m => FilePath -> [ResourceName] -> Author -> String -> m ()
+gitCommit repo names author logMsg = liftIO $ do
   (statusCommit, errCommit, _) <- runGitCommand repo "commit" $ ["--author", authorName author ++ " <" ++
                                     authorEmail author ++ ">", "-m", logMsg] ++ names
   if statusCommit == ExitSuccess
@@ -102,15 +103,15 @@ gitCommit repo names author logMsg = do
                        then Unchanged
                        else UnknownError $ "Could not git commit " ++ unwords names ++ "\n" ++ errCommit
 
-isInsideRepo :: FilePath -> ResourceName -> IO Bool
-isInsideRepo repo name = do
+isInsideRepo :: MonadIO m => FilePath -> ResourceName -> m Bool
+isInsideRepo repo name = liftIO $ do
   gitRepoPathCanon <- canonicalizePath repo
   filenameCanon <- canonicalizePath name
   return (gitRepoPathCanon `isPrefixOf` filenameCanon)
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-gitSave :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()
-gitSave repo name author logMsg contents = do
+gitSave :: (MonadIO m, Contents a) => FilePath -> ResourceName -> Author -> String -> a -> m ()
+gitSave repo name author logMsg contents = liftIO $ do
   let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
   unless inside $ throwIO IllegalResourceName
@@ -122,33 +123,33 @@ gitSave repo name author logMsg contents = do
      else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
 
 -- | Retrieve contents from resource.
-gitRetrieve :: Contents a
+gitRetrieve :: (MonadIO m, Contents a)
             => FilePath
             -> ResourceName
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
-            -> IO a
-gitRetrieve repo name Nothing = do
+            -> m a
+gitRetrieve repo name Nothing = liftIO $ do
   -- If called with Nothing, go straight to the file system
   let filename = repo </> encodeString name
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
-gitRetrieve repo name (Just revid) = do
+gitRetrieve repo name (Just revid) = liftIO $ do
   (status, err, output) <- runGitCommand repo "cat-file" ["-p", revid ++ ":" ++ name]
   if status == ExitSuccess
      then return $ fromByteString output
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
 
 -- | Delete a resource from the repository.
-gitDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
-gitDelete repo name author logMsg = do
+gitDelete :: MonadIO m => FilePath -> ResourceName -> Author -> String -> m ()
+gitDelete repo name author logMsg = liftIO $ do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
      then gitCommit repo [name] author logMsg
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
 -- | Change the name of a resource.
-gitMove :: FilePath -> ResourceName -> ResourceName -> Author -> String -> IO ()
-gitMove repo oldName newName author logMsg = do
+gitMove :: MonadIO m => FilePath -> ResourceName -> ResourceName -> Author -> String -> m ()
+gitMove repo oldName newName author logMsg = liftIO $ do
   gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
   let newPath = repo </> encodeString newName
   inside <- isInsideRepo repo newPath
@@ -161,8 +162,8 @@ gitMove repo oldName newName author logMsg = do
      else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
 
 -- | Return revision ID for latest commit for a resource.
-gitLatestRevId :: FilePath -> ResourceName -> IO RevisionId
-gitLatestRevId repo name = do
+gitLatestRevId :: MonadIO m => FilePath -> ResourceName -> m RevisionId
+gitLatestRevId repo name = liftIO $ do
   (status, _, output) <- runGitCommand repo "rev-list" ["--max-count=1", "HEAD", "--", name]
   if status == ExitSuccess
      then do
@@ -173,8 +174,8 @@ gitLatestRevId repo name = do
      else throwIO NotFound
 
 -- | Get revision information for a particular revision ID, or latest revision.
-gitGetRevision :: FilePath -> RevisionId -> IO Revision
-gitGetRevision repo revid = do
+gitGetRevision :: MonadIO m => FilePath -> RevisionId -> m Revision
+gitGetRevision repo revid = liftIO $ do
   (status, _, output) <- runGitCommand repo "whatchanged" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid]
   if status == ExitSuccess
      then case P.parse parseGitLog "" (toString output) of
@@ -185,8 +186,8 @@ gitGetRevision repo revid = do
      else throwIO NotFound
 
 -- | Get list of files in repository.
-gitIndex :: FilePath -> IO [ResourceName]
-gitIndex repo = do
+gitIndex :: MonadIO m => FilePath -> m [ResourceName]
+gitIndex repo = liftIO $ do
   (status, errOutput, output) <- runGitCommand repo "ls-files" []
   if status == ExitSuccess
      then return $ map convertEncoded $ lines $ toString output
@@ -217,8 +218,8 @@ pOctalChar = P.try $ do
   return $ chr num
 
 -- | Uses git-grep to search repository.
-gitSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
-gitSearch repo query = do
+gitSearch :: MonadIO m => FilePath -> SearchQuery -> m [SearchMatch]
+gitSearch repo query = liftIO $ do
   let opts = ["-I","-n"] ++
              ["--ignore-case" | queryIgnoreCase query] ++
              ["--all-match" | queryMatchAll query] ++
@@ -237,8 +238,8 @@ parseMatchLine str =
 
 {-
 -- | Uses git-diff to get a dif between two revisions.
-gitDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
-gitDiff repo name from to = do
+gitDiff :: MonadIO m => FilePath -> ResourceName -> RevisionId -> RevisionId -> m String
+gitDiff repo name from to = liftIO $ do
   (status, _, output) <- runGitCommand repo "diff" [from, to, name]
   if status == ExitSuccess
      then return $ toString output
@@ -252,8 +253,8 @@ gitDiff repo name from to = do
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-gitLog :: FilePath -> [ResourceName] -> TimeRange -> IO [Revision]
-gitLog repo names (TimeRange mbSince mbUntil) = do
+gitLog :: MonadIO m => FilePath -> [ResourceName] -> TimeRange -> m [Revision]
+gitLog repo names (TimeRange mbSince mbUntil) = liftIO $ do
   (status, err, output) <- runGitCommand repo "whatchanged" $
                            ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n"] ++
                            (case mbSince of
