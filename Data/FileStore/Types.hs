@@ -33,7 +33,6 @@ import Data.Typeable
 import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.DateTime (DateTime)
 import Control.Exception (Exception)
-import Control.Monad.Trans (MonadIO(..))
 import Prelude hiding (catch)
 
 type RevisionId   = String
@@ -133,60 +132,53 @@ data FileStore = FileStore {
   , fsPath         :: Maybe FilePath
 
     -- | Initialize a new filestore.
-  , initialize     :: MonadIO m
-                   => m ()
+  , initialize     :: IO ()
 
     -- | Save contents in the filestore.
-  , save           :: (MonadIO m, Contents a)
+  , save           :: Contents a
                    => ResourceName      -- ^ Resource to save.
                    -> Author            -- ^ Author of change.
                    -> String            -- ^ Description of change.
                    -> a                 -- ^ New contents of resource.
-                   -> m ()
+                   -> IO ()
     
     -- | Retrieve the contents of the named resource.
-  , retrieve       :: (MonadIO m, Contents a)
+  , retrieve       :: Contents a
                    => ResourceName      -- ^ Resource to retrieve.
                    -> Maybe RevisionId  -- ^ @Just@ a particular revision ID, or @Nothing@ for latest
-                   -> m a
+                   -> IO a
 
     -- | Delete a named resource, providing author and log message.
-  , delete         :: MonadIO m
-                   => ResourceName      -- ^ Resource to delete.
+  , delete         :: ResourceName      -- ^ Resource to delete.
                    -> Author            -- ^ Author of change.
                    -> String            -- ^ Description of change.
-                   -> m ()
+                   -> IO ()
 
     -- | Rename a resource, providing author and log message.
-  , rename         :: MonadIO m
-                   => ResourceName      -- ^ Resource original name.
+  , rename         :: ResourceName      -- ^ Resource original name.
                    -> ResourceName      -- ^ Resource new name.
                    -> Author            -- ^ Author of change.
                    -> String            -- ^ Description of change.
-                   -> m ()
+                   -> IO ()
 
     -- | Get history for a list of named resources in a (possibly openended) time range.
     -- If the list is empty, history for all resources will be returned. 
-  , history        :: MonadIO m
-                   => [ResourceName]    -- ^ List of resources to get history for, or @[]@ for all.
+  , history        :: [ResourceName]    -- ^ List of resources to get history for, or @[]@ for all.
                    -> TimeRange         -- ^ Time range within which to get history.
-                   -> m [Revision]
+                   -> IO [Revision]
 
     -- | Return the revision ID of the latest change for a resource.  Raises 'NotFound'
     -- if the resource is not found.
-  , latest         :: MonadIO m
-                   => ResourceName      -- ^ Resource to get revision ID for.
-                   -> m RevisionId
+  , latest         :: ResourceName      -- ^ Resource to get revision ID for.
+                   -> IO RevisionId
 
     -- | Return information about a revision, given the ID.  Raises 'NotFound' if there is
     -- no such revision.
-  , revision       :: MonadIO m
-                   => RevisionId        -- ^ Revision ID to get revision information for.
-                   -> m Revision
+  , revision       :: RevisionId        -- ^ Revision ID to get revision information for.
+                   -> IO Revision
 
     -- | Return a list of resources in the filestore.
-  , index          :: MonadIO m
-                   => m [ResourceName]
+  , index          :: IO [ResourceName]
 
     -- | @True@ if the revision IDs match, in the sense that the
     -- can be treated as specifying the same revision.
@@ -195,9 +187,8 @@ data FileStore = FileStore {
                    -> Bool
 
   -- | Search the filestore for patterns. 
-  , search         :: MonadIO m
-                   => SearchQuery
-                   -> m [SearchMatch]
+  , search         :: SearchQuery
+                   -> IO [SearchMatch]
 
   }
 

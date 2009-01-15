@@ -19,7 +19,6 @@ import System.FilePath ((</>), takeDirectory, dropFileName)
 import System.IO.Error (isDoesNotExistError)
 import Text.Regex.Posix ((=~))
 import Text.XML.Light
-import Control.Monad.Trans (MonadIO(..))
 import qualified Data.ByteString.Lazy as B (ByteString, readFile, writeFile)
 
 
@@ -138,9 +137,8 @@ filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file"
 ---------------------------
 
 -- | Get revision information for a particular revision ID, or latest revision.
-darcsGetRevision :: MonadIO m => FilePath -> RevisionId -> m Revision
-darcsGetRevision repo hash = liftIO $ 
-                             do hists <- darcsLog repo [] (TimeRange Nothing Nothing)
+darcsGetRevision :: FilePath -> RevisionId -> IO Revision
+darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Nothing)
                                 let hist = filter (\x -> darcsIdsMatch repo (revId x) hash) hists
                                 let result =  if null hist then hists else hist
                                 return $ head result
@@ -148,8 +146,8 @@ darcsGetRevision repo hash = liftIO $
 -- | Return list of log entries for the list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
 -- TODO: Actually implement TimeRange functionality?
-darcsLog :: MonadIO m => FilePath -> [ResourceName] -> TimeRange -> m [Revision]
-darcsLog repo names (TimeRange begin end) = liftIO $ do
+darcsLog :: FilePath -> [ResourceName] -> TimeRange -> IO [Revision]
+darcsLog repo names (TimeRange begin end) = do
     let opts = timeOpts begin end
     do (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names ++ opts
        if status == ExitSuccess
@@ -169,8 +167,8 @@ darcsLog repo names (TimeRange begin end) = liftIO $ do
                       undate = formatDateTime "%c"
 
 -- | Return revision ID for latest commit for a resource.
-darcsLatestRevId :: MonadIO m => FilePath -> ResourceName -> m RevisionId
-darcsLatestRevId repo name = liftIO $ do
+darcsLatestRevId :: FilePath -> ResourceName -> IO RevisionId
+darcsLatestRevId repo name = do
   -- changes always succeeds
   (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
   let patchs = parseDarcsXML $ toString output
@@ -180,8 +178,8 @@ darcsLatestRevId repo name = liftIO $ do
 
 {-
 -- Use --unified and --store-in-memory per Orchid.
-darcsDiff :: MonadIO m => FilePath -> ResourceName -> RevisionId -> RevisionId -> m String
-darcsDiff repo file fromhash tohash = liftIO $ do
+darcsDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
+darcsDiff repo file fromhash tohash = do
   let opts = ["--store-in-memory", "--unified",
               "--match=hash " ++ tohash ++ "",
               "--match=hash " ++ fromhash ++ "",
@@ -193,17 +191,17 @@ darcsDiff repo file fromhash tohash = liftIO $ do
 -}
 
 -- | Retrieve contents from resource.
-darcsRetrieve :: (Contents a, MonadIO m)
-              => FilePath
-              -> ResourceName
-              -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
-              -> m a
+darcsRetrieve :: Contents a
+            => FilePath
+            -> ResourceName
+            -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
+            -> IO a
 -- If called with Nothing, go straight to the file system
-darcsRetrieve repo name Nothing = liftIO $ do
+darcsRetrieve repo name Nothing = do
   let filename = repo </> encodeString name
   catch (liftM fromByteString $ B.readFile filename) $
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
-darcsRetrieve repo name (Just revid) = liftIO $ do
+darcsRetrieve repo name (Just revid) = do
    let opts = ["contents", "--match=hash " ++ revid, name]
    (status, err, output) <- runDarcsCommand repo "query" opts
    if status == ExitSuccess
@@ -211,8 +209,8 @@ darcsRetrieve repo name (Just revid) = liftIO $ do
       else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
 
 -- | Uses grep to search repository.
-darcsSearch :: MonadIO m => FilePath -> SearchQuery -> m [SearchMatch]
-darcsSearch repo query = liftIO $ do
+darcsSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
+darcsSearch repo query = do
   let opts = ["--line-number", "--with-filename"] ++
              (if queryIgnoreCase query then ["-i"] else []) ++
              (if queryWholeWords query then ["--word-regexp"] else ["-E"])
@@ -251,8 +249,8 @@ darcsIdsMatch :: FilePath -> RevisionId -> RevisionId -> Bool
 darcsIdsMatch _ r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
 -- | Change the name of a resource.
-darcsMove :: MonadIO m => FilePath -> ResourceName -> ResourceName -> Author -> String -> m ()
-darcsMove repo oldName newName author logMsg = liftIO $ do
+darcsMove :: FilePath -> ResourceName -> ResourceName -> Author -> String -> IO ()
+darcsMove repo oldName newName author logMsg = do
   let newPath = repo </> newName
   inside <- isInsideRepo repo newPath
   unless inside $ throwIO IllegalResourceName
@@ -265,15 +263,15 @@ darcsMove repo oldName newName author logMsg = liftIO $ do
      else throwIO NotFound
 
 -- | Delete a resource from the repository.
-darcsDelete :: MonadIO m => FilePath -> ResourceName -> Author -> String -> m ()
-darcsDelete repo name author logMsg = liftIO $ do
+darcsDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
+darcsDelete repo name author logMsg = do
   runShellCommand repo Nothing "rm" [name]
   darcsCommit repo [name] author logMsg
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.
-darcsCommit :: MonadIO m => FilePath -> [ResourceName] -> Author -> String -> m ()
-darcsCommit repo names author logMsg = liftIO $ do
+darcsCommit :: FilePath -> [ResourceName] -> Author -> String -> IO ()
+darcsCommit repo names author logMsg = do
   let args = ["--all", "-A", (authorName author ++ " <" ++ authorEmail author ++ ">"), "-m", logMsg] ++ names
   (statusCommit, errCommit, _) <- runDarcsCommand repo "record" args
   if statusCommit == ExitSuccess
@@ -283,8 +281,8 @@ darcsCommit repo names author logMsg = liftIO $ do
                        else UnknownError $ "Could not darcs record " ++ unwords names ++ "\n" ++ errCommit
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-darcsSave :: (MonadIO m, Contents a) => FilePath -> ResourceName -> Author -> String -> a -> m ()
-darcsSave repo name author logMsg contents = liftIO $ do
+darcsSave :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()
+darcsSave repo name author logMsg contents = do
   let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
   unless inside $ throwIO IllegalResourceName
@@ -295,8 +293,8 @@ darcsSave repo name author logMsg contents = liftIO $ do
   runDarcsCommand repo "add" [name]
   darcsCommit repo [name] author logMsg
   
-darcsIndex :: MonadIO m => FilePath -> m [ResourceName]
-darcsIndex repo = liftIO $ do
+darcsIndex :: FilePath ->IO [ResourceName]
+darcsIndex repo = do
     (status, errOutput, output) <- runDarcsCommand repo "query"  ["manifest"]
     if status == ExitSuccess
     -- We need to do drop 2 because Darcs returns files like ["./foobar"], and 
@@ -305,8 +303,8 @@ darcsIndex repo = liftIO $ do
      else error $ "'darcs query manifest' returned error status.\n" ++ errOutput
 
 -- | Initialize a repository, creating the directory if needed.
-darcsInit :: MonadIO m => FilePath -> m ()
-darcsInit repo = liftIO $ do
+darcsInit :: FilePath -> IO ()
+darcsInit repo = do
   exists <- doesDirectoryExist repo
   when exists $ throwIO RepositoryExists
   createDirectoryIfMissing True repo
