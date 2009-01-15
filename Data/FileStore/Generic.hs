@@ -18,7 +18,7 @@ module Data.FileStore.Generic
 where
 import Data.FileStore.Types
 
-import Control.Exception (Exception, throwIO, catch, SomeException)
+import Control.Exception (throwIO, catch, SomeException)
 import Data.FileStore.Utils
 import Prelude hiding (catch)
 
