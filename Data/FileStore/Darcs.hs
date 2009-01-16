@@ -65,7 +65,7 @@ parseIntoRevision a = Revision { revId = hashXML a,
 authorXML, dateXML, descriptionXML, emailXML, hashXML :: Element -> String
 authorXML = snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
 emailXML =  fromMaybe"" . fst . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
-dateXML   = fromMaybe "" . findAttr (QName "date" Nothing Nothing)
+dateXML   = fromMaybe "" . findAttr (QName "local_date" Nothing Nothing)
 hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
 descriptionXML = fromMaybe "" . liftM strContent . findChild (QName "name" Nothing Nothing)
 
