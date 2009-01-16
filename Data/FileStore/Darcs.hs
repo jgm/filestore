@@ -7,7 +7,7 @@ import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.DateTime (formatDateTime, parseDateTime)
 import Data.FileStore.Types
-import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand)
+import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand)
 import Data.List (intersect, nub)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -37,24 +37,12 @@ darcsFileStore repo = FileStore {
   , search     = darcsSearch repo
   , idsMatch   = const hashsMatch repo }
 
--- Copied from Git.hs
-parseMatchLine :: String -> SearchMatch
-parseMatchLine str =
-  let (fn:n:res:_) = filter (not . (==) ":") $ split (==':') str
-  in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
-
 -- | Run a darcs command and return error status, error output, standard output.  The repository
 -- is used as working directory.
 runDarcsCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
 runDarcsCommand repo command args = do
   (status, err, out) <- runShellCommand repo Nothing "darcs" (command : args)
   return (status, toString err, out)
-
-split :: (a -> Bool) -> [a] -> [[a]]
-split _ [] = []
-split p s = let (l,s') = break p s in l : case s' of
-                                           [] -> []
-                                           (r:s'') -> [r] : split p s''
 
 parseDarcsXML :: String -> Maybe [Revision]
 parseDarcsXML str = do changelog <- parseXMLDoc str

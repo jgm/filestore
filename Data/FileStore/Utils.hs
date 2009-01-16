@@ -15,20 +15,22 @@ module Data.FileStore.Utils (
         , diffContents
         , mergeContents
         , hashsMatch
-        , isInsideRepo )
-where
+        , isInsideRepo
+        , parseMatchLine ) where
 
+import Codec.Binary.UTF8.String (encodeString)
+import Control.Monad (liftM, unless)
+import Data.ByteString.Lazy.UTF8 (toString)
+import Data.List (isPrefixOf)
+import Data.Maybe (isJust)
 import System.Directory (canonicalizePath)
 import System.Directory (getTemporaryDirectory, removeFile, findExecutable)
 import System.Exit (ExitCode(..))
 import System.IO (openTempFile, hClose)
-import qualified Data.ByteString.Lazy as B
 import System.Process (runProcess, waitForProcess)
-import Codec.Binary.UTF8.String (encodeString)
-import Data.ByteString.Lazy.UTF8 (toString)
-import Control.Monad (liftM, unless)
-import Data.Maybe (isJust)
-import Data.List (isPrefixOf)
+import qualified Data.ByteString.Lazy as B
+
+import Data.FileStore.Types (SearchMatch(..))
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale.
@@ -129,3 +131,25 @@ isInsideRepo repo name = do
   gitRepoPathCanon <- canonicalizePath repo
   filenameCanon <- canonicalizePath name
   return (gitRepoPathCanon `isPrefixOf` filenameCanon)
+
+-- | A parser function. This is intended for use on strings which are output by grep programs
+--   or programs which mimic the standard grep output - which uses colons as delimiters and has
+--   3 fields: the filename, the line number, and then the matching line itself. Note that this 
+--   is for use on only strings meeting that format - if it goes "file:match", this will throw
+--   a pattern-match exception.
+--
+-- > parseMatchLine "foo:10:bar baz quux" ~> 
+-- > SearchMatch {matchResourceName = "foo", matchLineNumber = 10, matchLine = "bar baz quux"}
+parseMatchLine :: String -> SearchMatch
+parseMatchLine str =
+  let (fn:n:res:_) = filter (not . (==) ":") $ split (==':') str
+  in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
+
+-- | A basic split function. For more on the topic, see 
+-- <http://hackage.haskell.org/cgi-bin/hackage-scripts/package/split>
+-- TODO: rely on the split package itself?
+split :: (a -> Bool) -> [a] -> [[a]]
+split _ [] = []
+split p s = let (l,s') = break p s in l : case s' of
+                                           [] -> []
+                                           (r:s'') -> [r] : split p s''
