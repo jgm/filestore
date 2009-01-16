@@ -3,7 +3,7 @@
 This program runs tests for the filestore modules.
 Invoke it with:
 
-    runghc -iextra Tests.lhs
+    runghc Tests.lhs
 
 > import Data.FileStore
 > import Test.HUnit
