@@ -228,7 +228,7 @@ Invoke it with:
 >   save fs diffTitle testAuthor "removed a line" (unlines . init . lines $ testContents)
 
 >   hist <- history fs [diffTitle] (TimeRange Nothing Nothing)
->   diff' <- diff fs diffTitle (revId $ hist !! 1) (revId $ hist !! 0)
+>   diff' <- diff fs diffTitle (Just $ revId $ hist !! 1) (Just $ revId $ hist !! 0)
 >   let subtracted = filter (\x -> take 1 x == "-") $ drop 5 $ lines diff'
 >   assertEqual "subtracted lines" ["-" ++ last (lines testContents)] subtracted
 
