@@ -37,6 +37,21 @@ import System.Directory (getPermissions, setPermissions, executable)
 import Database.HDBC.Sqlite3 (Connection(..))
 import Paths_filestore
 
+{- The sqlite database will contain three tables: pages, revisions, changes.
+
+   - pages will have columns for resource name (string), latest revisionId
+     (int).
+   
+   - revisions will have revisionIds (int unique key), author (string),
+     email (string), change description (string), datetime (datetime).
+
+   - changes will have revisionId (int), code for add/modify/delete (int),
+     resource name (string), contents-after-change (bytestring). 
+
+   This is designed for speed, not space savings.  If you want space
+   efficiency, use git.
+-}
+
 -- | Return a filestore implemented using the sqlite3 distributed revision control system
 -- (<http://sqlite3-scm.com/>).
 sqlite3FileStore :: Connection -> FileStore
