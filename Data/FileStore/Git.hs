@@ -34,7 +34,6 @@ import Control.Exception (throwIO)
 import Control.Monad (unless)
 import Text.Regex.Posix ((=~))
 import System.Directory (getPermissions, setPermissions, executable)
-import Data.List (isPrefixOf)
 import Paths_filestore
 
 -- | Return a filestore implemented using the git distributed revision control system
