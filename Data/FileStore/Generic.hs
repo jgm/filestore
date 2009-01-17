@@ -13,7 +13,8 @@
 module Data.FileStore.Generic
            ( modify
            , create
-           , diff )
+           , diff
+           , DI(..) )
 
 where
 import Data.FileStore.Types
