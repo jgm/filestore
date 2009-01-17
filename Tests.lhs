@@ -259,19 +259,19 @@ Invoke it with:
 >   res1 <- search fs SearchQuery{queryPatterns = ["bing"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = True}
 >   assertEqual "search results 1" [SearchMatch "bar" 1 "bing BONG", SearchMatch "foo" 1 "bing"] res1
 
-    Search for regex "B.NG" case-sensitive.
+    Search for regex "BONG" case-sensitive.
 
->   res2 <- search fs SearchQuery{queryPatterns = ["B.NG"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = False}
+>   res2 <- search fs SearchQuery{queryPatterns = ["BONG"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = False}
 >   assertEqual "search results 2" [SearchMatch "bar" 1 "bing BONG"] res2
 
-    Search for "bo.*g" and "φ"
+    Search for "bong" and "φ"
 
->   res3 <- search fs SearchQuery{queryPatterns = ["bo.*g", "φ"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = True}
+>   res3 <- search fs SearchQuery{queryPatterns = ["bong", "φ"], queryWholeWords = True, queryMatchAll = True, queryIgnoreCase = True}
 >   assertEqual "search results 3" [SearchMatch "foo" 2 "bong", SearchMatch "foo" 4 "φ"] res3
 
-    Search for "bo.*g" and "φ" but without match-all set
+    Search for "bong" and "φ" but without match-all set
 
->   res4 <- search fs SearchQuery{queryPatterns = ["bo.*g", "φ"], queryWholeWords = True, queryMatchAll = False, queryIgnoreCase = True}
+>   res4 <- search fs SearchQuery{queryPatterns = ["bong", "φ"], queryWholeWords = True, queryMatchAll = False, queryIgnoreCase = True}
 >   assertEqual "search results 4" [SearchMatch "bar" 1 "bing BONG", SearchMatch "baz" 2 "bong", SearchMatch "foo" 2 "bong", SearchMatch "foo" 4 "φ"] res4
 
     Search for "bing" but without whole-words set

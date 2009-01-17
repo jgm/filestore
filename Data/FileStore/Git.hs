@@ -20,7 +20,7 @@ import Data.FileStore.Types
 import System.Exit
 import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand) 
+import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -203,7 +203,8 @@ pOctalChar = P.try $ do
   let num = read $ "0o" ++ ds
   return $ chr num
 
--- | Uses git-grep to search repository.
+-- | Uses git-grep to search repository.  Escape regex special characters, so the pattern
+-- is interpreted as an ordinary string.
 gitSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
 gitSearch repo query = do
   let opts = ["-I","-n"] ++
@@ -211,7 +212,7 @@ gitSearch repo query = do
              ["--all-match" | queryMatchAll query] ++
              ["--word-regexp" | queryWholeWords query]
   (status, errOutput, output) <- runGitCommand repo "grep" (opts ++
-                                   concatMap (\term -> ["-e", term]) (queryPatterns query))
+                                   concatMap (\term -> ["-e", escapeRegexSpecialChars term]) (queryPatterns query))
   if status == ExitSuccess
      then return $ map parseMatchLine $ lines $ toString output
      else error $ "git grep returned error status.\n" ++ errOutput

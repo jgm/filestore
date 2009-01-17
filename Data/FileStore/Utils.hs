@@ -15,6 +15,7 @@ module Data.FileStore.Utils (
         , mergeContents
         , hashsMatch
         , isInsideRepo
+        , escapeRegexSpecialChars
         , parseMatchLine ) where
 
 
@@ -92,6 +93,11 @@ mergeContents (newLabel, newContents) (originalLabel, originalContents) (latestL
   removeFile newPath
   return (conflicts, toString mergedContents)
 
+escapeRegexSpecialChars :: String -> String
+escapeRegexSpecialChars = backslashEscape "?*+{}[]\\^$.()"
+  where backslashEscape chars (x:xs) | x `elem` chars = '\\' : x : backslashEscape chars xs
+        backslashEscape chars (x:xs) = x : backslashEscape chars xs
+        backslashEscape chars [] = []
 
 -- | A number of VCS systems uniquely identify a particular revision or change via a
 --   cryptographic hash of some sort. These hashs can be very long, and so systems like

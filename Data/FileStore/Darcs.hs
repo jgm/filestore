@@ -7,7 +7,7 @@ import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.DateTime (formatDateTime, parseDateTime)
 import Data.FileStore.Types
-import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand)
+import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars)
 import Data.List (intersect, nub)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -265,7 +265,7 @@ darcsSearch repo query = do
   let opts = ["--line-number", "--with-filename"] ++
              (if queryIgnoreCase query then ["-i"] else []) ++
              (if queryWholeWords query then ["--word-regexp"] else ["-E"])
-  let regexps = queryPatterns query
+  let regexps = map escapeRegexSpecialChars $ queryPatterns query
   files <- darcsIndex repo
   if queryMatchAll query then do
                                   filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (go repo files) regexps
