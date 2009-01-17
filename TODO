@@ -1,0 +1,54 @@
+Note:  git will detect renames in "log" and "whatchanged"
+if you supply the "-M" flag:
+
+jgm@protagoras:~/tmp/ebo/aaa [26]% git whatchanged
+commit 06676810341c00b306b1afc6d1ab7daaf86daa96
+Author: John MacFarlane <jgm@berkeley.edu>
+Date:   Fri Jan 16 18:54:34 2009 -0800
+
+    added new a
+
+:000000 100644 0000000... e69de29... A  a
+
+commit c46967e899d01edb552d37689c6b0e9861d6e458
+Author: John MacFarlane <jgm@berkeley.edu>
+Date:   Fri Jan 16 18:54:16 2009 -0800
+
+    moved a to b
+
+:100644 000000 e69de29... 0000000... D  a
+:000000 100644 0000000... e69de29... A  b
+
+commit 4b86a6b28537593d362c18357f8cc0ac3a493ecf
+Author: John MacFarlane <jgm@berkeley.edu>
+Date:   Fri Jan 16 18:54:08 2009 -0800
+
+    added a
+
+:000000 100644 0000000... e69de29... A  a
+
+jgm@protagoras:~/tmp/ebo/aaa [27]% git whatchanged -M
+commit 06676810341c00b306b1afc6d1ab7daaf86daa96
+Author: John MacFarlane <jgm@berkeley.edu>
+Date:   Fri Jan 16 18:54:34 2009 -0800
+
+    added new a
+
+:000000 100644 0000000... e69de29... A  a
+
+commit c46967e899d01edb552d37689c6b0e9861d6e458
+Author: John MacFarlane <jgm@berkeley.edu>
+Date:   Fri Jan 16 18:54:16 2009 -0800
+
+    moved a to b
+
+:100644 100644 e69de29... e69de29... R100       a       b
+
+commit 4b86a6b28537593d362c18357f8cc0ac3a493ecf
+Author: John MacFarlane <jgm@berkeley.edu>
+Date:   Fri Jan 16 18:54:08 2009 -0800
+
+    added a
+
+:000000 100644 0000000... e69de29... A  a
+
