@@ -96,8 +96,8 @@ mergeContents (newLabel, newContents) (originalLabel, originalContents) (latestL
 escapeRegexSpecialChars :: String -> String
 escapeRegexSpecialChars = backslashEscape "?*+{}[]\\^$.()"
   where backslashEscape chars (x:xs) | x `elem` chars = '\\' : x : backslashEscape chars xs
-        backslashEscape chars (x:xs) = x : backslashEscape chars xs
-        backslashEscape chars [] = []
+        backslashEscape chars (x:xs)                  = x : backslashEscape chars xs
+        backslashEscape _ []                          = []
 
 -- | A number of VCS systems uniquely identify a particular revision or change via a
 --   cryptographic hash of some sort. These hashs can be very long, and so systems like
