@@ -5,7 +5,7 @@ import Control.Exception (throwIO)
 import Control.Monad (liftM, unless, when)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
-import Data.DateTime (formatDateTime, parseDateTime)
+import Data.DateTime (parseDateTime, toSqlString)
 import Data.FileStore.Types
 import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars)
 import Data.List (intersect, nub)
@@ -210,9 +210,9 @@ darcsLog repo names (TimeRange begin end) = do
                 (Just b', Just e') -> from b' ++ to e'
                 (Just b', Nothing) -> from b'
                 (Nothing, Just e') -> to e'
-                where from z = ["--from-match=date \"" ++ undate z ++ "\""]
-                      to z = ["--to-match=date \"" ++ undate z ++ "\""]
-                      undate = formatDateTime "%c"
+                where from z = ["--from-match=date \"after " ++ undate z ++ "\""]
+                      to z = ["--to-match=date \"before " ++ undate z ++ "\""]
+                      undate = toSqlString
 
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
