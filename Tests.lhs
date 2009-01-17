@@ -227,20 +227,20 @@ Invoke it with:
 >   create fs diffTitle testAuthor "description of change" testContents
 >   save fs diffTitle testAuthor "removed a line" (unlines . init . lines $ testContents)
 
->   hist <- history fs [diffTitle] (TimeRange Nothing Nothing)
->   diff' <- diff fs diffTitle (Just $ revId $ hist !! 1) (Just $ revId $ hist !! 0)
+>   [secondrev, firstrev] <- history fs [diffTitle] (TimeRange Nothing Nothing)
+>   diff' <- diff fs diffTitle (Just $ revId firstrev) (Just $ revId secondrev)
 >   let subtracted' = map (drop 1) $ filter (\x -> take 1 x == "-") $ drop 5 $ lines diff'
 >   assertEqual "subtracted lines" [last (lines testContents)] subtracted'
 
     Diff from Nothing should be diff from empty document.
 
->   diff'' <- diff fs diffTitle Nothing (Just $ revId $ hist !! 1)
+>   diff'' <- diff fs diffTitle Nothing (Just $ revId firstrev)
 >   let added'' = map (drop 1) $ filter (\x -> take 1 x == "+") $ drop 3 $ lines diff''
 >   assertEqual "added lines from empty document to first revision" (lines $ testContents) added''
 
     Diff to Nothing should be diff to latest.
 
->   diff''' <- diff fs diffTitle (Just $ revId $ hist !! 1) Nothing
+>   diff''' <- diff fs diffTitle (Just $ revId firstrev) Nothing
 >   assertEqual "diff from first revision to latest" diff' diff'''
 
 *** Test search
