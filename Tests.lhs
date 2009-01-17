@@ -12,8 +12,10 @@ Invoke it with:
 > import Prelude hiding (catch)
 > import Control.Exception (catch)
 > import Data.DateTime
+> import Data.Maybe (mapMaybe)
 > import System.Directory (doesFileExist)
 > import System.Process
+> import Data.Algorithm.Diff (DI(..))
 
 > main = do
 >   testFileStore (gitFileStore "tmp/gitfs") "Data.FileStore.Git"
@@ -229,14 +231,14 @@ Invoke it with:
 
 >   [secondrev, firstrev] <- history fs [diffTitle] (TimeRange Nothing Nothing)
 >   diff' <- diff fs diffTitle (Just $ revId firstrev) (Just $ revId secondrev)
->   let subtracted' = map (drop 1) $ filter (\x -> take 1 x == "-") $ drop 5 $ lines diff'
+>   let subtracted' = mapMaybe (\(d,s) -> if d == F then Just (concat s) else Nothing) diff'
 >   assertEqual "subtracted lines" [last (lines testContents)] subtracted'
 
     Diff from Nothing should be diff from empty document.
 
 >   diff'' <- diff fs diffTitle Nothing (Just $ revId firstrev)
->   let added'' = map (drop 1) $ filter (\x -> take 1 x == "+") $ drop 3 $ lines diff''
->   assertEqual "added lines from empty document to first revision" (lines $ testContents) added''
+>   let added'' = mapMaybe (\(d,s) -> if d == S then Just (concat s) else Nothing) diff''
+>   assertEqual "added lines from empty document to first revision" [testContents] added''
 
     Diff to Nothing should be diff to latest.
 

@@ -15,7 +15,7 @@ License-File:        LICENSE
 Author:              John MacFarlane
 Maintainer:          jgm@berkeley.edu
 Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
-                     parsec >= 2 && < 3, process, time, datetime, regex-posix, xml
+                     parsec >= 2 && < 3, process, time, datetime, regex-posix, xml, split, Diff
 Extra-source-files:  Tests.lhs
 Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs,
                      -- Data.FileStore.Sqlite3,

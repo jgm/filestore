@@ -20,8 +20,10 @@ import Data.FileStore.Types
 
 import Control.Exception (throwIO, catch, SomeException)
 import Data.FileStore.Utils
-import Data.ByteString.Lazy as B
 import Data.Maybe (isNothing)
+import qualified Data.List.Split as S (whenElt, split)
+import Data.Char (isSpace)
+import Data.Algorithm.Diff (DI(..), getGroupedDiff)
 import Prelude hiding (catch)
 
 handleUnknownError :: SomeException -> IO a
@@ -65,17 +67,22 @@ modify fs name originalRevId author msg contents = do
                                   handleUnknownError
        return $ Left (MergeInfo latestRev conflicts mergedText)
 
+-- | Split a string at spaces (but include the spaces in the list of results).
+splitOnSpaces :: String -> [String]
+splitOnSpaces = S.split (S.whenElt isSpace) 
+
 -- | Return a unified diff of two revisions of a named resource, using an external @diff@
 -- program.
 diff :: FileStore
      -> ResourceName      -- ^ Resource name to get diff for.
      -> Maybe RevisionId  -- ^ @Just@ old revision ID, or @Nothing@ for empty.
      -> Maybe RevisionId  -- ^ @Just@ oew revision ID, or @Nothing@ for latest.
-     -> IO String
+     -> IO [(DI, [String])]
 diff fs name id1 id2 = do
   contents1 <- if isNothing id1
-                  then return B.empty
+                  then return ""
                   else retrieve fs name id1
   contents2 <- retrieve fs name id2
-  diffContents contents1 contents2
-
+  let words1 = splitOnSpaces contents1
+  let words2 = splitOnSpaces contents2
+  return $ getGroupedDiff words1 words2
