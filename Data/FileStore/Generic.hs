@@ -13,7 +13,11 @@
 module Data.FileStore.Generic
            ( modify
            , create
-           , diff )
+           , DI(..)
+           , diff
+           , searchRevisions
+           , smartRetrieve
+           )
 
 where
 import Data.FileStore.Types
@@ -21,6 +25,10 @@ import Data.FileStore.Types
 import Control.Exception (throwIO, catch, SomeException, try)
 import Data.FileStore.Utils
 import Data.Maybe (isNothing)
+import Data.List (isInfixOf)
+import qualified Data.List.Split as S (whenElt, split)
+import Data.Char (isSpace)
+import Data.Algorithm.Diff (DI(..), getGroupedDiff)
 import Prelude hiding (catch)
 
 handleUnknownError :: SomeException -> IO a
@@ -80,5 +88,56 @@ diff fs name id1 id2 = do
                   then return ""
                   else retrieve fs name id1
   contents2 <- retrieve fs name id2
-  diffContents contents1 contents2
+  let words1 = splitOnSpaces contents1
+  let words2 = splitOnSpaces contents2
+  return $ getGroupedDiff words1 words2
+
+-- | Return a list of all revisions that are saved with the given
+-- description or with a part of this description.
+searchRevisions :: FileStore
+                -> ResourceName      -- ^ The resource to search history for.
+                -> Description       -- ^ Revision description to search for.
+                -> Bool              -- ^ When true the description must
+                                     --   match exactly, when false partial
+                                     --   hits are allowed.
+                -> IO [Revision]
+
+searchRevisions repo name desc exact = do
+  let matcher = if exact
+                then (== desc)
+                else (desc `isInfixOf`)
+  revs <- (history repo) [name] (TimeRange Nothing Nothing)
+  return $ Prelude.filter (matcher . revDescription) revs
+
+-- | Try to retrieve a resource from the repository by name and possibly a
+-- revision identifier. When retrieving a resource by revision identifier fails
+-- this function will try to fetch the latest revision for which the
+-- description matches the given string.
+smartRetrieve
+  :: Contents a
+  => FileStore
+  -> ResourceName    -- ^ Resource name to retrieve.
+  -> Maybe String    -- ^ @Just@ revision ID or description, or @Nothing@ for empty.
+  -> Bool            -- ^ @True@ for exact description match, @False@ for partial match.
+  -> IO a
+smartRetrieve fs name mrev exact = do
+  edoc <- try (retrieve fs name mrev)
+  case (edoc, mrev) of
+    
+    -- Regular retrieval using revision identifier succeeded, use this doc.
+    (Right doc, _) -> return doc
+
+    -- Retrieval of latest revision failed, nothing we can do about this.
+    (Left e, Nothing) -> throwIO (e :: FileStoreError)
+
+    -- Retrieval failed, we can try fetching a revision by the description.
+    (Left _, Just rev) -> do
+      revs <- searchRevisions fs name rev exact
+      if Prelude.null revs
+
+        -- No revisions containing this description.
+        then throwIO NotFound
+
+        -- Retrieve resource for latest matching revision.
+        else retrieve fs name (Just $ revId $ Prelude.head revs)
 
