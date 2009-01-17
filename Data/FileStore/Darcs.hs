@@ -244,7 +244,6 @@ darcsRetrieve repo name Nothing = do
     \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
 darcsRetrieve repo name (Just revid) = do
    let opts = ["contents", "--match=hash " ++ revid, name]
-   print opts
    (status, err, output) <- runDarcsCommand repo "query" opts
    if status == ExitSuccess
       then return $ fromByteString output
