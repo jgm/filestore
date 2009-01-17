@@ -215,7 +215,6 @@ Invoke it with:
 >   assertBool "revDescription non-null" (not (null (revDescription rev)))
 >   assertEqual "revChanges" [Modified testTitle] (revChanges rev)
 >   let revtime = revDateTime rev
->   runCommand "sleep 1" >>= waitForProcess
 >   histNow <- history fs [testTitle] (TimeRange (Just $ addMinutes 1 now) Nothing)
 >   assertBool "history from now + 1 minute onwards is empty" (null histNow)
 
