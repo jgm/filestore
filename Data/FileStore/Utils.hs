@@ -17,10 +17,12 @@ module Data.FileStore.Utils (
         , isInsideRepo
         , parseMatchLine ) where
 
+
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Monad (liftM)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.List (isPrefixOf)
+import Data.List.Split (splitWhen)
 import Data.Maybe (isJust)
 import System.Directory (canonicalizePath)
 import System.Directory (getTemporaryDirectory, removeFile, findExecutable)
@@ -120,14 +122,5 @@ isInsideRepo repo name = do
 -- > SearchMatch {matchResourceName = "foo", matchLineNumber = 10, matchLine = "bar baz quux"}
 parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
-  let (fn:n:res:_) = filter (not . (==) ":") $ split (==':') str
+  let (fn:n:res:_) = splitWhen (==':') str
   in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
-
--- | A basic split function. For more on the topic, see 
--- <http://hackage.haskell.org/cgi-bin/hackage-scripts/package/split>
--- TODO: rely on the split package itself?
-split :: (a -> Bool) -> [a] -> [[a]]
-split _ [] = []
-split p s = let (l,s') = break p s in l : case s' of
-                                           [] -> []
-                                           (r:s'') -> [r] : split p s''
