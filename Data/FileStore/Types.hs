@@ -16,6 +16,7 @@ module Data.FileStore.Types
            , ResourceName
            , Author(..)
            , Change(..)
+           , Description
            , Revision(..)
            , Contents(..)
            , TimeRange(..)
@@ -51,12 +52,14 @@ data Change =
   | Modified ResourceName
   deriving (Show, Read, Eq, Typeable)
 
+type Description = String
+
 data Revision =
   Revision {
     revId          :: RevisionId
   , revDateTime    :: DateTime
   , revAuthor      :: Author
-  , revDescription :: String
+  , revDescription :: Description
   , revChanges     :: [Change]
   } deriving (Show, Read, Eq, Typeable)
 
@@ -176,6 +179,15 @@ data FileStore = FileStore {
     -- no such revision.
   , revision       :: RevisionId        -- ^ Revision ID to get revision information for.
                    -> IO Revision
+
+    -- | Return a list of all revisions that are saved with the given
+    -- description or with a part of this description.
+  , searchRevisions :: ResourceName      -- ^ The resource to search history for.
+                    -> Description       -- ^ Revision description to search for.
+                    -> Bool              -- ^ When true the description must
+                                         --   match exactly, when false partial
+                                         --   hits are allowed.
+                    -> IO [Revision]
 
     -- | Return a list of resources in the filestore.
   , index          :: IO [ResourceName]

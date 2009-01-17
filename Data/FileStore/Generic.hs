@@ -13,13 +13,12 @@
 module Data.FileStore.Generic
            ( modify
            , create
-           , diff
-           , DI(..) )
+           , diff )
 
 where
 import Data.FileStore.Types
 
-import Control.Exception (throwIO, catch, SomeException)
+import Control.Exception (throwIO, catch, SomeException, try)
 import Data.FileStore.Utils
 import Data.Maybe (isNothing)
 import qualified Data.List.Split as S (whenElt, split)
@@ -84,6 +83,5 @@ diff fs name id1 id2 = do
                   then return ""
                   else retrieve fs name id1
   contents2 <- retrieve fs name id2
-  let words1 = splitOnSpaces contents1
-  let words2 = splitOnSpaces contents2
-  return $ getGroupedDiff words1 words2
+  diffContents contents1 contents2
+
