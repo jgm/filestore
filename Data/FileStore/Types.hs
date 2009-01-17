@@ -180,15 +180,6 @@ data FileStore = FileStore {
   , revision       :: RevisionId        -- ^ Revision ID to get revision information for.
                    -> IO Revision
 
-    -- | Return a list of all revisions that are saved with the given
-    -- description or with a part of this description.
-  , searchRevisions :: ResourceName      -- ^ The resource to search history for.
-                    -> Description       -- ^ Revision description to search for.
-                    -> Bool              -- ^ When true the description must
-                                         --   match exactly, when false partial
-                                         --   hits are allowed.
-                    -> IO [Revision]
-
     -- | Return a list of resources in the filestore.
   , index          :: IO [ResourceName]
 

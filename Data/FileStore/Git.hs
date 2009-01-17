@@ -50,7 +50,6 @@ gitFileStore repo = FileStore {
   , history           = gitLog repo
   , latest            = gitLatestRevId repo
   , revision          = gitGetRevision repo
-  , searchRevisions   = error "Data.FileStore.Git: searchRevisions not supported yet"
   , index             = gitIndex repo
   , search            = gitSearch repo 
   , idsMatch          = const hashsMatch repo

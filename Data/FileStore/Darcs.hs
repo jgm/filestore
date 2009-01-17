@@ -8,7 +8,7 @@ import Data.Char (isSpace)
 import Data.DateTime (formatDateTime, parseDateTime)
 import Data.FileStore.Types
 import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars)
-import Data.List (intersect, nub, isInfixOf)
+import Data.List (intersect, nub)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
@@ -33,7 +33,6 @@ darcsFileStore repo = FileStore {
   , history         = darcsLog repo
   , latest          = darcsLatestRevId repo
   , revision        = darcsGetRevision repo
-  , searchRevisions = darcsByDescription repo
   , index           = darcsIndex repo
   , search          = darcsSearch repo
   , idsMatch        = const hashsMatch repo }
@@ -231,20 +230,6 @@ darcsLatestRevId repo name = do
   case patchs of
       Nothing -> throwIO NotFound
       Just as -> if null as then throwIO NotFound else return $ revId $ head as
-
--- | Return a list of all revisions that are saved with the given description
--- or with a part of this description.
-darcsByDescription :: FilePath -> ResourceName -> Description -> Bool -> IO [Revision]
-darcsByDescription repo name desc exact = do
-  -- changes always succeeds, so no need to check error
-  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
-  let matcher = if exact
-                then (== desc)
-                else (desc `isInfixOf`)
-  let patchs = parseDarcsXML $ toString output
-  case patchs of
-      Nothing -> throwIO NotFound
-      Just as -> return $ filter (matcher . revDescription) as
 
 -- | Retrieve the (text) contents of a resource.
 darcsRetrieve :: Contents a
