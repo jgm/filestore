@@ -32,7 +32,7 @@ import qualified Data.ByteString.Lazy as B
 import Data.FileStore.Types (SearchMatch(..))
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
--- UTF-8 locale.
+-- UTF-8 locale. Note that this does not actuall go through \/bin\/sh!
 runShellCommand :: FilePath                     -- ^ Working directory
                 -> Maybe [(String, String)]     -- ^ Environment
                 -> String                       -- ^ Command
