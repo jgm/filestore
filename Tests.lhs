@@ -215,8 +215,8 @@ Invoke it with:
 >   assertBool "revDescription non-null" (not (null (revDescription rev)))
 >   assertEqual "revChanges" [Modified testTitle] (revChanges rev)
 >   let revtime = revDateTime rev
->   histNow <- history fs [testTitle] (TimeRange (Just $ addMinutes 1 now) Nothing)
->   assertBool "history from now + 1 minute onwards is empty" (null histNow)
+>   histNow <- history fs [testTitle] (TimeRange (Just $ addMinutes (60 * 24) now) Nothing)
+>   assertBool "history from now + 1 day onwards is empty" (null histNow)
 
 *** Test diff
 
