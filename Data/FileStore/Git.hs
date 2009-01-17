@@ -297,4 +297,4 @@ gitLogChange = do
          "A"  -> return $ Added file'
          "M"  -> return $ Modified file'
          "D"  -> return $ Deleted file'
-         x    -> fail $ "Unknown change type '" ++ x ++ "'"
+         _    -> return $ Modified file'
