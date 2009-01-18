@@ -57,11 +57,13 @@ sqlite3FileStore repo = FileStore {
 
 -- | Initialize a repository, creating the directory if needed.
 sqlite3Init :: Connection -> IO ()
-sqlite3Init conn = do
-  run conn "CREATE TABLE resources(id INTEGER PRIMARY KEY, name TEXT, latestChangeId INTEGER);" []
-  run conn "CREATE TABLE revisions( id INTEGER PRIMARY KEY, author TEXT, email TEXT, description TEXT, datetime DATETIME);" []
-  run conn "CREATE TABLE changes( id INTEGER PRIMARY KEY, revisionId INTEGER, changetype INTEGER, resourceId INTEGER, contents BLOB);" []
-  commit conn
+sqlite3Init conn =
+  catchSql createTables $ \_ -> throwIO RepositoryExists
+    where createTables = do
+           run conn "CREATE TABLE resources(id INTEGER PRIMARY KEY, name TEXT, latestChangeId INTEGER);" []
+           run conn "CREATE TABLE revisions( id INTEGER PRIMARY KEY, author TEXT, email TEXT, description TEXT, datetime DATETIME);" []
+           run conn "CREATE TABLE changes( id INTEGER PRIMARY KEY, revisionId INTEGER, changetype INTEGER, resourceId INTEGER, contents BLOB);" []
+           commit conn
 
 -- | Save changes (creating file and directory if needed), add, and commit.
 sqlite3Save :: Contents a => Connection -> ResourceName -> Author -> String -> a -> IO ()
