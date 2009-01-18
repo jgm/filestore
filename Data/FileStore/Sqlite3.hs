@@ -56,9 +56,7 @@ import Paths_filestore
 -- (<http://sqlite3-scm.com/>).
 sqlite3FileStore :: Connection -> FileStore
 sqlite3FileStore repo = FileStore {
-    fsType            = "Sqlite3"
-  , fsPath            = Nothing
-  , initialize        = sqlite3Init repo
+    initialize        = sqlite3Init repo
   , save              = sqlite3Save repo 
   , retrieve          = sqlite3Retrieve repo
   , delete            = sqlite3Delete repo

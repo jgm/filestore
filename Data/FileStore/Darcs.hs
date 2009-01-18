@@ -23,9 +23,7 @@ import qualified Data.ByteString.Lazy as B (ByteString, readFile, writeFile)
 -- (<http://darcs.net/>).
 darcsFileStore :: FilePath -> FileStore
 darcsFileStore repo = FileStore {
-    fsType          = "Darcs"
-  , fsPath          = Just repo
-  , initialize      = darcsInit repo
+    initialize      = darcsInit repo
   , save            = darcsSave repo
   , retrieve        = darcsRetrieve repo
   , delete          = darcsDelete repo

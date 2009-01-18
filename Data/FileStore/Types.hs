@@ -127,15 +127,8 @@ data SearchMatch =
 -- file system, a database, or revision-control software.
 data FileStore = FileStore {
 
-    -- | Return the type of the filestore (e.g. "Git")
-    fsType         :: String
-   
-    -- | Return @Just@ the path of the filestore, if it is implemented
-    -- in the filesystem, or @Nothing@ otherwise.
-  , fsPath         :: Maybe FilePath
-
     -- | Initialize a new filestore.
-  , initialize     :: IO ()
+    initialize     :: IO ()
 
     -- | Save contents in the filestore.
   , save           :: Contents a

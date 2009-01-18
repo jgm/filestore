@@ -40,9 +40,7 @@ import Paths_filestore
 -- (<http://git-scm.com/>).
 gitFileStore :: FilePath -> FileStore
 gitFileStore repo = FileStore {
-    fsType            = "Git"
-  , fsPath            = Just repo
-  , initialize        = gitInit repo
+    initialize        = gitInit repo
   , save              = gitSave repo 
   , retrieve          = gitRetrieve repo
   , delete            = gitDelete repo
