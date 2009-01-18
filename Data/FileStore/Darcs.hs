@@ -210,7 +210,7 @@ darcsLog repo names (TimeRange begin end) = do
                 (Just b', Just e') -> from b' ++ to e'
                 (Just b', Nothing) -> from b'
                 (Nothing, Just e') -> to e'
-                where from z = ["--from-match=date \"after " ++ undate z ++ "\""]
+                where from z = ["--match=date \"after " ++ undate z ++ "\""]
                       to z = ["--to-match=date \"before " ++ undate z ++ "\""]
                       undate = toSqlString
 
