@@ -96,7 +96,16 @@ data FileStoreError =
   | Unchanged                    -- ^ The resource was not modified, because the contents were unchanged
   | UnsupportedOperation
   | UnknownError String
-  deriving (Show, Read, Eq, Typeable)
+  deriving (Read, Eq, Typeable)
+
+instance Show FileStoreError where
+  show RepositoryExists      = "RepositoryExists"
+  show ResourceExists        = "ResourceExists"
+  show NotFound              = "NotFound"
+  show IllegalResourceName   = "IllegalResourceName"
+  show Unchanged             = "Unchanged"
+  show UnsupportedOperation  = "UnsupportedOperation"
+  show (UnknownError s)      = "UnknownError: " ++ s
 
 instance Exception FileStoreError
 
