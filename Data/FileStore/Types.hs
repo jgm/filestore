@@ -141,7 +141,7 @@ data FileStore = FileStore {
 
     -- | Save contents in the filestore.
   , save           :: Contents a
-                   => ResourceName      {- ^ Resource to save -}
+                   => ResourceName      -- Resource to save.
                    -> Author            --  Author of change.
                    -> Description       --  Description of change.
                    -> a                 --  New contents of resource.
@@ -149,37 +149,37 @@ data FileStore = FileStore {
     
     -- | Retrieve the contents of the named resource.
   , retrieve       :: Contents a
-                   => ResourceName      -- ^ Resource to retrieve.
-                   -> Maybe RevisionId  -- ^ @Just@ a particular revision ID, or @Nothing@ for latest
+                   => ResourceName      -- Resource to retrieve.
+                   -> Maybe RevisionId  -- @Just@ a particular revision ID, or @Nothing@ for latest
                    -> IO a
 
     -- | Delete a named resource, providing author and log message.
-  , delete         :: ResourceName      -- ^ Resource to delete.
-                   -> Author            -- ^ Author of change.
-                   -> Description       -- ^ Description of change.
+  , delete         :: ResourceName      -- Resource to delete.
+                   -> Author            -- Author of change.
+                   -> Description       -- Description of change.
                    -> IO ()
 
     -- | Rename a resource, providing author and log message.
-  , rename         :: ResourceName      -- ^ Resource original name.
-                   -> ResourceName      -- ^ Resource new name.
-                   -> Author            -- ^ Author of change.
-                   -> Description       -- ^ Description of change.
+  , rename         :: ResourceName      -- Resource original name.
+                   -> ResourceName      -- Resource new name.
+                   -> Author            -- Author of change.
+                   -> Description       -- Description of change.
                    -> IO ()
 
     -- | Get history for a list of named resources in a (possibly openended) time range.
     -- If the list is empty, history for all resources will be returned. 
-  , history        :: [ResourceName]    -- ^ List of resources to get history for, or @[]@ for all.
-                   -> TimeRange         -- ^ Time range within which to get history.
+  , history        :: [ResourceName]    -- List of resources to get history for, or @[]@ for all.
+                   -> TimeRange         -- Time range within which to get history.
                    -> IO [Revision]
 
     -- | Return the revision ID of the latest change for a resource.  Raises 'NotFound'
     -- if the resource is not found.
-  , latest         :: ResourceName      -- ^ Resource to get revision ID for.
+  , latest         :: ResourceName      -- Resource to get revision ID for.
                    -> IO RevisionId
 
     -- | Return information about a revision, given the ID.  Raises 'NotFound' if there is
     -- no such revision.
-  , revision       :: RevisionId        -- ^ Revision ID to get revision information for.
+  , revision       :: RevisionId        -- Revision ID to get revision information for.
                    -> IO Revision
 
     -- | Return a list of resources in the filestore.
