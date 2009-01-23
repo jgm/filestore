@@ -21,6 +21,6 @@ Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, D
                      -- Data.FileStore.Sqlite3,
                      Data.FileStore.Utils, Data.FileStore.Generic,
                      Paths_filestore
-Hs-Source-Dirs:      .
+Hs-Source-Dirs:      ., dist/build/autogen
 Data-Files:          extra/post-update
 Ghc-Options:         -Wall
