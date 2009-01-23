@@ -177,30 +177,6 @@ gitIndex repo = do
      then return $ map convertEncoded $ lines $ toString output
      else error $ "git ls-files returned error status.\n" ++ errOutput
 
--- | git ls-files returns UTF-8 filenames in quotes, with characters octal-escaped.
--- like this: "\340\244\226.page"
--- This function decodes these.
-convertEncoded :: String -> String
-convertEncoded s =
-  case P.parse pEncodedString s s of
-    Left _    -> s
-    Right res -> res
-
-pEncodedString :: P.GenParser Char st [Char]
-pEncodedString = do
-  P.char '"'
-  res <- P.many1 (pOctalChar P.<|> P.anyChar)
-  if last res == '"'
-     then return $ decodeString $ init res
-     else fail "No ending quotation mark."
-
-pOctalChar :: P.GenParser Char st Char
-pOctalChar = P.try $ do
-  P.char '\\'
-  ds <- P.count 3 (P.oneOf "01234567")
-  let num = read $ "0o" ++ ds
-  return $ chr num
-
 -- | Uses git-grep to search repository.  Escape regex special characters, so the pattern
 -- is interpreted as an ordinary string.
 gitSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
@@ -297,3 +273,27 @@ gitLogChange = do
          "M"  -> return $ Modified file'
          "D"  -> return $ Deleted file'
          _    -> return $ Modified file'
+
+-- | git ls-files returns UTF-8 filenames in quotes, with characters octal-escaped.
+-- like this: "\340\244\226.page"
+-- This function decodes these.
+convertEncoded :: String -> String
+convertEncoded s =
+  case P.parse pEncodedString s s of
+    Left _    -> s
+    Right res -> res
+
+pEncodedString :: P.GenParser Char st [Char]
+pEncodedString = do
+  P.char '"'
+  res <- P.many1 (pOctalChar P.<|> P.anyChar)
+  if last res == '"'
+     then return $ decodeString $ init res
+     else fail "No ending quotation mark."
+
+pOctalChar :: P.GenParser Char st Char
+pOctalChar = P.try $ do
+  P.char '\\'
+  ds <- P.count 3 (P.oneOf "01234567")
+  let num = read $ "0o" ++ ds
+  return $ chr num
