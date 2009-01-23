@@ -1,6 +1,6 @@
 {- |
    Module      : Data.FileStore.Utils
-   Copyright   : Copyright (C) 2008 John MacFarlane
+   Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Brandwen
    License     : BSD 3
 
    Maintainer  : John MacFarlane <jgm@berkeley.edu>

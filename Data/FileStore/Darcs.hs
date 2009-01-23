@@ -1,3 +1,17 @@
+{- |
+   Module      : Data.FileStore.Darcs
+   Copyright   : Copyright (C) 2009 Gwern Brandwen
+   License     : BSD 3
+
+   Maintainer  : John MacFarlane <jgm@berkeley.edu>
+   Stability   : alpha
+   Portability : GHC 6.10 required
+
+   A versioned filestore implemented using darcs.
+   Normally this module should not be imported: import
+   "Data.FileStore" instead.
+-}
+
 module Data.FileStore.Darcs ( darcsFileStore ) where
 
 import Codec.Binary.UTF8.String (encodeString)

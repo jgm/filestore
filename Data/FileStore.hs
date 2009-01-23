@@ -1,7 +1,7 @@
 {-# LANGUAGE Rank2Types, FlexibleContexts #-}
 {- |
    Module      : Data.FileStore
-   Copyright   : Copyright (C) 2008 John MacFarlane
+   Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Brandwen, Sebastiaan Visser
    License     : BSD 3
 
    Maintainer  : John MacFarlane <jgm@berkeley.edu>
@@ -10,6 +10,7 @@
 
    Abstract interface to a versioned file store, which can be
    implemented using a revision-control system or database.
+
    Based on ideas from Sebastiaan Visser's "Network.Orchid.Core.Backend".
 -}
 

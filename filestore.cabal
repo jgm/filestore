@@ -12,7 +12,7 @@ Category:            Data
 Stability:           Experimental
 License:             BSD3
 License-File:        LICENSE
-Author:              John MacFarlane
+Author:              John MacFarlane, Gwern Brandwen, Sebastiaan Visser
 Maintainer:          jgm@berkeley.edu
 Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
                      parsec >= 2 && < 3, process, time, datetime, regex-posix, xml, split, Diff

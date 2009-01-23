@@ -1,13 +1,13 @@
 {- |
    Module      : Data.FileStore.Generic
-   Copyright   : Copyright (C) 2008 John MacFarlane
+   Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Brandwen, Sebastiaan Visser
    License     : BSD 3
 
    Maintainer  : John MacFarlane <jgm@berkeley.edu>
    Stability   : alpha
    Portability : GHC 6.10 required
 
-   Generic functions for "Data.FileStore".
+   Generic utility functions for working with filestores.
 -}
 
 module Data.FileStore.Generic

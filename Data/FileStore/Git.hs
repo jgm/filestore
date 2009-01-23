@@ -1,6 +1,6 @@
 {- |
    Module      : Data.FileStore.Git
-   Copyright   : Copyright (C) 2008 John MacFarlane
+   Copyright   : Copyright (C) 2009 John MacFarlane
    License     : BSD 3
 
    Maintainer  : John MacFarlane <jgm@berkeley.edu>
