@@ -34,13 +34,12 @@ import Control.Exception (throwIO)
 import Control.Monad (unless)
 import Text.Regex.Posix ((=~))
 import System.Directory (getPermissions, setPermissions, executable)
-import Database.HDBC.Sqlite3 (Connection(..))
 import Database.HDBC
 import Paths_filestore
 
 -- | Return a filestore implemented using the sqlite3 distributed revision control system
 -- (<http://sqlite3-scm.com/>).
-sqlite3FileStore :: Connection -> FileStore
+sqlite3FileStore :: IConnection c => c -> FileStore
 sqlite3FileStore repo = FileStore {
     initialize        = sqlite3Init repo
   , save              = sqlite3Save repo 
@@ -56,7 +55,7 @@ sqlite3FileStore repo = FileStore {
   }
 
 -- | Initialize a repository, creating the directory if needed.
-sqlite3Init :: Connection -> IO ()
+sqlite3Init :: IConnection c => c -> IO ()
 sqlite3Init conn =
   catchSql createTables $ \_ -> throwIO RepositoryExists
     where createTables = do
@@ -66,15 +65,15 @@ sqlite3Init conn =
            commit conn
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-sqlite3Save :: Contents a => Connection -> ResourceName -> Author -> String -> a -> IO ()
+sqlite3Save :: Contents a => IConnection c => c -> ResourceName -> Author -> String -> a -> IO ()
 sqlite3Save conn name author logMsg contents = undefined
   -- create a revision entry
   -- create a change entry
   -- update resources
 
 -- | Retrieve contents from resource.
-sqlite3Retrieve :: Contents a
-                => Connection
+sqlite3Retrieve :: (Contents a, IConnection c)
+                => c
                 -> ResourceName
                 -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
                 -> IO a
@@ -82,31 +81,31 @@ sqlite3Retrieve conn name Nothing = undefined
 sqlite3Retrieve conn name (Just revid) = undefined
 
 -- | Delete a resource from the database.
-sqlite3Delete :: Connection -> ResourceName -> Author -> String -> IO ()
+sqlite3Delete :: IConnection c => c -> ResourceName -> Author -> String -> IO ()
 sqlite3Delete conn name author logMsg = undefined
 
 -- | Change the name of a resource.
-sqlite3Move :: Connection -> ResourceName -> ResourceName -> Author -> String -> IO ()
+sqlite3Move :: IConnection c => c -> ResourceName -> ResourceName -> Author -> String -> IO ()
 sqlite3Move conn oldName newName author logMsg = undefined
 
 -- | Return revision ID for latest commit for a resource.
-sqlite3LatestRevId :: Connection -> ResourceName -> IO RevisionId
+sqlite3LatestRevId :: IConnection c => c -> ResourceName -> IO RevisionId
 sqlite3LatestRevId conn name = undefined
 
 -- | Get revision information for a particular revision ID, or latest revision.
-sqlite3GetRevision :: Connection -> RevisionId -> IO Revision
+sqlite3GetRevision :: IConnection c => c -> RevisionId -> IO Revision
 sqlite3GetRevision conn revid = undefined
 
 -- | Get list of files in database.
-sqlite3Index :: Connection -> IO [ResourceName]
+sqlite3Index :: IConnection c => c -> IO [ResourceName]
 sqlite3Index conn = undefined
 
 -- | Uses sqlite3 fts to search database.
-sqlite3Search :: Connection -> SearchQuery -> IO [SearchMatch]
+sqlite3Search :: IConnection c => c -> SearchQuery -> IO [SearchMatch]
 sqlite3Search conn query = undefined
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-sqlite3Log :: Connection -> [ResourceName] -> TimeRange -> IO [Revision]
+sqlite3Log :: IConnection c => c -> [ResourceName] -> TimeRange -> IO [Revision]
 sqlite3Log conn names (TimeRange mbSince mbUntil) = undefined
 
