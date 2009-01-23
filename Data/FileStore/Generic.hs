@@ -40,7 +40,7 @@ create :: Contents a
        => FileStore
        -> ResourceName      -- ^ Resource to create.
        -> Author            -- ^ Author of change.
-       -> String            -- ^ Description of change.
+       -> Description       -- ^ Description of change.
        -> a                 -- ^ Contents of resource.
        -> IO ()
 create fs name author logMsg contents = catch (latest fs name >> throwIO ResourceExists)
@@ -56,7 +56,7 @@ modify  :: Contents a
         -> ResourceName      -- ^ Resource to create.
         -> RevisionId        -- ^ ID of previous revision that is being modified.
         -> Author            -- ^ Author of change.
-        -> String            -- ^ Description of change.
+        -> Description       -- ^ Description of change.
         -> a                 -- ^ Contents of resource.
         -> IO (Either MergeInfo ())
 modify fs name originalRevId author msg contents = do

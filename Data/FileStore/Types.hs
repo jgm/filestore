@@ -141,10 +141,10 @@ data FileStore = FileStore {
 
     -- | Save contents in the filestore.
   , save           :: Contents a
-                   => ResourceName      -- ^ Resource to save.
-                   -> Author            -- ^ Author of change.
-                   -> String            -- ^ Description of change.
-                   -> a                 -- ^ New contents of resource.
+                   => ResourceName      {- ^ Resource to save -}
+                   -> Author            --  Author of change.
+                   -> Description       --  Description of change.
+                   -> a                 --  New contents of resource.
                    -> IO ()
     
     -- | Retrieve the contents of the named resource.
@@ -156,14 +156,14 @@ data FileStore = FileStore {
     -- | Delete a named resource, providing author and log message.
   , delete         :: ResourceName      -- ^ Resource to delete.
                    -> Author            -- ^ Author of change.
-                   -> String            -- ^ Description of change.
+                   -> Description       -- ^ Description of change.
                    -> IO ()
 
     -- | Rename a resource, providing author and log message.
   , rename         :: ResourceName      -- ^ Resource original name.
                    -> ResourceName      -- ^ Resource new name.
                    -> Author            -- ^ Author of change.
-                   -> String            -- ^ Description of change.
+                   -> Description       -- ^ Description of change.
                    -> IO ()
 
     -- | Get history for a list of named resources in a (possibly openended) time range.

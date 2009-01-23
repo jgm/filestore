@@ -94,7 +94,7 @@ gitCommit repo names author logMsg = do
                        else UnknownError $ "Could not git commit " ++ unwords names ++ "\n" ++ errCommit
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-gitSave :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()
+gitSave :: Contents a => FilePath -> ResourceName -> Author -> Description -> a -> IO ()
 gitSave repo name author logMsg contents = do
   let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
@@ -124,7 +124,7 @@ gitRetrieve repo name (Just revid) = do
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
 
 -- | Delete a resource from the repository.
-gitDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
+gitDelete :: FilePath -> ResourceName -> Author -> Description -> IO ()
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
@@ -132,7 +132,7 @@ gitDelete repo name author logMsg = do
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
 -- | Change the name of a resource.
-gitMove :: FilePath -> ResourceName -> ResourceName -> Author -> String -> IO ()
+gitMove :: FilePath -> ResourceName -> ResourceName -> Author -> Description -> IO ()
 gitMove repo oldName newName author logMsg = do
   gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
   let newPath = repo </> encodeString newName

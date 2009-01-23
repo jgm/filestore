@@ -155,7 +155,7 @@ darcsInit repo = do
      else throwIO $ UnknownError $ "darcs init failed:\n" ++ err
 
 -- | Save changes (creating the file and directory if needed), add, and commit.
-darcsSave :: Contents a => FilePath -> ResourceName -> Author -> String -> a -> IO ()
+darcsSave :: Contents a => FilePath -> ResourceName -> Author -> Description -> a -> IO ()
 darcsSave repo name author logMsg contents = do
   let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
@@ -169,7 +169,7 @@ darcsSave repo name author logMsg contents = do
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were none.
 --   This is not for creating a new file; see 'darcsSave'. This is just for updating.
-darcsCommit :: FilePath -> [ResourceName] -> Author -> String -> IO ()
+darcsCommit :: FilePath -> [ResourceName] -> Author -> Description -> IO ()
 darcsCommit repo names author logMsg = do
   let args = ["--all", "-A", (authorName author ++ " <" ++ authorEmail author ++ ">"), "-m", logMsg] ++ names
   (statusCommit, errCommit, _) <- runDarcsCommand repo "record" args
@@ -180,7 +180,7 @@ darcsCommit repo names author logMsg = do
                        else UnknownError $ "Could not darcs record " ++ unwords names ++ "\n" ++ errCommit
 
 -- | Change the name of a resource.
-darcsMove :: FilePath -> ResourceName -> ResourceName -> Author -> String -> IO ()
+darcsMove :: FilePath -> ResourceName -> ResourceName -> Author -> Description -> IO ()
 darcsMove repo oldName newName author logMsg = do
   let newPath = repo </> newName
   inside <- isInsideRepo repo newPath
@@ -194,7 +194,7 @@ darcsMove repo oldName newName author logMsg = do
      else throwIO NotFound
 
 -- | Delete a resource from the repository.
-darcsDelete :: FilePath -> ResourceName -> Author -> String -> IO ()
+darcsDelete :: FilePath -> ResourceName -> Author -> Description -> IO ()
 darcsDelete repo name author logMsg = do
   runShellCommand repo Nothing "rm" [name]
   darcsCommit repo [name] author logMsg
