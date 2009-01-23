@@ -1,5 +1,5 @@
 Name:                filestore
-Version:             0.0
+Version:             0.1
 Cabal-version:       >= 1.2
 Build-type:          Simple
 Tested-with:         GHC==6.10.1
