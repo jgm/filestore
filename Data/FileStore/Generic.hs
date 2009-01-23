@@ -95,14 +95,14 @@ diff fs name id1 id2 = do
 -- | Return a list of all revisions that are saved with the given
 -- description or with a part of this description.
 searchRevisions :: FileStore
-                -> ResourceName      -- ^ The resource to search history for.
-                -> Description       -- ^ Revision description to search for.
                 -> Bool              -- ^ When true the description must
                                      --   match exactly, when false partial
                                      --   hits are allowed.
+                -> ResourceName      -- ^ The resource to search history for.
+                -> Description       -- ^ Revision description to search for.
                 -> IO [Revision]
 
-searchRevisions repo name desc exact = do
+searchRevisions repo exact name desc = do
   let matcher = if exact
                 then (== desc)
                 else (desc `isInfixOf`)
@@ -116,11 +116,11 @@ searchRevisions repo name desc exact = do
 smartRetrieve
   :: Contents a
   => FileStore
+  -> Bool            -- ^ @True@ for exact description match, @False@ for partial match.
   -> ResourceName    -- ^ Resource name to retrieve.
   -> Maybe String    -- ^ @Just@ revision ID or description, or @Nothing@ for empty.
-  -> Bool            -- ^ @True@ for exact description match, @False@ for partial match.
   -> IO a
-smartRetrieve fs name mrev exact = do
+smartRetrieve fs exact name mrev = do
   edoc <- try (retrieve fs name mrev)
   case (edoc, mrev) of
     
@@ -132,7 +132,7 @@ smartRetrieve fs name mrev exact = do
 
     -- Retrieval failed, we can try fetching a revision by the description.
     (Left _, Just rev) -> do
-      revs <- searchRevisions fs name rev exact
+      revs <- searchRevisions fs exact name rev
       if Prelude.null revs
 
         -- No revisions containing this description.
