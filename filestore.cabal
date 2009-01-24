@@ -19,8 +19,7 @@ Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, da
 Extra-source-files:  Tests.lhs
 Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs,
                      -- Data.FileStore.Sqlite3,
-                     Data.FileStore.Utils, Data.FileStore.Generic,
-                     Paths_filestore
-Hs-Source-Dirs:      ., dist/build/autogen
+                     Data.FileStore.Utils, Data.FileStore.Generic
+Other-modules:       Paths_filestore
 Data-Files:          extra/post-update
 Ghc-Options:         -Wall
