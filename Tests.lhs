@@ -83,6 +83,7 @@ Invoke it with:
 >   create fs subdirTestTitle testAuthor "description of change" testContents
 >   revid <- latest fs testTitle
 >   assertBool "revision returns a revision after create" (not (null revid))
+>   create fs "subdir/Subdir title2.txt" testAuthor "+Second file" testContents
 
 *** Create a resource with a non-ascii title, and check to see that revision returns a revision for it:
 
