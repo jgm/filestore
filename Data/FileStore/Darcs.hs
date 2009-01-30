@@ -1,6 +1,6 @@
 {- |
    Module      : Data.FileStore.Darcs
-   Copyright   : Copyright (C) 2009 Gwern Brandwen
+   Copyright   : Copyright (C) 2009 Gwern Branwen
    License     : BSD 3
 
    Maintainer  : John MacFarlane <jgm@berkeley.edu>

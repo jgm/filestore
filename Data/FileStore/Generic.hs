@@ -1,6 +1,6 @@
 {- |
    Module      : Data.FileStore.Generic
-   Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Brandwen, Sebastiaan Visser
+   Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Branwen, Sebastiaan Visser
    License     : BSD 3
 
    Maintainer  : John MacFarlane <jgm@berkeley.edu>
