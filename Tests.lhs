@@ -36,6 +36,7 @@ Invoke it with:
 >     , ("retrieve resource", retrieveTest1)
 >     , ("retrieve resource in a subdirectory", retrieveTest2)
 >     , ("retrieve resource with non-ascii name", retrieveTest3)
+>     , ("retrieve subdirectory (should raise error)", retrieveTest4)
 >     , ("modify resource", modifyTest)
 >     , ("delete resource", deleteTest)
 >     , ("rename resource", renameTest)
@@ -118,6 +119,13 @@ Invoke it with:
 > retrieveTest3 fs = TestCase $ do
 >   cont <- retrieve fs nonasciiTestTitle Nothing
 >   assertEqual "contents returned by retrieve" testContents cont 
+
+*** Retrieve a directory (should fail):
+
+> retrieveTest4 fs = TestCase $ do
+>   catch ((retrieve fs "subdir" Nothing :: IO String) >>
+>          assertFailure "did not return error from retrieve from subdir") $
+>      \e -> assertEqual "error from retrieve from subdir" NotFound e
 
 *** Modify a resource:
 
