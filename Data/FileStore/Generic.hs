@@ -24,7 +24,6 @@ import Data.FileStore.Types
 
 import Control.Exception (throwIO, catch, SomeException, try)
 import Data.FileStore.Utils
-import Data.Maybe (isNothing)
 import Data.List (isInfixOf)
 import qualified Data.List.Split as S (whenElt, split)
 import Data.Char (isSpace)
