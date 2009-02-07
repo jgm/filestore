@@ -116,16 +116,12 @@ gitRetrieve repo name revid = do
                         Nothing  -> "HEAD:" ++ name
                         Just rev -> rev ++ ":" ++ name
   -- Check that the object is a file (blob), not a directory (tree)
-  (status, _, output) <- runGitCommand repo "cat-file" ["-t", objectName]
-  if status == ExitSuccess
-     then if take 4 (toString output) == "blob"
-             then do
-               (status', err', output') <- runGitCommand repo "cat-file" ["-p", objectName]
-               if status' == ExitSuccess
-                  then return $ fromByteString output'
-                  else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err'
-             else throwIO NotFound
-     else throwIO NotFound
+  (_, _, output) <- runGitCommand repo "cat-file" ["-t", objectName]
+  when (take 4 (toString output) /= "blob") $ throwIO NotFound
+  (status', err', output') <- runGitCommand repo "cat-file" ["-p", objectName]
+  if status' == ExitSuccess
+     then return $ fromByteString output'
+     else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err'
 
 -- | Delete a resource from the repository.
 gitDelete :: FilePath -> ResourceName -> Author -> Description -> IO ()
