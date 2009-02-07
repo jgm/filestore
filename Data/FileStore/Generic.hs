@@ -83,10 +83,12 @@ diff :: FileStore
      -> Maybe RevisionId  -- ^ @Just@ old revision ID, or @Nothing@ for empty.
      -> Maybe RevisionId  -- ^ @Just@ oew revision ID, or @Nothing@ for latest.
      -> IO [(DI, [String])]
+diff fs name id1 id2 | isNothing id1 = do
+  contents2 <- retrieve fs name id2
+  let words2 = splitOnSpaces contents2
+  return [(S, words2)]   -- no need to run getGroupedDiff here - diff vs empty document 
 diff fs name id1 id2 = do
-  contents1 <- if isNothing id1
-                  then return ""
-                  else retrieve fs name id1
+  contents1 <- retrieve fs name id1
   contents2 <- retrieve fs name id2
   let words1 = splitOnSpaces contents1
   let words2 = splitOnSpaces contents2
