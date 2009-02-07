@@ -25,13 +25,12 @@ import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellC
 import Data.List (intersect, nub)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
+import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName)
-import System.IO.Error (isDoesNotExistError)
 import Text.Regex.Posix ((=~))
 import Text.XML.Light
-import qualified Data.ByteString.Lazy as B (ByteString, readFile, writeFile)
+import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
 
 -- | Return a filestore implemented using the Darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -243,23 +242,24 @@ darcsLatestRevId repo name = do
       Nothing -> throwIO NotFound
       Just as -> if null as then throwIO NotFound else return $ revId $ head as
 
--- | Retrieve the (text) contents of a resource.
+-- | Retrieve the contents of a resource.
 darcsRetrieve :: Contents a
             => FilePath
             -> ResourceName
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
--- If called with Nothing, go straight to the file system
-darcsRetrieve repo name Nothing = do
-  let filename = repo </> encodeString name
-  catch (liftM fromByteString $ B.readFile filename) $
-    \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
+darcsRetrieve repo name Nothing =
+  darcsLatestRevId repo name >>= darcsRetrieve repo name . Just
 darcsRetrieve repo name (Just revid) = do
-   let opts = ["contents", "--match=hash " ++ revid, name]
-   (status, err, output) <- runDarcsCommand repo "query" opts
-   if status == ExitSuccess
-      then return $ fromByteString output
-      else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
+  isFile <- doesFileExist (repo </> encodeString name)
+  if isFile
+     then do
+       let opts = ["contents", "--match=hash " ++ revid, name]
+       (status, err, output) <- runDarcsCommand repo "query" opts
+       if status == ExitSuccess
+          then return $ fromByteString output
+          else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
+     else throwIO NotFound
 
 -- | Get a list of all known files inside and managed by a repository.
 darcsIndex :: FilePath ->IO [ResourceName]
