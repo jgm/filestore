@@ -18,7 +18,6 @@ module Data.FileStore.Git
 where
 import Data.FileStore.Types
 import System.Exit
-import System.IO.Error (isDoesNotExistError)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars) 
 import Data.ByteString.Lazy.UTF8 (toString)
@@ -112,16 +111,21 @@ gitRetrieve :: Contents a
             -> ResourceName
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
-gitRetrieve repo name Nothing = do
-  -- If called with Nothing, go straight to the file system
-  let filename = repo </> encodeString name
-  catch (liftM fromByteString $ B.readFile filename) $
-    \e -> if isDoesNotExistError e then throwIO NotFound else throwIO e
-gitRetrieve repo name (Just revid) = do
-  (status, err, output) <- runGitCommand repo "cat-file" ["-p", revid ++ ":" ++ name]
+gitRetrieve repo name revid = do
+  let objectName = case revid of
+                        Nothing  -> "HEAD:" ++ name
+                        Just rev -> rev ++ ":" ++ name
+  -- Check that the object is a file (blob), not a directory (tree)
+  (status, _, output) <- runGitCommand repo "cat-file" ["-t", objectName]
   if status == ExitSuccess
-     then return $ fromByteString output
-     else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err
+     then if take 4 (toString output) == "blob"
+             then do
+               (status', err', output') <- runGitCommand repo "cat-file" ["-p", objectName]
+               if status' == ExitSuccess
+                  then return $ fromByteString output'
+                  else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err'
+             else throwIO NotFound
+     else throwIO NotFound
 
 -- | Delete a resource from the repository.
 gitDelete :: FilePath -> ResourceName -> Author -> Description -> IO ()
