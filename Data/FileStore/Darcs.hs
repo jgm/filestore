@@ -137,6 +137,12 @@ go' os repo patterns file = do res <- mapM (\x -> run file x) patterns
                                         os ++ [p, f]
                          return $ lines $ toString r
 
+-- | If name doesn't exist in repo or is not a file, throw NotFound
+ensureFileExists :: FilePath -> ResourceName -> IO ()
+ensureFileExists repo name = do
+  isFile <- doesFileExist (repo </> encodeString name)
+  when (not isFile) $ throwIO NotFound
+
 ---------------------------
 -- End utility functions and types
 -- Begin repository creation & modification
@@ -235,6 +241,7 @@ darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Not
 -- | Return revision ID for latest commit for a resource.
 darcsLatestRevId :: FilePath -> ResourceName -> IO RevisionId
 darcsLatestRevId repo name = do
+  ensureFileExists repo name
   -- changes always succeeds, so no need to check error
   (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
   let patchs = parseDarcsXML $ toString output
@@ -251,15 +258,12 @@ darcsRetrieve :: Contents a
 darcsRetrieve repo name Nothing =
   darcsLatestRevId repo name >>= darcsRetrieve repo name . Just
 darcsRetrieve repo name (Just revid) = do
-  isFile <- doesFileExist (repo </> encodeString name)
-  if isFile
-     then do
-       let opts = ["contents", "--match=hash " ++ revid, name]
-       (status, err, output) <- runDarcsCommand repo "query" opts
-       if status == ExitSuccess
-          then return $ fromByteString output
-          else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
-     else throwIO NotFound
+  ensureFileExists repo name
+  let opts = ["contents", "--match=hash " ++ revid, name]
+  (status, err, output) <- runDarcsCommand repo "query" opts
+  if status == ExitSuccess
+     then return $ fromByteString output
+     else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
 
 -- | Get a list of all known files inside and managed by a repository.
 darcsIndex :: FilePath ->IO [ResourceName]
