@@ -1,0 +1,33 @@
+Version 0.2 released 08 Feb 2009
+
+* Changed diff to do a line-by-line rather than word-by-word diff.
+  The word-by-word diff led to excessive memory usage and confusing
+  output in some cases.  NOTE:  diff now returns lists of lines,
+  not including newlines.  So calling programs may need to be changed.
+
+  diff also now skips calling getGroupedDiff when the left document
+  is empty, for better performance.
+
+* Added ghc-prof-options to cabal file.
+
+* Clean up code in gitRetrieve.
+
+* Added ensureFileExists to Darcs module. Added checks to ensure that file
+  exists in darcsLatestRevId and darcsRetrieve.  If not, return
+  NotFound.
+
+* gitRetrieve:  check to make sure object is a file before retrieving.
+  Also, if Nothing is the revision ID, use gitLatestRevId rather than
+  going directly to the file system. This is a step in the direction of
+  making filestore compatible with bare repositories.
+
+* Test suite has been wired into Setup.lhs:  'cabal test' now runs tests.
+
+* Added new test case for attempting to retrieve a subdirectory,
+  and for creating a second file in a subdirectory.
+
+* Minor code cleanup.
+
+Version 0.1 released 24 Jan 2009
+
+* Initial release.

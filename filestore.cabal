@@ -21,6 +21,6 @@ Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, D
                      -- Data.FileStore.Sqlite3,
                      Data.FileStore.Utils, Data.FileStore.Generic
 Other-modules:       Paths_filestore
-Data-Files:          extra/post-update
+Data-Files:          extra/post-update, CHANGES
 Ghc-Options:         -Wall
 Ghc-Prof-Options:    -auto-all
