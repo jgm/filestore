@@ -1,11 +1,3 @@
-_ fix the bugs detected by new tests
-
-_ retrieving a subdirectory should raise "Not Found":  to fix this (in
-  gitRetrieve/darcsRetrieve) requires a 'doesFileExist' check in the Nothing case,
-  and something fancy with 'git cat-file' to confirm that we have a file for the (Just _) case.
-
-----------
-
 Note:  git will detect renames in "log" and "whatchanged"
 if you supply the "-M" flag:
 
