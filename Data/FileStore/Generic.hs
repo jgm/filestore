@@ -25,8 +25,6 @@ import Data.FileStore.Types
 import Control.Exception (throwIO, catch, SomeException, try)
 import Data.FileStore.Utils
 import Data.List (isInfixOf)
-import qualified Data.List.Split as S (whenElt, split)
-import Data.Char (isSpace)
 import Data.Algorithm.Diff (DI(..), getGroupedDiff)
 import Prelude hiding (catch)
 
@@ -71,12 +69,11 @@ modify fs name originalRevId author msg contents = do
                                   handleUnknownError
        return $ Left (MergeInfo latestRev conflicts mergedText)
 
--- | Split a string at spaces (but include the spaces in the list of results).
-splitOnSpaces :: String -> [String]
-splitOnSpaces = S.split (S.whenElt isSpace) 
-
--- | Return a unified diff of two revisions of a named resource, using an external @diff@
--- program.
+-- | Return a unified diff of two revisions of a named resource.
+-- Format of the diff is a list @[(DI, [String])]@, where
+-- @DI@ is @F@ (in first document only), @S@ (in second only),
+-- or @B@ (in both), and the list is a list of lines (without
+-- newlines at the end).
 diff :: FileStore
      -> ResourceName      -- ^ Resource name to get diff for.
      -> Maybe RevisionId  -- ^ @Just@ old revision ID, or @Nothing@ for empty.
@@ -84,14 +81,11 @@ diff :: FileStore
      -> IO [(DI, [String])]
 diff fs name Nothing id2 = do
   contents2 <- retrieve fs name id2
-  let words2 = splitOnSpaces contents2
-  return [(S, words2)]   -- no need to run getGroupedDiff here - diff vs empty document 
+  return [(S, lines contents2)]   -- no need to run getGroupedDiff here - diff vs empty document 
 diff fs name id1 id2 = do
   contents1 <- retrieve fs name id1
   contents2 <- retrieve fs name id2
-  let words1 = splitOnSpaces contents1
-  let words2 = splitOnSpaces contents2
-  return $ getGroupedDiff words1 words2
+  return $ getGroupedDiff (lines contents1) (lines contents2)
 
 -- | Return a list of all revisions that are saved with the given
 -- description or with a part of this description.
