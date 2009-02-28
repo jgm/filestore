@@ -18,9 +18,9 @@ Maintainer:          jgm@berkeley.edu
 Data-Files:          extra/post-update, CHANGES
 Extra-source-files:  Tests.lhs
 
-source-repository head
-    type:     darcs
-    location: http://johnmacfarlane.net/repos/filestore
+Source-repository head
+    Type:            darcs
+    Location:        http://johnmacfarlane.net/repos/filestore
 
 Library
     Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
