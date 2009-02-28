@@ -14,14 +14,22 @@ License:             BSD3
 License-File:        LICENSE
 Author:              John MacFarlane, Gwern Branwen, Sebastiaan Visser
 Maintainer:          jgm@berkeley.edu
-Homepage:            http://johnmacfarlane.net/repos/filestore
-Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
-                     parsec >= 2 && < 3, process, time, datetime, regex-posix, xml, split, Diff
-Extra-source-files:  Tests.lhs
-Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs,
-                     -- Data.FileStore.Sqlite3,
-                     Data.FileStore.Utils, Data.FileStore.Generic
-Other-modules:       Paths_filestore
+
 Data-Files:          extra/post-update, CHANGES
-Ghc-Options:         -Wall
-Ghc-Prof-Options:    -auto-all
+Extra-source-files:  Tests.lhs
+
+source-repository head
+    type:     darcs
+    location: http://johnmacfarlane.net/repos/filestore
+
+Library
+    Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
+                         parsec >= 2 && < 3, process, time, datetime, regex-posix, xml, split, Diff
+
+    Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs,
+                         -- Data.FileStore.Sqlite3,
+                         Data.FileStore.Utils, Data.FileStore.Generic
+    Other-modules:       Paths_filestore
+
+    Ghc-Options:         -Wall
+    Ghc-Prof-Options:    -auto-all
