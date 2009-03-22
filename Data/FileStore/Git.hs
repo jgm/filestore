@@ -17,6 +17,7 @@ module Data.FileStore.Git
            )
 where
 import Data.FileStore.Types
+import Data.Maybe (mapMaybe)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars) 
@@ -48,6 +49,7 @@ gitFileStore repo = FileStore {
   , latest            = gitLatestRevId repo
   , revision          = gitGetRevision repo
   , index             = gitIndex repo
+  , directory         = gitDirectory repo
   , search            = gitSearch repo 
   , idsMatch          = const hashsMatch repo
   }
@@ -172,10 +174,25 @@ gitGetRevision repo revid = do
 -- | Get a list of all known files inside and managed by a repository.
 gitIndex :: FilePath ->IO [FilePath]
 gitIndex repo = do
-  (status, errOutput, output) <- runGitCommand repo "ls-files" []
+  (status, _err, output) <- runGitCommand repo "ls-tree" ["-r","-t","HEAD"]
   if status == ExitSuccess
-     then return $ map convertEncoded $ lines $ toString output
-     else error $ "git ls-files returned error status.\n" ++ errOutput
+     then return $ mapMaybe (lineToFilename . words) . lines . toString $ output
+     else return [] -- if error, will return empty list
+                    -- note:  on a newly initialized repo, 'git ls-tree HEAD' returns an error
+   where lineToFilename (_:"blob":_:rest) = Just $ convertEncoded $ unwords rest
+         lineToFilename _                 = Nothing
+
+-- | Get list of resources in one directory of the repository.
+gitDirectory :: FilePath -> FilePath -> IO [Resource]
+gitDirectory repo dir = do
+  (status, _err, output) <- runGitCommand repo "ls-tree" ["HEAD:" ++ dir]
+  if status == ExitSuccess
+     then return $ map (lineToResource . words) $ lines $ toString output
+     else return []   -- if error, this will return empty list
+                      -- note:  on a newly initialized repo, 'git ls-tree HEAD:' returns an error
+   where lineToResource (_:"blob":_:rest) = FSFile $ convertEncoded $ unwords rest
+         lineToResource (_:"tree":_:rest) = FSDirectory $ convertEncoded $ unwords rest
+         lineToResource _                 = error "Encountered an item that is neither blob nor tree in git ls-tree"
 
 -- | Uses git-grep to search repository.  Escape regex special characters, so the pattern
 -- is interpreted as an ordinary string.

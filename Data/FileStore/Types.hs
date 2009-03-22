@@ -186,7 +186,11 @@ data FileStore = FileStore {
                    -> IO Revision
 
     -- | Return a list of resources in the filestore.
-  , index          :: IO [ResourceName]
+  , index          :: IO [FilePath]
+
+  -- | Return a list of resources in a directory of the filestore.
+  , directory      :: FilePath          -- Directory to list (empty for root)
+                   -> IO [Resource]
 
     -- | @True@ if the revision IDs match, in the sense that the
     -- can be treated as specifying the same revision.

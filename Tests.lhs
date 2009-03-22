@@ -6,6 +6,7 @@ Invoke it with:
     runghc -idist/build/autogen Tests.lhs
 
 > import Data.FileStore
+> import Data.List (sort)
 > import Test.HUnit
 > import System.Directory (removeDirectoryRecursive)
 > import Control.Monad (forM)
@@ -14,6 +15,7 @@ Invoke it with:
 > import Data.DateTime
 > import Data.Maybe (mapMaybe)
 > import System.Directory (doesFileExist)
+> import System.FilePath
 > import System.Process
 > import Data.Algorithm.Diff (DI(..))
 
@@ -33,6 +35,7 @@ Invoke it with:
 >     , ("create resource in subdirectory", createTest2)
 >     , ("create resource with non-ascii name", createTest3)
 >     , ("try to create resource outside repo", createTest4)
+>     , ("directory", directoryTest)
 >     , ("retrieve resource", retrieveTest1)
 >     , ("retrieve resource in a subdirectory", retrieveTest2)
 >     , ("retrieve resource with non-ascii name", retrieveTest3)
@@ -84,7 +87,7 @@ Invoke it with:
 >   create fs subdirTestTitle testAuthor "description of change" testContents
 >   revid <- latest fs testTitle
 >   assertBool "revision returns a revision after create" (not (null revid))
->   create fs "subdir/Subdir title2.txt" testAuthor "+Second file" testContents
+>   create fs (subdirTestTitle ++ "2") testAuthor "+Second file" testContents
 
 *** Create a resource with a non-ascii title, and check to see that revision returns a revision for it:
 
@@ -101,6 +104,20 @@ Invoke it with:
 >          \e -> assertEqual "error from create ../oops" IllegalResourceName e 
 >   exists <- doesFileExist "tmp/oops"
 >   assertBool "file ../oops was created outside repository" (not exists)
+
+*** Test directory
+
+> directoryTest fs = TestCase $ do
+
+    Get directory for top-level
+
+>   files <- directory fs ""
+>   assertEqual "result of directory on top-level" (sort [FSDirectory "subdir", FSFile testTitle, FSFile nonasciiTestTitle]) (sort files)
+
+    Get contents of subdirectory
+
+>   subdirFiles <- directory fs "subdir"
+>   assertEqual "result of directory on subdir" [FSFile (takeFileName subdirTestTitle), FSFile (takeFileName (subdirTestTitle ++ "2"))] subdirFiles
 
 *** Retrieve latest version of a resource:
 
@@ -180,7 +197,7 @@ Invoke it with:
 
 >   delete fs toBeDeleted testAuthor "goodbye"
 >   ind <- index fs
->   assertBool "index does not contain resource that was deleted" (not (toBeDeleted `elem` ind))
+>   assertBool "index does not contain resource that was deleted" (toBeDeleted `notElem` ind)
 
 *** Rename a resource:
 

@@ -22,12 +22,12 @@ import Data.Char (isSpace)
 import Data.DateTime (parseDateTime, toSqlString)
 import Data.FileStore.Types
 import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars)
-import Data.List (intersect, nub)
+import Data.List (intersect, nub, sort, isPrefixOf)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath ((</>), takeDirectory, dropFileName)
+import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
 import Text.Regex.Posix ((=~))
 import Text.XML.Light
 import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
@@ -45,6 +45,7 @@ darcsFileStore repo = FileStore {
   , latest          = darcsLatestRevId repo
   , revision        = darcsGetRevision repo
   , index           = darcsIndex repo
+  , directory       = darcsDirectory repo
   , search          = darcsSearch repo
   , idsMatch        = const hashsMatch repo }
                    
@@ -268,12 +269,28 @@ darcsRetrieve repo name (Just revid) = do
 -- | Get a list of all known files inside and managed by a repository.
 darcsIndex :: FilePath ->IO [FilePath]
 darcsIndex repo = do
-    (status, errOutput, output) <- runDarcsCommand repo "query"  ["manifest"]
-    if status == ExitSuccess
-    -- We need to do 'drop 2' because Darcs returns files like ["./foobar"], and
-    -- the ./ is always present & always not wanted.
-     then return (map (drop 2) . lines . toString $ output)
-     else error $ "'darcs query manifest' returned error status.\n" ++ errOutput
+  (status, errOutput, output) <- runDarcsCommand repo "query"  ["files","--no-directories"]
+  if status == ExitSuccess
+     then return $ map (drop 2) . lines . toString $ output
+     else return []   -- return empty list if invalid path (see gitIndex)
+
+-- | Get a list of all resources inside a directory in the repository.
+darcsDirectory :: FilePath -> FilePath -> IO [Resource]
+darcsDirectory repo dir = do
+  let dir' = if null dir then "" else addTrailingPathSeparator dir
+  (status1, errOutput1, output1) <- runDarcsCommand repo "query"  ["files","--no-directories"]
+  (status2, errOutput2, output2) <- runDarcsCommand repo "query" ["files","--no-files"]
+  if status1 == ExitSuccess && status2 == ExitSuccess
+     then do
+       let files = map (drop $ length dir' + 2) . filter (("." </> dir') `isPrefixOf`) . lines . toString $ output1
+       -- We need to do 'drop $ length dir' + 3' because Darcs returns files like ["./foo/foobar"].
+       let dirs  = map (drop $ length dir' + 2) . filter (("." </> dir') `isPrefixOf`) . drop 1 . lines . toString $ output2
+       -- We need the drop 1 to eliminate the root directory, which appears first.
+       -- Now, select the ones that are in THIS directory and convert to Resources:
+       let files' = map FSFile  $ filter ('/' `notElem`) files
+       let dirs'  = map FSDirectory $ filter ('/' `notElem`) dirs
+       return $ sort (files' ++ dirs') 
+     else return []  -- returns empty list for invalid path (see gitDirectory)
 
 -- | Uses grep to search repository.
 darcsSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
