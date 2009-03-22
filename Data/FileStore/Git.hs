@@ -212,7 +212,7 @@ gitSearch repo query = do
 parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
   let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
-  in  SearchMatch{matchFilePath = fname, matchLineNumber = read ln, matchLine = cont}
+  in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
 
 {-
 -- | Uses git-diff to get a dif between two revisions.

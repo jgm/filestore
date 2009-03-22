@@ -130,7 +130,7 @@ defaultSearchQuery = SearchQuery {
 
 data SearchMatch =
   SearchMatch {
-    matchFilePath     :: FilePath
+    matchResourceName :: FilePath
   , matchLineNumber   :: Integer
   , matchLine         :: String
   } deriving (Show, Read, Eq, Typeable)
