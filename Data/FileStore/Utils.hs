@@ -125,8 +125,8 @@ isInsideRepo repo name = do
 --   a pattern-match exception.
 --
 -- > parseMatchLine "foo:10:bar baz quux" ~> 
--- > SearchMatch {matchResourceName = "foo", matchLineNumber = 10, matchLine = "bar baz quux"}
+-- > SearchMatch {matchFilePath = "foo", matchLineNumber = 10, matchLine = "bar baz quux"}
 parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
   let (fn:n:res:_) = splitWhen (==':') str
-  in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
+  in  SearchMatch{matchFilePath = fn, matchLineNumber = read n, matchLine = res}

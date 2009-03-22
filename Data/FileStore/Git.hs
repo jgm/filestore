@@ -82,7 +82,7 @@ gitInit repo = do
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.
-gitCommit :: FilePath -> [ResourceName] -> Author -> String -> IO ()
+gitCommit :: FilePath -> [FilePath] -> Author -> String -> IO ()
 gitCommit repo names author logMsg = do
   (statusCommit, errCommit, _) <- runGitCommand repo "commit" $ ["--author", authorName author ++ " <" ++
                                     authorEmail author ++ ">", "-m", logMsg] ++ names
@@ -93,7 +93,7 @@ gitCommit repo names author logMsg = do
                        else UnknownError $ "Could not git commit " ++ unwords names ++ "\n" ++ errCommit
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-gitSave :: Contents a => FilePath -> ResourceName -> Author -> Description -> a -> IO ()
+gitSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 gitSave repo name author logMsg contents = do
   let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
@@ -108,7 +108,7 @@ gitSave repo name author logMsg contents = do
 -- | Retrieve contents from resource.
 gitRetrieve :: Contents a
             => FilePath
-            -> ResourceName
+            -> FilePath
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
 gitRetrieve repo name revid = do
@@ -124,7 +124,7 @@ gitRetrieve repo name revid = do
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err'
 
 -- | Delete a resource from the repository.
-gitDelete :: FilePath -> ResourceName -> Author -> Description -> IO ()
+gitDelete :: FilePath -> FilePath -> Author -> Description -> IO ()
 gitDelete repo name author logMsg = do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
@@ -132,7 +132,7 @@ gitDelete repo name author logMsg = do
      else throwIO $ UnknownError $ "Could not git rm '" ++ name ++ "'\n" ++ errRm
 
 -- | Change the name of a resource.
-gitMove :: FilePath -> ResourceName -> ResourceName -> Author -> Description -> IO ()
+gitMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 gitMove repo oldName newName author logMsg = do
   gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
   let newPath = repo </> encodeString newName
@@ -146,7 +146,7 @@ gitMove repo oldName newName author logMsg = do
      else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
 
 -- | Return revision ID for latest commit for a resource.
-gitLatestRevId :: FilePath -> ResourceName -> IO RevisionId
+gitLatestRevId :: FilePath -> FilePath -> IO RevisionId
 gitLatestRevId repo name = do
   (status, _, output) <- runGitCommand repo "rev-list" ["--max-count=1", "HEAD", "--", name]
   if status == ExitSuccess
@@ -169,8 +169,8 @@ gitGetRevision repo revid = do
                  Right xs    -> throwIO $ UnknownError $ "git rev-list returned more than one result: " ++ show xs
      else throwIO NotFound
 
--- | Get list of files in repository.
-gitIndex :: FilePath -> IO [ResourceName]
+-- | Get a list of all known files inside and managed by a repository.
+gitIndex :: FilePath ->IO [FilePath]
 gitIndex repo = do
   (status, errOutput, output) <- runGitCommand repo "ls-files" []
   if status == ExitSuccess
@@ -195,11 +195,11 @@ gitSearch repo query = do
 parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
   let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
-  in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
+  in  SearchMatch{matchFilePath = fname, matchLineNumber = read ln, matchLine = cont}
 
 {-
 -- | Uses git-diff to get a dif between two revisions.
-gitDiff :: FilePath -> ResourceName -> RevisionId -> RevisionId -> IO String
+gitDiff :: FilePath -> FilePath -> RevisionId -> RevisionId -> IO String
 gitDiff repo name from to = do
   (status, _, output) <- runGitCommand repo "diff" [from, to, name]
   if status == ExitSuccess
@@ -214,7 +214,7 @@ gitDiff repo name from to = do
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-gitLog :: FilePath -> [ResourceName] -> TimeRange -> IO [Revision]
+gitLog :: FilePath -> [FilePath] -> TimeRange -> IO [Revision]
 gitLog repo names (TimeRange mbSince mbUntil) = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
                            ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n"] ++

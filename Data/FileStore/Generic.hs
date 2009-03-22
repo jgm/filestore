@@ -35,7 +35,7 @@ handleUnknownError = throwIO . UnknownError . show
 -- error.
 create :: Contents a
        => FileStore
-       -> ResourceName      -- ^ Resource to create.
+       -> FilePath          -- ^ Resource to create.
        -> Author            -- ^ Author of change.
        -> Description       -- ^ Description of change.
        -> a                 -- ^ Contents of resource.
@@ -50,7 +50,7 @@ create fs name author logMsg contents = catch (latest fs name >> throwIO Resourc
 -- @Left@ merge information is returned.  Otherwise, @Right@ the new contents are saved.  
 modify  :: Contents a
         => FileStore
-        -> ResourceName      -- ^ Resource to create.
+        -> FilePath          -- ^ Resource to create.
         -> RevisionId        -- ^ ID of previous revision that is being modified.
         -> Author            -- ^ Author of change.
         -> Description       -- ^ Description of change.
@@ -75,7 +75,7 @@ modify fs name originalRevId author msg contents = do
 -- or @B@ (in both), and the list is a list of lines (without
 -- newlines at the end).
 diff :: FileStore
-     -> ResourceName      -- ^ Resource name to get diff for.
+     -> FilePath      -- ^ Resource name to get diff for.
      -> Maybe RevisionId  -- ^ @Just@ old revision ID, or @Nothing@ for empty.
      -> Maybe RevisionId  -- ^ @Just@ oew revision ID, or @Nothing@ for latest.
      -> IO [(DI, [String])]
@@ -93,7 +93,7 @@ searchRevisions :: FileStore
                 -> Bool              -- ^ When true the description must
                                      --   match exactly, when false partial
                                      --   hits are allowed.
-                -> ResourceName      -- ^ The resource to search history for.
+                -> FilePath          -- ^ The resource to search history for.
                 -> Description       -- ^ Revision description to search for.
                 -> IO [Revision]
 
@@ -112,7 +112,7 @@ smartRetrieve
   :: Contents a
   => FileStore
   -> Bool            -- ^ @True@ for exact description match, @False@ for partial match.
-  -> ResourceName    -- ^ Resource name to retrieve.
+  -> FilePath        -- ^ Resource name to retrieve.
   -> Maybe String    -- ^ @Just@ revision ID or description, or @Nothing@ for empty.
   -> IO a
 smartRetrieve fs exact name mrev = do

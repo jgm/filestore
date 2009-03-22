@@ -138,7 +138,7 @@ go' os repo patterns file = do res <- mapM (\x -> run file x) patterns
                          return $ lines $ toString r
 
 -- | If name doesn't exist in repo or is not a file, throw NotFound
-ensureFileExists :: FilePath -> ResourceName -> IO ()
+ensureFileExists :: FilePath -> FilePath -> IO ()
 ensureFileExists repo name = do
   isFile <- doesFileExist (repo </> encodeString name)
   when (not isFile) $ throwIO NotFound
@@ -160,7 +160,7 @@ darcsInit repo = do
      else throwIO $ UnknownError $ "darcs init failed:\n" ++ err
 
 -- | Save changes (creating the file and directory if needed), add, and commit.
-darcsSave :: Contents a => FilePath -> ResourceName -> Author -> Description -> a -> IO ()
+darcsSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 darcsSave repo name author logMsg contents = do
   let filename = repo </> encodeString name
   inside <- isInsideRepo repo filename
@@ -174,7 +174,7 @@ darcsSave repo name author logMsg contents = do
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were none.
 --   This is not for creating a new file; see 'darcsSave'. This is just for updating.
-darcsCommit :: FilePath -> [ResourceName] -> Author -> Description -> IO ()
+darcsCommit :: FilePath -> [FilePath] -> Author -> Description -> IO ()
 darcsCommit repo names author logMsg = do
   let args = ["--all", "-A", (authorName author ++ " <" ++ authorEmail author ++ ">"), "-m", logMsg] ++ names
   (statusCommit, errCommit, _) <- runDarcsCommand repo "record" args
@@ -185,7 +185,7 @@ darcsCommit repo names author logMsg = do
                        else UnknownError $ "Could not darcs record " ++ unwords names ++ "\n" ++ errCommit
 
 -- | Change the name of a resource.
-darcsMove :: FilePath -> ResourceName -> ResourceName -> Author -> Description -> IO ()
+darcsMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 darcsMove repo oldName newName author logMsg = do
   let newPath = repo </> newName
   inside <- isInsideRepo repo newPath
@@ -199,7 +199,7 @@ darcsMove repo oldName newName author logMsg = do
      else throwIO NotFound
 
 -- | Delete a resource from the repository.
-darcsDelete :: FilePath -> ResourceName -> Author -> Description -> IO ()
+darcsDelete :: FilePath -> FilePath -> Author -> Description -> IO ()
 darcsDelete repo name author logMsg = do
   runShellCommand repo Nothing "rm" [name]
   darcsCommit repo [name] author logMsg
@@ -211,7 +211,7 @@ darcsDelete repo name author logMsg = do
 
 -- | Return list of log entries for the list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-darcsLog :: FilePath -> [ResourceName] -> TimeRange -> IO [Revision]
+darcsLog :: FilePath -> [FilePath] -> TimeRange -> IO [Revision]
 darcsLog repo names (TimeRange begin end) = do
     let opts = timeOpts begin end
     do (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names ++ opts
@@ -239,7 +239,7 @@ darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Not
                                 return $ head result
 
 -- | Return revision ID for latest commit for a resource.
-darcsLatestRevId :: FilePath -> ResourceName -> IO RevisionId
+darcsLatestRevId :: FilePath -> FilePath -> IO RevisionId
 darcsLatestRevId repo name = do
   ensureFileExists repo name
   -- changes always succeeds, so no need to check error
@@ -252,7 +252,7 @@ darcsLatestRevId repo name = do
 -- | Retrieve the contents of a resource.
 darcsRetrieve :: Contents a
             => FilePath
-            -> ResourceName
+            -> FilePath
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
 darcsRetrieve repo name Nothing =
@@ -266,7 +266,7 @@ darcsRetrieve repo name (Just revid) = do
      else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
 
 -- | Get a list of all known files inside and managed by a repository.
-darcsIndex :: FilePath ->IO [ResourceName]
+darcsIndex :: FilePath ->IO [FilePath]
 darcsIndex repo = do
     (status, errOutput, output) <- runDarcsCommand repo "query"  ["manifest"]
     if status == ExitSuccess

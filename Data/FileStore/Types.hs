@@ -13,7 +13,7 @@
 
 module Data.FileStore.Types
            ( RevisionId
-           , ResourceName
+           , Resource(..)
            , Author(..)
            , Change(..)
            , Description
@@ -35,10 +35,13 @@ import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.DateTime (DateTime)
 import Control.Exception (Exception)
 import Prelude hiding (catch)
+import System.FilePath (FilePath)
 
 type RevisionId   = String
 
-type ResourceName = String
+data Resource = FSFile FilePath
+              | FSDirectory FilePath
+              deriving (Show, Read, Eq, Typeable, Ord)
 
 data Author =
   Author {
@@ -47,9 +50,9 @@ data Author =
   } deriving (Show, Read, Eq, Typeable)
 
 data Change =
-    Added ResourceName
-  | Deleted ResourceName
-  | Modified ResourceName
+    Added FilePath
+  | Deleted FilePath
+  | Modified FilePath
   deriving (Show, Read, Eq, Typeable)
 
 type Description = String
@@ -127,7 +130,7 @@ defaultSearchQuery = SearchQuery {
 
 data SearchMatch =
   SearchMatch {
-    matchResourceName :: ResourceName
+    matchFilePath     :: FilePath
   , matchLineNumber   :: Integer
   , matchLine         :: String
   } deriving (Show, Read, Eq, Typeable)
@@ -141,7 +144,7 @@ data FileStore = FileStore {
 
     -- | Save contents in the filestore.
   , save           :: Contents a
-                   => ResourceName      -- Resource to save.
+                   => FilePath          -- Resource to save.
                    -> Author            --  Author of change.
                    -> Description       --  Description of change.
                    -> a                 --  New contents of resource.
@@ -149,32 +152,32 @@ data FileStore = FileStore {
     
     -- | Retrieve the contents of the named resource.
   , retrieve       :: Contents a
-                   => ResourceName      -- Resource to retrieve.
+                   => FilePath          -- Resource to retrieve.
                    -> Maybe RevisionId  -- @Just@ a particular revision ID, or @Nothing@ for latest
                    -> IO a
 
     -- | Delete a named resource, providing author and log message.
-  , delete         :: ResourceName      -- Resource to delete.
+  , delete         :: FilePath          -- Resource to delete.
                    -> Author            -- Author of change.
                    -> Description       -- Description of change.
                    -> IO ()
 
     -- | Rename a resource, providing author and log message.
-  , rename         :: ResourceName      -- Resource original name.
-                   -> ResourceName      -- Resource new name.
+  , rename         :: FilePath          -- Resource original name.
+                   -> FilePath          -- Resource new name.
                    -> Author            -- Author of change.
                    -> Description       -- Description of change.
                    -> IO ()
 
     -- | Get history for a list of named resources in a (possibly openended) time range.
     -- If the list is empty, history for all resources will be returned. 
-  , history        :: [ResourceName]    -- List of resources to get history for, or @[]@ for all.
+  , history        :: [FilePath]        -- List of resources to get history for, or @[]@ for all.
                    -> TimeRange         -- Time range within which to get history.
                    -> IO [Revision]
 
     -- | Return the revision ID of the latest change for a resource.  Raises 'NotFound'
     -- if the resource is not found.
-  , latest         :: ResourceName      -- Resource to get revision ID for.
+  , latest         :: FilePath          -- Resource to get revision ID for.
                    -> IO RevisionId
 
     -- | Return information about a revision, given the ID.  Raises 'NotFound' if there is
