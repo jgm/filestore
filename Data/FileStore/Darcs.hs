@@ -269,7 +269,7 @@ darcsRetrieve repo name (Just revid) = do
 -- | Get a list of all known files inside and managed by a repository.
 darcsIndex :: FilePath ->IO [FilePath]
 darcsIndex repo = do
-  (status, errOutput, output) <- runDarcsCommand repo "query"  ["files","--no-directories"]
+  (status, _errOutput, output) <- runDarcsCommand repo "query"  ["files","--no-directories"]
   if status == ExitSuccess
      then return $ map (drop 2) . lines . toString $ output
      else return []   -- return empty list if invalid path (see gitIndex)
@@ -278,8 +278,8 @@ darcsIndex repo = do
 darcsDirectory :: FilePath -> FilePath -> IO [Resource]
 darcsDirectory repo dir = do
   let dir' = if null dir then "" else addTrailingPathSeparator dir
-  (status1, errOutput1, output1) <- runDarcsCommand repo "query"  ["files","--no-directories"]
-  (status2, errOutput2, output2) <- runDarcsCommand repo "query" ["files","--no-files"]
+  (status1, _errOutput1, output1) <- runDarcsCommand repo "query"  ["files","--no-directories"]
+  (status2, _errOutput2, output2) <- runDarcsCommand repo "query" ["files","--no-files"]
   if status1 == ExitSuccess && status2 == ExitSuccess
      then do
        let files = map (drop $ length dir' + 2) . filter (("." </> dir') `isPrefixOf`) . lines . toString $ output1
