@@ -145,7 +145,7 @@ richDirectory fs fp = do
   rs <- directory fs fp
   mapM f rs
   where f r = Control.Exception.catch (g r) (\(e :: FileStoreError)-> return $ ( r, Left . show $ e ) )
-        g r@(FSDirectory dir) = return (r,Left "richDirectory, we don't care about revision info for repos")
+        g r@(FSDirectory _dir) = return (r,Left "richDirectory, we don't care about revision info for repos")
         g res@(FSFile file) = do rev <- revision fs =<< latest fs ( fp </> file )
                                  return (res,Right rev)
 
