@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {- |
    Module      : Data.FileStore.Generic
    Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Branwen, Sebastiaan Visser
@@ -17,6 +18,7 @@ module Data.FileStore.Generic
            , diff
            , searchRevisions
            , smartRetrieve
+           , richDirectory
            )
 
 where
@@ -26,6 +28,7 @@ import Control.Exception (throwIO, catch, SomeException, try)
 import Data.FileStore.Utils
 import Data.List (isInfixOf)
 import Data.Algorithm.Diff (DI(..), getGroupedDiff)
+import System.FilePath ((</>))
 import Prelude hiding (catch)
 
 handleUnknownError :: SomeException -> IO a
@@ -135,4 +138,14 @@ smartRetrieve fs exact name mrev = do
 
         -- Retrieve resource for latest matching revision.
         else retrieve fs name (Just $ revId $ Prelude.head revs)
+
+-- | Like 'directory', but returns information about the latest revision.
+richDirectory :: FileStore -> FilePath -> IO [(Resource, Either String Revision)]
+richDirectory fs fp = do
+  rs <- directory fs fp
+  mapM f rs
+  where f r = Control.Exception.catch (g r) (\(e :: FileStoreError)-> return $ ( r, Left . show $ e ) )
+        g r@(FSDirectory dir) = return (r,Left "richDirectory, we don't care about revision info for repos")
+        g res@(FSFile file) = do rev <- revision fs =<< latest fs ( fp </> file )
+                                 return (res,Right rev)
 
