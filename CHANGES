@@ -1,18 +1,22 @@
-Version 0.3 released ??? 
+Version 0.3 released 08 Apr 2009
 
-* Added new directory function:
+* Added new 'directory' function, which returns a list of resources given
+  a directory name. Resources are marked as either FSFile or
+  FSDirectory. Thanks to Thomas Hartman for showing the need for
+  'directory', and for distinguishing explicitly between files and
+  directories. In 'index' the distinction was previously left implicit,
+  which worked for git but not darcs: 'index' provided no way of
+  distinguishing an empty directory from a file.
 
-  + directory returns a list of resources given a directory name.
-  + Resources are marked either FSFile or FSDirectory.
-  + In directory and index, git ls-tree is used instead of git ls-files;
-    this guarantees that only files that have been committed are returned.
-  + Thanks to Thomas Hartman for showing the need for 'directory',
-    and for distinguishing explicitly between files and directories.
-    Previously the distinction was left implicit, which worked for git
-    but not darcs:  index provided no way of distinguishing an empty directory
-    from a file.
-  + Existing code should still work, unless it relied on 'index' to
-    return empty directories in darcs.
+* In 'directory' and 'index', git ls-tree is used instead of git ls-files;
+  this guarantees that only files that have been committed are returned.
+  'index' now lists only files, and no longer includes empty directories
+  even in darcs.
+
+* Added new richDirectory function to Data.FileStore.Generic.
+  richDirectory returns a directory that includes information
+  about the latest revision of each file. Thanks to Thomas Hartman for
+  the patch.
 
 * Replaced ResourceName type with FilePath.
 
