@@ -1,3 +1,23 @@
+Version 0.3 released ??? 
+
+* Added new directory function:
+
+  + directory returns a list of resources given a directory name.
+  + Resources are marked either FSFile or FSDirectory.
+  + In directory and index, git ls-tree is used instead of git ls-files;
+    this guarantees that only files that have been committed are returned.
+  + Thanks to Thomas Hartman for showing the need for 'directory',
+    and for distinguishing explicitly between files and directories.
+    Previously the distinction was left implicit, which worked for git
+    but not darcs:  index provided no way of distinguishing an empty directory
+    from a file.
+  + Existing code should still work, unless it relied on 'index' to
+    return empty directories in darcs.
+
+* Replaced ResourceName type with FilePath.
+
+* Added repository information to cabal file.
+
 Version 0.2 released 08 Feb 2009
 
 * Changed diff to do a line-by-line rather than word-by-word diff.
