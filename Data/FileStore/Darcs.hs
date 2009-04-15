@@ -256,8 +256,11 @@ darcsRetrieve :: Contents a
             -> FilePath
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
-darcsRetrieve repo name Nothing =
-  darcsLatestRevId repo name >>= darcsRetrieve repo name . Just
+darcsRetrieve repo name Nothing = do ensureFileExists repo name
+                                     (status, err, output) <- runDarcsCommand repo "query" ["contents", name]
+                                     if status == ExitSuccess
+                                      then return $ fromByteString output
+                                      else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
 darcsRetrieve repo name (Just revid) = do
   ensureFileExists repo name
   let opts = ["contents", "--match=hash " ++ revid, name]
