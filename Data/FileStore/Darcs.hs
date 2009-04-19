@@ -256,16 +256,11 @@ darcsRetrieve :: Contents a
             -> FilePath
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
--- If we are asked for Nothing, that == the latest version. The fastest way to get the latest version of
--- a file - almost as good as 'cat file' - is a 'darcs query contents file'. TODO: reduce duplication
-darcsRetrieve repo name Nothing = do ensureFileExists repo name
-                                     (status, err, output) <- runDarcsCommand repo "query" ["contents", name]
-                                     if status == ExitSuccess
-                                      then return $ fromByteString output
-                                      else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
-darcsRetrieve repo name (Just revid) = do
+darcsRetrieve repo name mbId = do
   ensureFileExists repo name
-  let opts = ["contents", "--match=hash " ++ revid, name]
+  let opts = case mbId of
+              Nothing    -> ["contents", name]
+              Just revid -> ["contents", "--match=hash " ++ revid, name]
   (status, err, output) <- runDarcsCommand repo "query" opts
   if status == ExitSuccess
      then return $ fromByteString output
