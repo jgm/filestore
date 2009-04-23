@@ -22,7 +22,7 @@ import Data.Char (isSpace)
 import Data.DateTime (parseDateTime, toSqlString)
 import Data.FileStore.Types
 import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars)
-import Data.List (intersect, nub, sort, isPrefixOf)
+import Data.List (intersect, nub, sort, isPrefixOf, isInfixOf)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
@@ -243,8 +243,13 @@ darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Not
 darcsLatestRevId :: FilePath -> FilePath -> IO RevisionId
 darcsLatestRevId repo name = do
   ensureFileExists repo name
-  -- changes always succeeds, so no need to check error
-  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
+  -- first run with --max-count=1, which is currently only in prerelease versions of darcs
+  -- if it fails, run again without --max-count=1.  Using max-count=1 drastically improves
+  -- performance; without it, getting the latest revision ID requires parsing the whole change log.
+  (_, err, output') <- runDarcsCommand repo "changes" ["--xml-output", "--summary", "max-count", "1", name]
+  (_, _,   output)  <- if "unrecognized option" `isInfixOf` err
+                          then runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
+                          else return (ExitSuccess, err, output')
   let patchs = parseDarcsXML $ toString output
   case patchs of
       Nothing -> throwIO NotFound
