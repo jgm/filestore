@@ -246,7 +246,7 @@ darcsLatestRevId repo name = do
   -- first run with --max-count=1, which is currently only in prerelease versions of darcs
   -- if it fails, run again without --max-count=1.  Using max-count=1 drastically improves
   -- performance; without it, getting the latest revision ID requires parsing the whole change log.
-  (_, err, output') <- runDarcsCommand repo "changes" ["--xml-output", "--summary", "max-count", "1", name]
+  (_, err, output') <- runDarcsCommand repo "changes" ["--xml-output", "--summary", "--max-count=1", name]
   (_, _,   output)  <- if "unrecognized option" `isInfixOf` err
                           then runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
                           else return (ExitSuccess, err, output')
