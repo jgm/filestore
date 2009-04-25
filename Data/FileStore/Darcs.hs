@@ -233,11 +233,15 @@ darcsLog repo names (TimeRange begin end) = do
                       undate = toSqlString
 
 -- | Get revision information for a particular revision ID, or latest revision.
+-- TODO: use "--max-count=1"
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
-darcsGetRevision repo hash = do hists <- darcsLog repo [] (TimeRange Nothing Nothing)
-                                let hist = filter (\x -> hashsMatch (revId x) hash) hists
-                                let result =  if null hist then hists else hist
-                                return $ head result
+darcsGetRevision repo hash = do (_,_,out) <- runDarcsCommand repo "changes" ["--xml-output", "--match='hash \"" ++ hash ++ "\"'"]
+                                let hists = parseDarcsXML $ toString out
+                                case hists of
+                                    Nothing -> puntToAnyChange
+                                    Just a -> return $ head a
+                                where puntToAnyChange = liftM (head . filter (\x -> hashsMatch (revId x) hash)) $ 
+                                                         darcsLog repo [] (TimeRange Nothing Nothing)
 
 -- | Return revision ID for latest commit for a resource.
 darcsLatestRevId :: FilePath -> FilePath -> IO RevisionId
