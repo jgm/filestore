@@ -21,14 +21,14 @@ import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.DateTime (parseDateTime, toSqlString)
 import Data.FileStore.Types
-import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars)
+import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, 
+                             escapeRegexSpecialChars, splitEmailAuthor)
 import Data.List (intersect, nub, sort, isPrefixOf, isInfixOf)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
-import Text.Regex.Posix ((=~))
 import Text.XML.Light
 import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
 
@@ -76,24 +76,13 @@ parseIntoRevision a = Revision { revId = hashXML a,
 
 authorXML, dateXML, descriptionXML, emailXML, hashXML :: Element -> String
 authorXML = snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
-emailXML =  fromMaybe"" . fst . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
+emailXML  = fromMaybe "" . fst . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
 dateXML   = fromMaybe "" . findAttr (QName "local_date" Nothing Nothing)
 hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
 descriptionXML = fromMaybe "" . liftM strContent . findChild (QName "name" Nothing Nothing)
 
 changesXML :: Element -> [Change]
 changesXML = analyze . filterSummary . changes
-
--- | Our policy is: if the input is clearly a "name \<e\@mail.com\>" input, then we return "(Just Address, Name)"
---   If there is no '<' in the input, then it clearly can't be of that format, and so we just return "(Nothing, Name)"
---
--- > splitEmailAuthor "foo bar baz@gmail.com" ~> (Nothing,"foo bar baz@gmail.com")
--- > splitEmailAuthor "foo bar <baz@gmail.com>" ~> (Just "baz@gmail.com","foo bar")
-splitEmailAuthor :: String -> (Maybe String, String)
-splitEmailAuthor x = if '<' `elem` x then (Just (tail $ init c), reverse . dropWhile isSpace $ reverse b)
-                                     else (Nothing,x)
-    -- Will still need to trim the '<>' brackets in the email, and whitespace at the end of name
-    where (_,b,c) = x =~ "[^<]*" :: (String,String,String)
 
 changes :: Element -> Element
 changes = fromJust . findElement (QName  "summary" Nothing Nothing)

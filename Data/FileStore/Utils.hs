@@ -16,26 +16,32 @@ module Data.FileStore.Utils (
         , hashsMatch
         , isInsideRepo
         , escapeRegexSpecialChars
-        , parseMatchLine ) where
-
+        , parseMatchLine
+        , splitEmailAuthor
+        , ensureFileExists
+        , regSearchFiles
+        , regsSearchFile ) where
 
 import Codec.Binary.UTF8.String (encodeString)
-import Control.Monad (liftM)
+import Control.Exception (throwIO)
+import Control.Monad (liftM, when)
 import Data.ByteString.Lazy.UTF8 (toString)
-import Data.List (isPrefixOf)
+import Data.Char (isSpace)
+import Data.List (intersect, nub, isPrefixOf)
 import Data.List.Split (splitWhen)
 import Data.Maybe (isJust)
-import System.Directory (canonicalizePath)
-import System.Directory (getTemporaryDirectory, removeFile, findExecutable)
+import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory, removeFile, findExecutable)
 import System.Exit (ExitCode(..))
+import System.FilePath ((</>))
 import System.IO (openTempFile, hClose)
 import System.Process (runProcess, waitForProcess)
+import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
 
-import Data.FileStore.Types (SearchMatch(..))
+import Data.FileStore.Types (SearchMatch(..), FileStoreError(NotFound))
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
--- UTF-8 locale. Note that this does not actuall go through \/bin\/sh!
+-- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
 runShellCommand :: FilePath                     -- ^ Working directory
                 -> Maybe [(String, String)]     -- ^ Environment
                 -> String                       -- ^ Command
@@ -130,3 +136,35 @@ parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
   let (fn:n:res:_) = splitWhen (==':') str
   in  SearchMatch{matchResourceName = fn, matchLineNumber = read n, matchLine = res}
+
+-- | Our policy is: if the input is clearly a "name \<e\@mail.com\>" input, then we return "(Just Address, Name)"
+--   If there is no '<' in the input, then it clearly can't be of that format, and so we just return "(Nothing, Name)"
+--
+-- > splitEmailAuthor "foo bar baz@gmail.com" ~> (Nothing,"foo bar baz@gmail.com")
+-- > splitEmailAuthor "foo bar <baz@gmail.com>" ~> (Just "baz@gmail.com","foo bar")
+splitEmailAuthor :: String -> (Maybe String, String)
+splitEmailAuthor x = if '<' `elem` x then (Just (tail $ init c), reverse . dropWhile isSpace $ reverse b)
+                                     else (Nothing,x)
+    -- Will still need to trim the '<>' brackets in the email, and whitespace at the end of name
+    where (_,b,c) = x =~ "[^<]*" :: (String,String,String)
+
+-- | Search multiple files with a single regexp.
+--   This calls out to grep, and so supports the regular expressions grep does.
+regSearchFiles :: FilePath -> [String] -> String -> IO [String]
+regSearchFiles repo filesToCheck pattern = do (_, _, result) <- runShellCommand repo
+                                                             Nothing  "grep" $ ["--line-number", "-l", "-E", "-e", pattern] ++ filesToCheck
+                                              let results = intersect filesToCheck $ lines $ toString result
+                                              return results
+
+-- | Search a single file with multiple regexps.
+regsSearchFile :: [String] -> FilePath -> [String] -> String -> IO [String]
+regsSearchFile os repo patterns file = do res <- mapM (run file) patterns
+                                          return $ nub $ concat res
+      where run f p = do (_,_,r) <- runShellCommand repo Nothing "grep" (os ++ [p, f])
+                         return $ lines $ toString r
+
+-- | If name doesn't exist in repo or is not a file, throw 'NotFound' exception.
+ensureFileExists :: FilePath -> FilePath -> IO ()
+ensureFileExists repo name = do
+  isFile <- doesFileExist (repo </> encodeString name)
+  when (not isFile) $ throwIO NotFound
