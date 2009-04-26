@@ -15,18 +15,15 @@ module Data.FileStore.Darcs ( darcsFileStore ) where
 
 import Control.Exception (throwIO)
 import Control.Monad (liftM, unless, when)
-import Data.Char (isSpace)
-import Data.DateTime (parseDateTime, toSqlString)
+import Data.DateTime (toSqlString)
 import Data.List (intersect, sort, isPrefixOf, isInfixOf)
-import Data.Maybe (fromMaybe, fromJust)
-import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
-import Text.XML.Light
 
+import Data.FileStore.DarcsXml (parseDarcsXML)
 import Data.FileStore.Types
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars, splitEmailAuthor, ensureFileExists, regSearchFiles, regsSearchFile)
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars, ensureFileExists, regSearchFiles, regsSearchFile)
 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B (ByteString)
@@ -54,60 +51,6 @@ runDarcsCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.Byt
 runDarcsCommand repo command args = do
   (status, err, out) <- runShellCommand repo Nothing "darcs" (command : args)
   return (status, toString err, out)
-
-parseDarcsXML :: String -> Maybe [Revision]
-parseDarcsXML str = do changelog <- parseXMLDoc str
-                       let patches = filterChildrenName (\(QName n _ _) -> n == "patch") changelog
-                       return $ map parseIntoRevision patches
-
-parseIntoRevision :: Element -> Revision
-parseIntoRevision a = Revision { revId = hashXML a,
-                                 revDateTime = date a,
-                                 revAuthor = Author { authorName=authorXML a, authorEmail=emailXML a },
-                                 revDescription = descriptionXML a,
-                                 revChanges = changesXML a }
-    where
-        -- If we can't get a date from the XML, we default to the beginning of the POSIX era.
-        -- This at least makes it easy for someone to filter out bad dates, as obviously no real DVCSs
-        -- were in operation then. :)
-        -- date :: Element -> UTCTime
-        date = fromMaybe (posixSecondsToUTCTime $ realToFrac (0::Int)) . parseDateTime "%c" . dateXML
-
-authorXML, dateXML, descriptionXML, emailXML, hashXML :: Element -> String
-authorXML = snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
-emailXML  = fromMaybe "" . fst . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)
-dateXML   = fromMaybe "" . findAttr (QName "local_date" Nothing Nothing)
-hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
-descriptionXML = fromMaybe "" . liftM strContent . findChild (QName "name" Nothing Nothing)
-
-changesXML :: Element -> [Change]
-changesXML = analyze . filterSummary . changes
-
-changes :: Element -> Element
-changes = fromJust . findElement (QName  "summary" Nothing Nothing)
-
-analyze :: [Element] -> [Change]
-analyze s = map convert s
-  where convert a
-           | x == "add_directory" || x == "add_file" = Added b
-           | x == "remove_file" || x == "remove_directory" = Deleted b
-           | x == "added_lines"
-              || x == "modify_file"
-              || x == "removed_lines"
-              || x == "replaced_tokens" = Modified b
-           | otherwise = error "Unknown change type"
-             where  x = qName . elName $ a
-                    b = takeWhile (/='\n') $ dropWhile isSpace $ strContent a
-
-filterSummary :: Element -> [Element]
-filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file"
-                                || x == "add_directory"
-                                || x == "remove_file"
-                                || x == "remove_directory"
-                                || x == "modify_file"
-                                || x == "added_lines"
-                                || x == "removed_lines"
-                                || x == "replaced_tokens")
 
 ---------------------------
 -- End utility functions and types
