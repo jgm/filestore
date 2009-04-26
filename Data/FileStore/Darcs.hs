@@ -14,23 +14,24 @@
 
 module Data.FileStore.Darcs ( darcsFileStore ) where
 
-import Codec.Binary.UTF8.String (encodeString)
+
 import Control.Exception (throwIO)
 import Control.Monad (liftM, unless, when)
-import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.DateTime (parseDateTime, toSqlString)
-import Data.FileStore.Types
-import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, 
-                             escapeRegexSpecialChars, splitEmailAuthor)
-import Data.List (intersect, nub, sort, isPrefixOf, isInfixOf)
+import Data.List (intersect, sort, isPrefixOf, isInfixOf)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
+import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
-
 import Text.XML.Light
+
+import Data.FileStore.Types
+import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars, splitEmailAuthor, ensureFileExists, regSearchFiles, regsSearchFile)
+
+import Codec.Binary.UTF8.String (encodeString)
+import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
 
 -- | Return a filestore implemented using the Darcs distributed revision control system
@@ -279,8 +280,8 @@ darcsSearch repo query = do
   let regexps = map escapeRegexSpecialChars $ queryPatterns query
   files <- darcsIndex repo
   if queryMatchAll query then do
-                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (go repo files) regexps
-                                  output <- mapM (go' opts repo regexps) filesMatchingAllPatterns
+                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (regSearchFiles repo files) regexps
+                                  output <- mapM (regsSearchFile opts repo regexps) filesMatchingAllPatterns
                                   return $ map parseMatchLine $ concat output
    else do (_status, _errOutput, output) <-
                 runShellCommand repo Nothing "grep" $ opts ++
