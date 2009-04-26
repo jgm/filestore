@@ -31,7 +31,7 @@ Library
     Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs,
                          -- Data.FileStore.Sqlite3,
                          Data.FileStore.Utils, Data.FileStore.Generic
-    Other-modules:       Paths_filestore
+    Other-modules:       Paths_filestore, Data.FileStore.DarcsXml
 
     Ghc-Options:         -Wall
     Ghc-Prof-Options:    -auto-all
