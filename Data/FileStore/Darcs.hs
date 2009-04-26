@@ -139,7 +139,8 @@ darcsLog repo names (TimeRange begin end) = do
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
 darcsGetRevision repo hash = do (_,err,output') <- runDarcsCommand repo "changes" ["--xml-output", 
-                                                                                   "--max-count=1",
+-- commented out; unclear whether max-count is really a help here; darcs may be shortcutting internally
+-- already.                                                                        "--max-count=1",
                                                                                    "--match='hash \"" ++ hash ++ "\"'"]
                                 (_, _,   output)  <- if "unrecognized option" `isInfixOf` err
                                                       then runDarcsCommand repo "changes" ["--xml-output"]
