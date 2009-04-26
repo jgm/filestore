@@ -24,7 +24,7 @@ module Data.FileStore.Utils (
 
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
-import Control.Monad (liftM, when)
+import Control.Monad (liftM, unless)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.List (intersect, nub, isPrefixOf)
@@ -167,4 +167,4 @@ regsSearchFile os repo patterns file = do res <- mapM (run file) patterns
 ensureFileExists :: FilePath -> FilePath -> IO ()
 ensureFileExists repo name = do
   isFile <- doesFileExist (repo </> encodeString name)
-  when (not isFile) $ throwIO NotFound
+  unless isFile $ throwIO NotFound
