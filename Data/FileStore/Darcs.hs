@@ -194,13 +194,19 @@ darcsLog repo names (TimeRange begin end) = do
                       undate = toSqlString
 
 -- | Get revision information for a particular revision ID, or latest revision.
--- TODO: use "--max-count=1"
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
-darcsGetRevision repo hash = do (_,_,out) <- runDarcsCommand repo "changes" ["--xml-output", "--match='hash \"" ++ hash ++ "\"'"]
-                                let hists = parseDarcsXML $ toString out
+darcsGetRevision repo hash = do (_,err,output') <- runDarcsCommand repo "changes" ["--xml-output", 
+                                                                                   "--max-count=1",
+                                                                                   "--match='hash \"" ++ hash ++ "\"'"]
+                                (_, _,   output)  <- if "unrecognized option" `isInfixOf` err
+                                                      then runDarcsCommand repo "changes" ["--xml-output"]
+                                                      else return (ExitSuccess, err, output')
+                                let hists = parseDarcsXML $ toString output
                                 case hists of
                                     Nothing -> puntToAnyChange
                                     Just a -> return $ head a
+                                -- this filters the full changelog for the first matching hash
+                                -- this is in filestore-land instead of Darcs; major performance loss
                                 where puntToAnyChange = liftM (head . filter (\x -> hashsMatch (revId x) hash)) $ 
                                                          darcsLog repo [] (TimeRange Nothing Nothing)
 
