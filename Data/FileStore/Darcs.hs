@@ -29,6 +29,7 @@ import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import System.Directory (doesFileExist, doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
+
 import Text.XML.Light
 import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
 
@@ -111,27 +112,6 @@ filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file"
                                 || x == "replaced_tokens")
 
 -- Following are for 'darcsSearch'
-
--- | Search multiple files with a single regexp
-go :: FilePath -> [String] -> String -> IO [String]
-go repo filesToCheck pattern = do (_, _, result) <- runShellCommand repo
-                                               Nothing  "grep" $ ["--line-number", "-l", "-E", "-e", pattern] ++ filesToCheck
-                                  let results = intersect filesToCheck $ lines $ toString result
-                                  return results
-
--- | Search a single file with multiple regexps
-go' :: [String] -> FilePath -> [String] -> String -> IO [String]
-go' os repo patterns file = do res <- mapM (\x -> run file x) patterns
-                               return $ nub $ concat res
-      where run f p = do (_,_,r) <- runShellCommand repo Nothing "grep" $
-                                        os ++ [p, f]
-                         return $ lines $ toString r
-
--- | If name doesn't exist in repo or is not a file, throw NotFound
-ensureFileExists :: FilePath -> FilePath -> IO ()
-ensureFileExists repo name = do
-  isFile <- doesFileExist (repo </> encodeString name)
-  when (not isFile) $ throwIO NotFound
 
 ---------------------------
 -- End utility functions and types
