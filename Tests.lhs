@@ -26,9 +26,9 @@ Invoke it with:
 
 > testFileStore :: FileStore -> String -> IO Counts 
 > testFileStore fs fsName = do
->   putStrLn $ "**********************************"
+>   putStrLn   "**********************************"
 >   putStrLn $ "Testing " ++ fsName
->   putStrLn $ "**********************************"
+>   putStrLn   "**********************************"
 >   runTestTT $ TestList $ map (\(label, testFn) -> TestLabel label $ testFn fs) 
 >     [ ("initialize", initializeTest)
 >     , ("create resource", createTest1)
@@ -139,7 +139,7 @@ Invoke it with:
 
 *** Retrieve a directory (should fail):
 
-> retrieveTest4 fs = TestCase $ do
+> retrieveTest4 fs = TestCase $
 >   catch ((retrieve fs "subdir" Nothing :: IO String) >>
 >          assertFailure "did not return error from retrieve from subdir") $
 >      \e -> assertEqual "error from retrieve from subdir" NotFound e
@@ -165,16 +165,16 @@ Invoke it with:
     Now try to modify again, using the old revision as base.  This should result in a merge with conflicts.
 
 >   modResult2 <- modify fs testTitle revid testAuthor "modified from old version" (testContents ++ "\nFourth line")
->   let normModResult2 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = True, mergeText =
+>   let normModResult2 = Left MergeInfo {mergeRevision = newRev, mergeConflicts = True, mergeText =
 >                         "Test contents.\nSecond line.\n<<<<<<< edited\nThird test line with some Greek \945\946.\nFourth line\n=======\n>>>>>>> " ++
->                         newRevId ++ "\n"})
+>                         newRevId ++ "\n"}
 >   assertEqual "results of modify from old version" normModResult2 modResult2
 
     Now try it again, still using the old version as base, but with contents of the new version.
     This should result in a merge without conflicts.
 
 >   modResult3 <- modify fs testTitle revid testAuthor "modified from old version" modifiedContents
->   let normModResult3 = Left (MergeInfo {mergeRevision = newRev, mergeConflicts = False, mergeText = modifiedContents})
+>   let normModResult3 = Left MergeInfo {mergeRevision = newRev, mergeConflicts = False, mergeText = modifiedContents}
 >   assertEqual "results of modify from old version with new version's contents" normModResult3 modResult3
 
     Now try modifying again, this time using the new version as base. Should succeed with Right ().
