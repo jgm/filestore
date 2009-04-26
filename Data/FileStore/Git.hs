@@ -255,10 +255,10 @@ gitLog repo names (TimeRange mbSince mbUntil) = do
 parseGitLog :: P.Parser [Revision]
 parseGitLog = P.manyTill gitLogEntry P.eof
 
-wholeLine :: P.GenParser Char st [Char]
+wholeLine :: P.GenParser Char st String
 wholeLine = P.manyTill P.anyChar P.newline
 
-nonblankLine :: P.GenParser Char st [Char]
+nonblankLine :: P.GenParser Char st String
 nonblankLine = P.notFollowedBy P.newline >> wholeLine
 
 gitLogEntry :: P.Parser Revision
@@ -300,7 +300,7 @@ convertEncoded s =
     Left _    -> s
     Right res -> res
 
-pEncodedString :: P.GenParser Char st [Char]
+pEncodedString :: P.GenParser Char st String
 pEncodedString = do
   P.char '"'
   res <- P.many1 (pOctalChar P.<|> P.anyChar)
