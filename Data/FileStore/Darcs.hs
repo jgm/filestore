@@ -16,14 +16,14 @@ module Data.FileStore.Darcs ( darcsFileStore ) where
 import Control.Exception (throwIO)
 import Control.Monad (liftM, unless, when)
 import Data.DateTime (toSqlString)
-import Data.List (intersect, sort, isPrefixOf, isInfixOf)
+import Data.List (sort, isPrefixOf, isInfixOf)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
 
 import Data.FileStore.DarcsXml (parseDarcsXML)
 import Data.FileStore.Types
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars, ensureFileExists, regSearchFiles, regsSearchFile)
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, ensureFileExists, grepSearchRepo)
 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B (ByteString)
@@ -212,22 +212,6 @@ darcsDirectory repo dir = do
      else return []  -- returns empty list for invalid path (see gitDirectory)
               where adhocParsing d = map (drop $ length d + 2) . filter (("." </> d) `isPrefixOf`)
 
--- | Uses grep to search repository.
+-- Use the generic grep-based search of a repo.
 darcsSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
-darcsSearch repo query = do
-  let opts = ["--line-number", "--with-filename"] ++
-             (if queryIgnoreCase query then ["-i"] else []) ++
-             (if queryWholeWords query then ["--word-regexp"] else ["-E"])
-  let regexps = map escapeRegexSpecialChars $ queryPatterns query
-  files <- darcsIndex repo
-  if queryMatchAll query then do
-                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (regSearchFiles repo files) regexps
-                                  output <- mapM (regsSearchFile opts repo regexps) filesMatchingAllPatterns
-                                  return $ map parseMatchLine $ concat output
-   else do (_status, _errOutput, output) <-
-                runShellCommand repo Nothing "grep" $ opts ++
-                                                       concatMap (\term -> ["-e", term]) regexps ++
-                                                       files
-           let results = lines $ toString output
-           return $ map parseMatchLine results
-
+darcsSearch = grepSearchRepo darcsIndex

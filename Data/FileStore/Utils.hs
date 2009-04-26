@@ -21,7 +21,8 @@ module Data.FileStore.Utils (
         , ensureFileExists
         , regSearchFiles
         , regsSearchFile
-        , checkAndWriteFile ) where
+        , checkAndWriteFile
+        , grepSearchRepo ) where
 
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
@@ -40,7 +41,7 @@ import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
 
 import Data.FileStore.Types (toByteString, Contents, SearchMatch(..), 
-                             FileStoreError(IllegalResourceName, NotFound))
+                              FileStoreError(IllegalResourceName, NotFound), SearchQuery(..))
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
@@ -180,3 +181,25 @@ checkAndWriteFile repo name contents = do
   unless inside $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
   B.writeFile filename $ toByteString contents
+
+-- | Uses grep to search a file-based repository. Note that this calls out to grep; and so
+--   is generic over repos like git or darcs-based repos. (The git FileStore instance doesn't
+--   use this because git has builtin grep functionality.)
+--   Expected usage is to specialize this function with a particular backend's 'index'.
+grepSearchRepo :: (FilePath -> IO [String]) -> FilePath -> SearchQuery -> IO [SearchMatch]
+grepSearchRepo indexer repo query = do
+  let opts = ["--line-number", "--with-filename"] ++
+             (if queryIgnoreCase query then ["-i"] else []) ++
+             (if queryWholeWords query then ["--word-regexp"] else ["-E"])
+  let regexps = map escapeRegexSpecialChars $ queryPatterns query
+  files <- indexer repo
+  if queryMatchAll query then do
+                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (regSearchFiles repo files) regexps
+                                  output <- mapM (regsSearchFile opts repo regexps) filesMatchingAllPatterns
+                                  return $ map parseMatchLine $ concat output
+   else do (_status, _errOutput, output) <-
+                runShellCommand repo Nothing "grep" $ opts ++
+                                                       concatMap (\term -> ["-e", term]) regexps ++
+                                                       files
+           let results = lines $ toString output
+           return $ map parseMatchLine results
