@@ -193,13 +193,15 @@ grepSearchRepo indexer repo query = do
              (if queryWholeWords query then ["--word-regexp"] else ["-E"])
   let regexps = map escapeRegexSpecialChars $ queryPatterns query
   files <- indexer repo
-  if queryMatchAll query then do
-                                  filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (regSearchFiles repo files) regexps
-                                  output <- mapM (regsSearchFile opts repo regexps) filesMatchingAllPatterns
-                                  return $ map parseMatchLine $ concat output
-   else do (_status, _errOutput, output) <-
-                runShellCommand repo Nothing "grep" $ opts ++
-                                                       concatMap (\term -> ["-e", term]) regexps ++
-                                                       files
-           let results = lines $ toString output
-           return $ map parseMatchLine results
+  if queryMatchAll query
+     then do
+       filesMatchingAllPatterns <- liftM (foldr1 intersect) $ mapM (regSearchFiles repo files) regexps
+       output <- mapM (regsSearchFile opts repo regexps) filesMatchingAllPatterns
+       return $ map parseMatchLine $ concat output
+     else do
+       (_status, _errOutput, output) <-
+            runShellCommand repo Nothing "grep" $ opts ++
+                                                  concatMap (\term -> ["-e", term]) regexps ++
+                                                  files
+       let results = lines $ toString output
+       return $ map parseMatchLine results
