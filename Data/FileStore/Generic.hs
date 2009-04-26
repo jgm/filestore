@@ -104,7 +104,7 @@ searchRevisions repo exact name desc = do
   let matcher = if exact
                 then (== desc)
                 else (desc `isInfixOf`)
-  revs <- (history repo) [name] (TimeRange Nothing Nothing)
+  revs <- history repo [name] (TimeRange Nothing Nothing)
   return $ Prelude.filter (matcher . revDescription) revs
 
 -- | Try to retrieve a resource from the repository by name and possibly a
@@ -141,10 +141,8 @@ smartRetrieve fs exact name mrev = do
 
 -- | Like 'directory', but returns information about the latest revision.
 richDirectory :: FileStore -> FilePath -> IO [(Resource, Either String Revision)]
-richDirectory fs fp = do
-  rs <- directory fs fp
-  mapM f rs
-  where f r = Control.Exception.catch (g r) (\(e :: FileStoreError)-> return $ ( r, Left . show $ e ) )
+richDirectory fs fp = directory fs fp >>= mapM f
+  where f r = Control.Exception.catch (g r) (\(e :: FileStoreError)-> return ( r, Left . show $ e ) )
         g r@(FSDirectory _dir) = return (r,Left "richDirectory, we don't care about revision info for repos")
         g res@(FSFile file) = do rev <- revision fs =<< latest fs ( fp </> file )
                                  return (res,Right rev)
