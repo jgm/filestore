@@ -201,15 +201,16 @@ darcsDirectory repo dir = do
   (status2, _errOutput2, output2) <- runDarcsCommand repo "query" ["files","--no-files"]
   if status1 == ExitSuccess && status2 == ExitSuccess
      then do
-       let files = map (drop $ length dir' + 2) . filter (("." </> dir') `isPrefixOf`) . lines . toString $ output1
+       let files = adhocParsing dir' . lines . toString $ output1
        -- We need to do 'drop $ length dir' + 3' because Darcs returns files like ["./foo/foobar"].
-       let dirs  = map (drop $ length dir' + 2) . filter (("." </> dir') `isPrefixOf`) . drop 1 . lines . toString $ output2
+       let dirs  = adhocParsing dir' . drop 1 . lines . toString $ output2
        -- We need the drop 1 to eliminate the root directory, which appears first.
        -- Now, select the ones that are in THIS directory and convert to Resources:
        let files' = map FSFile  $ filter ('/' `notElem`) files
        let dirs'  = map FSDirectory $ filter ('/' `notElem`) dirs
        return $ sort (files' ++ dirs') 
      else return []  -- returns empty list for invalid path (see gitDirectory)
+              where adhocParsing d = map (drop $ length d + 2) . filter (("." </> d) `isPrefixOf`)
 
 -- | Uses grep to search repository.
 darcsSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
