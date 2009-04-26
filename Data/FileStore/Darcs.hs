@@ -9,11 +9,9 @@
 
    A versioned filestore implemented using darcs.
    Normally this module should not be imported: import
-   "Data.FileStore" instead.
--}
+   "Data.FileStore" instead. -}
 
 module Data.FileStore.Darcs ( darcsFileStore ) where
-
 
 import Control.Exception (throwIO)
 import Control.Monad (liftM, unless, when)
@@ -28,11 +26,10 @@ import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSepar
 import Text.XML.Light
 
 import Data.FileStore.Types
-import Data.FileStore.Utils (hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars, splitEmailAuthor, ensureFileExists, regSearchFiles, regsSearchFile)
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, parseMatchLine, runShellCommand, escapeRegexSpecialChars, splitEmailAuthor, ensureFileExists, regSearchFiles, regsSearchFile)
 
-import Codec.Binary.UTF8.String (encodeString)
 import Data.ByteString.Lazy.UTF8 (toString)
-import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
+import qualified Data.ByteString.Lazy as B (ByteString)
 
 -- | Return a filestore implemented using the Darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -112,8 +109,6 @@ filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file"
                                 || x == "removed_lines"
                                 || x == "replaced_tokens")
 
--- Following are for 'darcsSearch'
-
 ---------------------------
 -- End utility functions and types
 -- Begin repository creation & modification
@@ -133,11 +128,7 @@ darcsInit repo = do
 -- | Save changes (creating the file and directory if needed), add, and commit.
 darcsSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 darcsSave repo name author logMsg contents = do
-  let filename = repo </> encodeString name
-  inside <- isInsideRepo repo filename
-  unless inside $ throwIO IllegalResourceName
-  createDirectoryIfMissing True $ takeDirectory filename
-  B.writeFile filename $ toByteString contents
+  checkAndWriteFile repo name contents
   -- Just in case it hasn't been added yet; we ignore failures since darcs will
   -- fail if the file doesn't exist *and* if the file exists but has been added already.
   runDarcsCommand repo "add" [name]

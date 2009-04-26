@@ -20,7 +20,7 @@ import Data.FileStore.Types
 import Data.Maybe (mapMaybe)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars) 
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -97,11 +97,7 @@ gitCommit repo names author logMsg = do
 -- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 gitSave repo name author logMsg contents = do
-  let filename = repo </> encodeString name
-  inside <- isInsideRepo repo filename
-  unless inside $ throwIO IllegalResourceName
-  createDirectoryIfMissing True $ takeDirectory filename
-  B.writeFile filename $ toByteString contents
+  checkAndWriteFile repo name contents
   (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
   if statusAdd == ExitSuccess
      then gitCommit repo [name] author logMsg

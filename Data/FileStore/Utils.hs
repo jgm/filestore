@@ -20,7 +20,8 @@ module Data.FileStore.Utils (
         , splitEmailAuthor
         , ensureFileExists
         , regSearchFiles
-        , regsSearchFile ) where
+        , regsSearchFile
+        , checkAndWriteFile ) where
 
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
@@ -30,15 +31,16 @@ import Data.Char (isSpace)
 import Data.List (intersect, nub, isPrefixOf)
 import Data.List.Split (splitWhen)
 import Data.Maybe (isJust)
-import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory, removeFile, findExecutable)
+import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory, removeFile, findExecutable, createDirectoryIfMissing)
 import System.Exit (ExitCode(..))
-import System.FilePath ((</>))
+import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
 import System.Process (runProcess, waitForProcess)
 import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
 
-import Data.FileStore.Types (SearchMatch(..), FileStoreError(NotFound))
+import Data.FileStore.Types (toByteString, Contents, SearchMatch(..), 
+                             FileStoreError(IllegalResourceName, NotFound))
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
@@ -168,3 +170,13 @@ ensureFileExists :: FilePath -> FilePath -> IO ()
 ensureFileExists repo name = do
   isFile <- doesFileExist (repo </> encodeString name)
   unless isFile $ throwIO NotFound
+
+-- | Write out a file with given contents. We do sanity checking first, and make sure that the
+--   filename/location is within the given repo.
+checkAndWriteFile :: (Data.FileStore.Types.Contents a) =>FilePath -> String -> a -> IO ()
+checkAndWriteFile repo name contents = do
+  let filename = repo </> encodeString name
+  inside <- isInsideRepo repo filename
+  unless inside $ throwIO IllegalResourceName
+  createDirectoryIfMissing True $ takeDirectory filename
+  B.writeFile filename $ toByteString contents
