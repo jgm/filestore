@@ -86,17 +86,18 @@ data TimeRange =
 
 data MergeInfo =
   MergeInfo {
-    mergeRevision  :: Revision   -- ^ The revision with which changes were merged
+    mergeRevision  :: Revision   -- ^ The revision w/ which changes were merged
   , mergeConflicts :: Bool       -- ^ @True@ if there were merge conflicts
-  , mergeText      :: String     -- ^ The merged text, including conflict markers
+  , mergeText      :: String     -- ^ The merged text, w/ conflict markers
   } deriving (Show, Read, Eq, Typeable)
 
 data FileStoreError =
-    RepositoryExists             -- ^ Tried to initialize a repository that already exists
-  | ResourceExists               -- ^ Tried to create a resource that already exists
+    RepositoryExists             -- ^ Tried to initialize a repo that exists
+  | ResourceExists               -- ^ Tried to create a resource that exists
   | NotFound                     -- ^ Requested resource was not found
   | IllegalResourceName          -- ^ The specified resource name is illegal
-  | Unchanged                    -- ^ The resource was not modified, because the contents were unchanged
+  | Unchanged                    -- ^ The resource was not modified,
+                                 --   because the contents were unchanged
   | UnsupportedOperation
   | UnknownError String
   deriving (Read, Eq, Typeable)
@@ -116,7 +117,8 @@ data SearchQuery =
   SearchQuery {
     queryPatterns    :: [String] -- ^ Patterns to match
   , queryWholeWords  :: Bool     -- ^ Match patterns only with whole words?
-  , queryMatchAll    :: Bool     -- ^ Return matches only from files in which all patterns match?
+  , queryMatchAll    :: Bool     -- ^ Return matches only from files in which
+                                 --   all patterns match?
   , queryIgnoreCase  :: Bool     -- ^ Make matches case-insensitive?
   } deriving (Show, Read, Eq, Typeable)
 
@@ -149,11 +151,12 @@ data FileStore = FileStore {
                    -> Description       --  Description of change.
                    -> a                 --  New contents of resource.
                    -> IO ()
-    
+
     -- | Retrieve the contents of the named resource.
   , retrieve       :: Contents a
                    => FilePath          -- Resource to retrieve.
-                   -> Maybe RevisionId  -- @Just@ a particular revision ID, or @Nothing@ for latest
+                   -> Maybe RevisionId  -- @Just@ a particular revision ID,
+                                        -- or @Nothing@ for latest
                    -> IO a
 
     -- | Delete a named resource, providing author and log message.
@@ -169,20 +172,22 @@ data FileStore = FileStore {
                    -> Description       -- Description of change.
                    -> IO ()
 
-    -- | Get history for a list of named resources in a (possibly openended) time range.
-    -- If the list is empty, history for all resources will be returned. 
-  , history        :: [FilePath]        -- List of resources to get history for, or @[]@ for all.
-                   -> TimeRange         -- Time range within which to get history.
+    -- | Get history for a list of named resources in a (possibly openended)
+    -- time range. If the list is empty, history for all resources will
+    -- be returned.
+  , history        :: [FilePath]        -- List of resources to get history for
+                                        -- or @[]@ for all.
+                   -> TimeRange         -- Time range in which to get history.
                    -> IO [Revision]
 
-    -- | Return the revision ID of the latest change for a resource.  Raises 'NotFound'
-    -- if the resource is not found.
+    -- | Return the revision ID of the latest change for a resource.
+    -- Raises 'NotFound' if the resource is not found.
   , latest         :: FilePath          -- Resource to get revision ID for.
                    -> IO RevisionId
 
-    -- | Return information about a revision, given the ID.  Raises 'NotFound' if there is
-    -- no such revision.
-  , revision       :: RevisionId        -- Revision ID to get revision information for.
+    -- | Return information about a revision, given the ID.
+    -- Raises 'NotFound' if there is no such revision.
+  , revision       :: RevisionId        -- Revision ID to get information for.
                    -> IO Revision
 
     -- | Return a list of resources in the filestore.
@@ -198,9 +203,8 @@ data FileStore = FileStore {
                    -> RevisionId
                    -> Bool
 
-  -- | Search the filestore for patterns. 
+  -- | Search the filestore for patterns.
   , search         :: SearchQuery
                    -> IO [SearchMatch]
 
   }
-
