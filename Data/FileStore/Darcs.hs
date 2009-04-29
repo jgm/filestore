@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {- |
    Module      : Data.FileStore.Darcs
    Copyright   : Copyright (C) 2009 Gwern Branwen
@@ -139,8 +140,6 @@ darcsLog repo names (TimeRange begin end) = do
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
 darcsGetRevision repo hash = do (_,err,output') <- runDarcsCommand repo "changes" ["--xml-output", 
--- commented out; unclear whether max-count is really a help here; darcs may be shortcutting internally
--- already.                                                                        "--max-count=1",
                                                                                    "--match='hash \"" ++ hash ++ "\"'"]
                                 (_, _,   output)  <- if "unrecognized option" `isInfixOf` err
                                                       then runDarcsCommand repo "changes" ["--xml-output"]
@@ -158,13 +157,11 @@ darcsGetRevision repo hash = do (_,err,output') <- runDarcsCommand repo "changes
 darcsLatestRevId :: FilePath -> FilePath -> IO RevisionId
 darcsLatestRevId repo name = do
   ensureFileExists repo name
-  -- first run with --max-count=1, which is currently only in prerelease versions of darcs
-  -- if it fails, run again without --max-count=1.  Using max-count=1 drastically improves
-  -- performance; without it, getting the latest revision ID requires parsing the whole change log.
-  (_, err, output') <- runDarcsCommand repo "changes" ["--xml-output", "--summary", "--max-count=1", name]
-  (_, _,   output)  <- if "unrecognized option" `isInfixOf` err
-                          then runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
-                          else return (ExitSuccess, err, output')
+#ifdef USE_MAXCOUNT
+  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", "--max-count=1", name]
+#else
+  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
+#endif
   let patchs = parseDarcsXML $ toString output
   case patchs of
       Nothing -> throwIO NotFound

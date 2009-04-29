@@ -24,6 +24,12 @@ Extra-source-files:  Tests.lhs
 --    Type:            darcs
 --    Location:        http://johnmacfarlane.net/repos/filestore
 
+Flag maxcount
+    default: False
+    description: Make use of a bleeding-edge Darcs feature which is a large performance win.
+                 Don't enable this unless you can do a command like 'darcs changes --max-count=1'
+                 without error! If you don't know what --max-count is, you probably don't have it.
+
 Library
     Build-depends:       base >= 4, bytestring, utf8-string, filepath, directory, datetime,
                          parsec >= 2 && < 3, process, time, datetime, regex-posix, xml, split, Diff
@@ -32,6 +38,10 @@ Library
                          -- Data.FileStore.Sqlite3,
                          Data.FileStore.Utils, Data.FileStore.Generic
     Other-modules:       Paths_filestore, Data.FileStore.DarcsXml
+
+    if flag(maxcount) 
+        cpp-options: -DUSE_MAXCOUNT
+        extensions: CPP
 
     Ghc-Options:         -Wall
     Ghc-Prof-Options:    -auto-all
