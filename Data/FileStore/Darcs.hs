@@ -17,7 +17,7 @@ module Data.FileStore.Darcs ( darcsFileStore ) where
 import Control.Exception (throwIO)
 import Control.Monad (liftM, unless, when)
 import Data.DateTime (toSqlString)
-import Data.List (sort, isPrefixOf, isInfixOf)
+import Data.List (sort, isPrefixOf)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
@@ -139,11 +139,8 @@ darcsLog repo names (TimeRange begin end) = do
 
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
-darcsGetRevision repo hash = do (_,err,output') <- runDarcsCommand repo "changes" ["--xml-output", 
+darcsGetRevision repo hash = do (_,_,output) <- runDarcsCommand repo "changes" ["--xml-output", 
                                                                                    "--match='hash \"" ++ hash ++ "\"'"]
-                                (_, _,   output)  <- if "unrecognized option" `isInfixOf` err
-                                                      then runDarcsCommand repo "changes" ["--xml-output"]
-                                                      else return (ExitSuccess, err, output')
                                 let hists = parseDarcsXML $ toString output
                                 case hists of
                                     Nothing -> puntToAnyChange
