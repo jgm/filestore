@@ -1,6 +1,6 @@
 module Data.FileStore.DarcsXml (parseDarcsXML) where
 
-import Data.Maybe (catMaybes, fromJust, fromMaybe)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Char (isSpace)
 import Data.DateTime (parseDateTime)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -37,12 +37,16 @@ dateXML   = fromMaybe "" . findAttr (QName "local_date" Nothing Nothing)
 hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
 descriptionXML = fromMaybe "" . fmap strContent . findChild (QName "name" Nothing Nothing)
 
+-- Perhaps there was no '--summary' option used, in which case there is no 'Change' information we
+-- can extract.
 changesXML :: Element -> [Maybe Change]
-changesXML = analyze . filterSummary . changes
+changesXML a = case (changes a) of
+                    Just b -> analyze $ filterSummary b
+                    Nothing -> []
 
 -- | Extract the file-modification fields
-changes :: Element -> Element
-changes = fromJust . findElement (QName  "summary" Nothing Nothing)
+changes :: Element -> Maybe Element
+changes = findElement (QName  "summary" Nothing Nothing)
 
 analyze :: [Element] -> [Maybe Change]
 analyze s = map convert s
