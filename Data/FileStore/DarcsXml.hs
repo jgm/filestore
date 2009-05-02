@@ -1,6 +1,6 @@
 module Data.FileStore.DarcsXml (parseDarcsXML) where
 
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (catMaybes, fromJust, fromMaybe)
 import Data.Char (isSpace)
 import Data.DateTime (parseDateTime)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -22,7 +22,7 @@ parseIntoRevision a = Revision { revId = hashXML a,
                                  revDateTime = date a,
                                  revAuthor = Author { authorName=authorXML a, authorEmail=emailXML a },
                                  revDescription = descriptionXML a,
-                                 revChanges = changesXML a }
+                                 revChanges = catMaybes $ changesXML a }
     where
         -- If we can't get a date from the XML, we default to the beginning of the POSIX era.
         -- This at least makes it easy for someone to filter out bad dates, as obviously no real DVCSs
@@ -37,23 +37,23 @@ dateXML   = fromMaybe "" . findAttr (QName "local_date" Nothing Nothing)
 hashXML   = fromMaybe "" . findAttr (QName "hash" Nothing Nothing)
 descriptionXML = fromMaybe "" . fmap strContent . findChild (QName "name" Nothing Nothing)
 
-changesXML :: Element -> [Change]
+changesXML :: Element -> [Maybe Change]
 changesXML = analyze . filterSummary . changes
 
 -- | Extract the file-modification fields
 changes :: Element -> Element
 changes = fromJust . findElement (QName  "summary" Nothing Nothing)
 
-analyze :: [Element] -> [Change]
+analyze :: [Element] -> [Maybe Change]
 analyze s = map convert s
   where convert a
-           | x == "add_directory" || x == "add_file" = Added b
-           | x == "remove_file" || x == "remove_directory" = Deleted b
+           | x == "add_directory" || x == "add_file" = Just (Added b)
+           | x == "remove_file" || x == "remove_directory" = Just (Deleted b)
            | x == "added_lines"
               || x == "modify_file"
               || x == "removed_lines"
-              || x == "replaced_tokens" = Modified b
-           | otherwise = error "Unknown change type"
+              || x == "replaced_tokens" = Just (Modified b)
+           | otherwise = Nothing
              where  x = qName . elName $ a
                     b = takeWhile (/='\n') $ dropWhile isSpace $ strContent a
 
