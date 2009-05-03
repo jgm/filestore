@@ -140,7 +140,7 @@ darcsLog repo names (TimeRange begin end) = do
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
 darcsGetRevision repo hash = do (_,_,output) <- runDarcsCommand repo "changes" ["--xml-output", 
-                                                                                   "--match=hash " ++ hash]
+                                                                                   "--summary", "--match=hash " ++ hash]
                                 let hists = parseDarcsXML $ toString output
                                 case hists of
                                     Nothing -> puntToAnyChange
