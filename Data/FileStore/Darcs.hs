@@ -155,9 +155,9 @@ darcsLatestRevId :: FilePath -> FilePath -> IO RevisionId
 darcsLatestRevId repo name = do
   ensureFileExists repo name
 #ifdef USE_MAXCOUNT
-  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", "--max-count=1", name]
+  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--max-count=1", name]
 #else
-  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--summary", name]
+  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", name]
 #endif
   let patchs = parseDarcsXML $ toString output
   case patchs of
