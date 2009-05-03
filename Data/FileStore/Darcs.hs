@@ -15,7 +15,7 @@
 module Data.FileStore.Darcs ( darcsFileStore ) where
 
 import Control.Exception (throwIO)
-import Control.Monad (liftM, unless, when)
+import Control.Monad (unless, when)
 import Data.DateTime (toSqlString)
 import Data.List (sort, isPrefixOf)
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
@@ -139,16 +139,12 @@ darcsLog repo names (TimeRange begin end) = do
 
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision
-darcsGetRevision repo hash = do (_,_,output) <- runDarcsCommand repo "changes" ["--xml-output", 
-                                                                                   "--summary", "--match=hash " ++ hash]
+darcsGetRevision repo hash = do (_,_,output) <- runDarcsCommand repo "changes"
+                                                ["--xml-output", "--summary", "--match=hash " ++ hash]
                                 let hists = parseDarcsXML $ toString output
                                 case hists of
-                                    Nothing -> puntToAnyChange
-                                    Just a -> return $ head a
-                                -- this filters the full changelog for the first matching hash
-                                -- this is in filestore-land instead of Darcs; major performance loss
-                                where puntToAnyChange = liftM (head . filter (\x -> hashsMatch (revId x) hash)) $ 
-                                                         darcsLog repo [] (TimeRange Nothing Nothing)
+                                    Nothing -> throwIO NotFound
+                                    Just a  -> return $ head a
 
 -- | Return revision ID for latest commit for a resource.
 darcsLatestRevId :: FilePath -> FilePath -> IO RevisionId
