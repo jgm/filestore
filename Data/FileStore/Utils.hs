@@ -155,7 +155,7 @@ splitEmailAuthor x = if '<' `elem` x then (Just (tail $ init c), reverse . dropW
 --   This calls out to grep, and so supports the regular expressions grep does.
 regSearchFiles :: FilePath -> [String] -> String -> IO [String]
 regSearchFiles repo filesToCheck pattern = do (_, _, result) <- runShellCommand repo
-                                                             Nothing  "grep" $ ["--line-number", "-l", "-E", "-e", pattern] ++ filesToCheck
+                                                             Nothing  "grep" $ ["--line-number", "-I", "-l", "-E", "-e", pattern] ++ filesToCheck
                                               let results = intersect filesToCheck $ lines $ toString result
                                               return results
 
@@ -188,7 +188,7 @@ checkAndWriteFile repo name contents = do
 --   Expected usage is to specialize this function with a particular backend's 'index'.
 grepSearchRepo :: (FilePath -> IO [String]) -> FilePath -> SearchQuery -> IO [SearchMatch]
 grepSearchRepo indexer repo query = do
-  let opts = ["--line-number", "--with-filename"] ++
+  let opts = ["-I", "--line-number", "--with-filename"] ++
              (if queryIgnoreCase query then ["-i"] else []) ++
              (if queryWholeWords query then ["--word-regexp"] else ["-E"])
   let regexps = map escapeRegexSpecialChars $ queryPatterns query
