@@ -1,3 +1,69 @@
+Inconsistencies between git and darcs.
+
+Summary:
+
+- git allows you to create a file named '*';
+  darcs doesn't (though it doesn't throw an
+  error when you try). Similarly with '?'.
+
+- when you try to delete '*', git deletes
+  everything, treating '*' as wildcard.
+  darcs gives a nonexistent file message.
+
+- when you delete a file and then try to
+  create a file with the same name, git gives
+  you an error "Resource Exists". But git doesn't
+  allow you to modify the resource either.
+  darcs behaves better.
+
+See transcript below:
+
+Prelude> :m + Data.FileStore
+Prelude Data.FileStore> let d = darcsFileStore "d"
+Prelude Data.FileStore> let a = Author "j" ""
+Prelude Data.FileStore> create d "aaa" a "n" "hi"
+Prelude Data.FileStore> index d
+["aaa"]
+Prelude Data.FileStore> create d "*" a "n" "hi"
+Prelude Data.FileStore> index d
+["aaa"]
+Prelude Data.FileStore> delete d "*" a "n"
+*** Exception: UnknownError: Could not darcs record *
+
+darcs failed:  None of the files you specified exist!
+
+Prelude Data.FileStore> index d
+["aaa"]
+Prelude Data.FileStore> delete d "aaa" a "n"
+Prelude Data.FileStore> index d
+[]
+Prelude Data.FileStore> create d "aaa" a "n" "hi"
+Prelude Data.FileStore> index d
+["aaa"]
+
+Prelude Data.FileStore> let g = gitFileStore "g"
+Prelude Data.FileStore> initialize g
+Prelude Data.FileStore> index g
+[]
+Prelude Data.FileStore> create g "*" a "hi" "contents"
+Prelude Data.FileStore> index g
+["*"]
+Prelude Data.FileStore> create g "aa" a "hi" "contents"
+Prelude Data.FileStore> index g
+["*","aa"]
+Prelude Data.FileStore> delete g "*" a "hi"
+Prelude Data.FileStore> index g
+[]
+Prelude Data.FileStore> create g "aa" a "hi" "contents"
+*** Exception: ResourceExists
+Prelude Data.FileStore> latest g "aa"
+"ba42127ed54a804570fc0fd3b979d2bc1ebf1fd7"
+Prelude Data.FileStore> modify g "aa" "ba412" a "hi" "contents"
+*** Exception: NotFound
+
+
+-------------------------------------
+
 Note:  git will detect renames in "log" and "whatchanged"
 if you supply the "-M" flag:
 
