@@ -207,9 +207,10 @@ gitSearch repo query = do
 -- Auxiliary function for searchResults
 parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
-  let (_,_,_,[fname,_,ln,cont]) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
-  in  SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
-
+  let (_,_,_,res) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
+  in case res of
+       [fname,_,ln,cont] -> SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
+       e -> error $ "parseMatchLine: (str,e)" ++ (show (str,e)) -- give better error for failing tests
 {-
 -- | Uses git-diff to get a dif between two revisions.
 gitDiff :: FilePath -> FilePath -> RevisionId -> RevisionId -> IO String
