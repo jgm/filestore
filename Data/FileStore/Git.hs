@@ -66,7 +66,7 @@ runGitCommand repo command args = do
 gitInit :: FilePath -> IO ()
 gitInit repo = do
   exists <- doesDirectoryExist repo
-  when exists $ throwIO RepositoryExists
+  when exists $ withVerifyDir repo $ throwIO RepositoryExists
   createDirectoryIfMissing True repo
   (status, err, _) <- runGitCommand repo "init" []
   if status == ExitSuccess

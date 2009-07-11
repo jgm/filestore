@@ -62,7 +62,7 @@ runDarcsCommand repo command args = do
 darcsInit :: FilePath -> IO ()
 darcsInit repo = do
   exists <- doesDirectoryExist repo
-  when exists $ throwIO RepositoryExists
+  when exists $ withVerifyDir repo $ throwIO RepositoryExists
   createDirectoryIfMissing True repo
   (status, err, _) <- runDarcsCommand repo "init" []
   if status == ExitSuccess
