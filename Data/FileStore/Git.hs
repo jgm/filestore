@@ -20,7 +20,7 @@ import Data.FileStore.Types
 import Data.Maybe (mapMaybe)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars) 
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars, withVerifyDir) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -28,7 +28,7 @@ import Codec.Binary.UTF8.String (decodeString)
 import Data.Char (chr)
 import Control.Monad (liftM, when)
 import System.FilePath ((</>), takeDirectory)
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
+import System.Directory (doesDirectoryExist, createDirectoryIfMissing, getDirectoryContents)
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
@@ -41,14 +41,14 @@ import Paths_filestore
 gitFileStore :: FilePath -> FileStore
 gitFileStore repo = FileStore {
     initialize        = gitInit repo
-  , save              = gitSave repo 
+  , save = gitSave repo 
   , retrieve          = gitRetrieve repo
   , delete            = gitDelete repo
   , rename            = gitMove repo
   , history           = gitLog repo
   , latest            = gitLatestRevId repo
   , revision          = gitGetRevision repo
-  , index             = gitIndex repo
+  , index             = withVerifyDir repo $ gitIndex repo
   , directory         = gitDirectory repo
   , search            = gitSearch repo 
   , idsMatch          = const hashsMatch repo
@@ -177,6 +177,9 @@ gitIndex repo = do
                     -- note:  on a newly initialized repo, 'git ls-tree HEAD' returns an error
    where lineToFilename (_:"blob":_:rest) = Just $ convertEncoded $ unwords rest
          lineToFilename _                 = Nothing
+
+
+
 
 -- | Get list of resources in one directory of the repository.
 gitDirectory :: FilePath -> FilePath -> IO [Resource]

@@ -6,7 +6,7 @@ Invoke it with:
     runghc -idist/build/autogen Tests.lhs
 
 > import Data.FileStore
-> import Data.List (sort)
+> import Data.List (sort, isInfixOf)
 > import Test.HUnit
 > import System.Directory (removeDirectoryRecursive)
 > import Control.Monad (forM)
@@ -24,13 +24,15 @@ Invoke it with:
 >   testFileStore (darcsFileStore "tmp/darcsfs") "Data.FileStore.Darcs"
 >   removeDirectoryRecursive "tmp"
 
+
 > testFileStore :: FileStore -> String -> IO Counts 
 > testFileStore fs fsName = do
 >   putStrLn   "**********************************"
 >   putStrLn $ "Testing " ++ fsName
 >   putStrLn   "**********************************"
 >   runTestTT $ TestList $ map (\(label, testFn) -> TestLabel label $ testFn fs) 
->     [ ("initialize", initializeTest)
+>     [ ("pre initialize", preInitializeTest)
+>     , ("initialize", initializeTest)
 >     , ("create resource", createTest1)
 >     , ("create resource in subdirectory", createTest2)
 >     , ("create resource with non-ascii name", createTest3)
@@ -66,6 +68,13 @@ Invoke it with:
 
 *** Initialize a repository, check for empty index, and then try to initialize again
 *** in the same directory (should raise an error):
+
+> preInitializeTest fs = TestCase $ do
+>   catch (do index fs; error "preInitialize, uncaught error") $ 
+>                \e -> case e of
+>                         UnknownError m -> assertBool ("error status for running index on nonexisting repo, e: " ++ (show (e,m))) 
+>                                             ("getDirectoryContents: does not exist" `isInfixOf` m)
+>                         e -> error $ "wrong error: " ++ (show e)
 
 > initializeTest fs = TestCase $ do
 >   initialize fs

@@ -24,7 +24,7 @@ import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSepar
 
 import Data.FileStore.DarcsXml (parseDarcsXML)
 import Data.FileStore.Types
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, ensureFileExists, grepSearchRepo)
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, ensureFileExists, grepSearchRepo, withVerifyDir)
 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B (ByteString)
@@ -41,7 +41,7 @@ darcsFileStore repo = FileStore {
   , history         = darcsLog repo
   , latest          = darcsLatestRevId repo
   , revision        = darcsGetRevision repo
-  , index           = darcsIndex repo
+  , index           = withVerifyDir repo $ darcsIndex repo
   , directory       = darcsDirectory repo
   , search          = darcsSearch repo
   , idsMatch        = const hashsMatch repo }

@@ -22,7 +22,8 @@ module Data.FileStore.Utils (
         , regSearchFiles
         , regsSearchFile
         , checkAndWriteFile
-        , grepSearchRepo ) where
+        , grepSearchRepo 
+        , withVerifyDir ) where
 
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
@@ -32,7 +33,7 @@ import Data.Char (isSpace)
 import Data.List (intersect, nub, isPrefixOf)
 import Data.List.Split (splitWhen)
 import Data.Maybe (isJust)
-import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory, removeFile, findExecutable, createDirectoryIfMissing)
+import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory, removeFile, findExecutable, createDirectoryIfMissing, getDirectoryContents)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
@@ -41,7 +42,7 @@ import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
 
 import Data.FileStore.Types (toByteString, Contents, SearchMatch(..), 
-                              FileStoreError(IllegalResourceName, NotFound), SearchQuery(..))
+                              FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
@@ -205,3 +206,8 @@ grepSearchRepo indexer repo query = do
                                                   files
        let results = lines $ toString output
        return $ map parseMatchLine results
+
+-- | we don't actually need the contents, just want to check that the directory exists and we have enough permissions
+withVerifyDir :: FilePath -> IO a -> IO a
+withVerifyDir d a = do catch (return . head =<< getDirectoryContents d) $ \e -> throwIO . UnknownError . show $ e
+                       a
