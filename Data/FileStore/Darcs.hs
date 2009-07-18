@@ -41,7 +41,7 @@ darcsFileStore repo = FileStore {
   , history         = darcsLog repo
   , latest          = darcsLatestRevId repo
   , revision        = darcsGetRevision repo
-  , index           = withVerifyDir repo $ darcsIndex repo
+  , index           = darcsIndex repo
   , directory       = darcsDirectory repo
   , search          = darcsSearch repo
   , idsMatch        = const hashsMatch repo }
@@ -178,7 +178,7 @@ darcsRetrieve repo name mbId = do
 
 -- | Get a list of all known files inside and managed by a repository.
 darcsIndex :: FilePath ->IO [FilePath]
-darcsIndex repo = do
+darcsIndex repo = withVerifyDir repo $ do
   (status, _errOutput, output) <- runDarcsCommand repo "query"  ["files","--no-directories"]
   if status == ExitSuccess
      then return $ map (drop 2) . lines . toString $ output
@@ -186,7 +186,7 @@ darcsIndex repo = do
 
 -- | Get a list of all resources inside a directory in the repository.
 darcsDirectory :: FilePath -> FilePath -> IO [Resource]
-darcsDirectory repo dir = do
+darcsDirectory repo dir = withVerifyDir (repo </> dir) $ do
   let dir' = if null dir then "" else addTrailingPathSeparator dir
   (status1, _errOutput1, output1) <- runDarcsCommand repo "query"  ["files","--no-directories"]
   (status2, _errOutput2, output2) <- runDarcsCommand repo "query" ["files","--no-files"]

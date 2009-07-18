@@ -48,7 +48,7 @@ gitFileStore repo = FileStore {
   , history           = gitLog repo
   , latest            = gitLatestRevId repo
   , revision          = gitGetRevision repo
-  , index             = withVerifyDir repo $ gitIndex repo
+  , index             = gitIndex repo
   , directory         = gitDirectory repo
   , search            = gitSearch repo 
   , idsMatch          = const hashsMatch repo
@@ -169,7 +169,7 @@ gitGetRevision repo revid = do
 
 -- | Get a list of all known files inside and managed by a repository.
 gitIndex :: FilePath ->IO [FilePath]
-gitIndex repo = do
+gitIndex repo = withVerifyDir repo $ do
   (status, _err, output) <- runGitCommand repo "ls-tree" ["-r","-t","HEAD"]
   if status == ExitSuccess
      then return $ mapMaybe (lineToFilename . words) . lines . toString $ output
@@ -183,7 +183,7 @@ gitIndex repo = do
 
 -- | Get list of resources in one directory of the repository.
 gitDirectory :: FilePath -> FilePath -> IO [Resource]
-gitDirectory repo dir = do
+gitDirectory repo dir = withVerifyDir (repo </> dir) $ do
   (status, _err, output) <- runGitCommand repo "ls-tree" ["HEAD:" ++ dir]
   if status == ExitSuccess
      then return $ map (lineToResource . words) $ lines $ toString output
