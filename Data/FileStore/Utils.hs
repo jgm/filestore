@@ -30,7 +30,7 @@ import Control.Exception (throwIO)
 import Control.Monad (liftM, unless)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
-import Data.List (intersect, nub, isPrefixOf)
+import Data.List (intersect, nub, isPrefixOf, isInfixOf)
 import Data.List.Split (splitWhen)
 import Data.Maybe (isJust)
 import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory, removeFile, findExecutable, createDirectoryIfMissing, getDirectoryContents)
@@ -209,5 +209,8 @@ grepSearchRepo indexer repo query = do
 
 -- | we don't actually need the contents, just want to check that the directory exists and we have enough permissions
 withVerifyDir :: FilePath -> IO a -> IO a
-withVerifyDir d a = do catch (return . head =<< getDirectoryContents d) $ \e -> throwIO . UnknownError . show $ e
-                       a
+withVerifyDir d a =
+  catch (getDirectoryContents d >>= return . head >> a) $ \e ->
+    if "No such file or directory" `isInfixOf` (show e)
+       then throwIO NotFound
+       else throwIO . UnknownError . show $ e

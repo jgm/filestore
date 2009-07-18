@@ -66,15 +66,16 @@ Invoke it with:
 > nonasciiTestTitle :: String
 > nonasciiTestTitle = "αβγ"
 
-*** Initialize a repository, check for empty index, and then try to initialize again
-*** in the same directory (should raise an error):
+*** index and directory for noexisting repository should raise error:
 
 > preInitializeTest fs = TestCase $ do
->   catch (do index fs; error "preInitialize, uncaught error") $ 
->                \e -> case e of
->                         UnknownError m -> assertBool ("error status for running index on nonexisting repo, e: " ++ (show (e,m))) 
->                                             ("getDirectoryContents: does not exist" `isInfixOf` m)
->                         e -> error $ "wrong error: " ++ (show e)
+>   catch (do index fs; assertFailure "preInitialize, uncaught error") $ 
+>                \e -> assertEqual "error status from attempt to get index of nonexistent repo" e NotFound
+>   catch (do directory fs "foo"; assertFailure "preInitialize, uncaught error") $ 
+>                \e -> assertEqual "error status from attempt to get directory of nonexistent repo" e NotFound
+
+*** Initialize a repository, check for empty index, and then try to initialize again
+*** in the same directory (should raise an error):
 
 > initializeTest fs = TestCase $ do
 >   initialize fs
@@ -127,6 +128,11 @@ Invoke it with:
 
 >   subdirFiles <- directory fs "subdir"
 >   assertEqual "result of directory on subdir" [FSFile (takeFileName subdirTestTitle), FSFile (takeFileName (subdirTestTitle ++ "2"))] subdirFiles
+
+    Try to get contents of nonexistent subdirectory
+
+>   catch (do directory fs "foo"; assertFailure "nonexistent subdirectory, uncaught error") $ 
+>                \e -> assertEqual "error status from attempt to get directory listing of nonexistent directory" e NotFound
 
 *** Retrieve latest version of a resource:
 
