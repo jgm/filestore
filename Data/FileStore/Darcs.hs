@@ -17,9 +17,9 @@ module Data.FileStore.Darcs ( darcsFileStore ) where
 import Control.Exception (throwIO)
 import Control.Monad (unless, when)
 import Data.DateTime (toSqlString)
-import Data.List (sort, isPrefixOf)
+import Data.List (sort, isPrefixOf, isInfixOf)
+import System.Exit (ExitCode(..))
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
-import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
 
 import Data.FileStore.DarcsXml (parseDarcsXML)
@@ -151,7 +151,12 @@ darcsLatestRevId :: FilePath -> FilePath -> IO RevisionId
 darcsLatestRevId repo name = do
   ensureFileExists repo name
 #ifdef USE_MAXCOUNT
-  (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", "--max-count=1", name]
+  (status, err, output) <- runDarcsCommand repo "changes" ["--xml-output", "--max-count=1", name]
+  when (status /= ExitSuccess && "unrecognized option" `isInfixOf` err) $ do
+    error $ "filestore was compiled with the maxcount flag, but your version of\n"
+         ++ "darcs does not support the --max-count option.  You should either\n"
+         ++ "upgrade to darcs >= 2.3.0 (recommended) or compile filestore without\n"
+         ++ "the maxcount flag (cabal install filestore -f-maxcount)."
 #else
   (_, _, output) <- runDarcsCommand repo "changes" ["--xml-output", name]
 #endif
