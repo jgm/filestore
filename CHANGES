@@ -1,3 +1,37 @@
+Version 0.3.2 released ??
+
+* Made maxcount default to True, as '--max-count' is supported by
+  the latest released version of darcs (2.3.0). Print an informative
+  error message if the version of darcs being used does not support
+  --max-count.
+
+* Made 'initialize' throw RepoExists error only if the repo
+  exists; catch permission or other errors separately. (Thomas Hartmann)
+
+* Made 'index' throw an error if the directory is not present or
+  there are insufficient permissions.  (Thomas Hartmann)
+
+* Improved error message for search match helper.
+
+Version 0.3.1 released 04 Jul 2009
+
+* Added -I flag to grep in regSearchFiles. Ignore binary files
+  in the repository when searching.
+
+* Added maxcount Cabal flag, defaulting to False.  When true,
+  this flag causes 'latest' to run 'darcs changes' with the
+  flag '--max-count=1', which dramatically increases performance.
+  (Without this, filestore has to retrieve the entire changelog
+  just to get the latest revision ID.) '--max-count' is at this
+  point only in development versions of darcs.
+
+* Removed quoting from --match=hash in Darcs module (since it doesn't
+  go through /bin/sh).  Thanks to Ganesh Sittampalam.
+
+* Efficiency improvements and refactoring in Darcs module.
+
+* Moved darcs utility functions to Util module.
+
 Version 0.3 released 08 Apr 2009
 
 * Added new 'directory' function, which returns a list of resources given
