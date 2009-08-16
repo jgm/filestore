@@ -25,7 +25,6 @@ Extra-source-files:  Tests.lhs
 --    Location:        http://johnmacfarlane.net/repos/filestore
 
 Flag maxcount
-    default: True
     description: Make use of a recent (>= 2.3.0) Darcs feature which vastly improves the performance
                  of 'latest'.  You should disable this flag if you plan to use gitit with an
                  older version of Darcs, or 'latest' will raise an error.
