@@ -24,16 +24,13 @@ import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShe
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
-import Codec.Binary.UTF8.String (decodeString)
+import Codec.Binary.UTF8.String (decodeString, encodeString)
 import Data.Char (chr)
-import Control.Monad (liftM, when)
+import Control.Monad (liftM, unless, when)
 import System.FilePath ((</>), takeDirectory)
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
-import Codec.Binary.UTF8.String (encodeString)
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
-import Control.Monad (unless)
 import Text.Regex.Posix ((=~))
-import System.Directory (getPermissions, setPermissions, executable)
 import Paths_filestore
 
 -- | Return a filestore implemented using the git distributed revision control system
@@ -213,7 +210,7 @@ parseMatchLine str =
   let (_,_,_,res) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
   in case res of
        [fname,_,ln,cont] -> SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
-       e -> error $ "parseMatchLine: (str,e)" ++ (show (str,e)) -- give better error for failing tests
+       e -> error $ "parseMatchLine: (str,e)" ++ show (str,e) -- give better error for failing tests
 {-
 -- | Uses git-diff to get a dif between two revisions.
 gitDiff :: FilePath -> FilePath -> RevisionId -> RevisionId -> IO String
