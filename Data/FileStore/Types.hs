@@ -99,6 +99,8 @@ data FileStoreError =
   | Unchanged                    -- ^ The resource was not modified,
                                  --   because the contents were unchanged
   | UnsupportedOperation
+  | NoMaxCount                   -- ^ The darcs version used does not support
+                                 --   --max-count
   | UnknownError String
   deriving (Read, Eq, Typeable)
 
@@ -109,6 +111,11 @@ instance Show FileStoreError where
   show IllegalResourceName   = "IllegalResourceName"
   show Unchanged             = "Unchanged"
   show UnsupportedOperation  = "UnsupportedOperation"
+  show NoMaxCount            = "NoMaxCount:\n"
+    ++ "filestore was compiled with the maxcount flag, but your version of\n"
+    ++ "darcs does not support the --max-count option.  You should either\n"
+    ++ "upgrade to darcs >= 2.3.0 (recommended) or compile filestore without\n"
+    ++ "the maxcount flag (cabal install filestore -f-maxcount)."
   show (UnknownError s)      = "UnknownError: " ++ s
 
 instance Exception FileStoreError
