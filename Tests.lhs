@@ -135,21 +135,21 @@ Invoke it with:
 
 *** Retrieve latest version of a resource:
 
-> retrieveTest1 fs = TestCase $ do
->   cont <- retrieve fs testTitle Nothing
->   assertEqual "contents returned by retrieve" testContents cont 
+> retrieveTest1 fs = TestCase $
+>   retrieve fs testTitle Nothing >>=
+>     assertEqual "contents returned by retrieve" testContents
 
 *** Retrieve latest version of a resource (in a subdirectory):
 
-> retrieveTest2 fs = TestCase $ do
->   cont <- retrieve fs subdirTestTitle Nothing
->   assertEqual "contents returned by retrieve" testContents cont 
+> retrieveTest2 fs = TestCase $
+>   retrieve fs subdirTestTitle Nothing >>=
+>     assertEqual "contents returned by retrieve" testContents
 
 *** Retrieve latest version of a resource with a nonascii name:
 
-> retrieveTest3 fs = TestCase $ do
->   cont <- retrieve fs nonasciiTestTitle Nothing
->   assertEqual "contents returned by retrieve" testContents cont 
+> retrieveTest3 fs = TestCase $
+>   retrieve fs nonasciiTestTitle Nothing >>=
+>     assertEqual "contents returned by retrieve" testContents
 
 *** Retrieve a directory (should fail):
 

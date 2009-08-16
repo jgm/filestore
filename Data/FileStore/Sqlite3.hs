@@ -62,7 +62,7 @@ sqlite3Init conn =
            commit conn
 
 -- | Save changes (creating file and directory if needed), add, and commit.
-sqlite3Save :: Contents a => IConnection c => c -> ResourceName -> Author -> String -> a -> IO ()
+sqlite3Save :: (Contents a, IConnection c) => c -> ResourceName -> Author -> String -> a -> IO ()
 sqlite3Save conn name author logMsg contents = undefined
   -- create a revision entry
   -- create a change entry

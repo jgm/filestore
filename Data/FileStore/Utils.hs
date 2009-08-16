@@ -190,7 +190,7 @@ checkAndWriteFile repo name contents = do
 grepSearchRepo :: (FilePath -> IO [String]) -> FilePath -> SearchQuery -> IO [SearchMatch]
 grepSearchRepo indexer repo query = do
   let opts = ["-I", "--line-number", "--with-filename"] ++
-             (if queryIgnoreCase query then ["-i"] else []) ++
+             ["-i" | queryIgnoreCase query] ++
              (if queryWholeWords query then ["--word-regexp"] else ["-E"])
   let regexps = map escapeRegexSpecialChars $ queryPatterns query
   files <- indexer repo
