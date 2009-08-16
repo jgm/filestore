@@ -24,16 +24,13 @@ import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand)
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
-import Codec.Binary.UTF8.String (decodeString)
+import Codec.Binary.UTF8.String (decodeString, encodeString)
 import Data.Char (chr)
-import Control.Monad (liftM, when)
+import Control.Monad (liftM, unless, when)
 import System.FilePath ((</>), takeDirectory)
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
-import Codec.Binary.UTF8.String (encodeString)
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
-import Control.Monad (unless)
 import Text.Regex.Posix ((=~))
-import System.Directory (getPermissions, setPermissions, executable)
 import Database.HDBC
 import Paths_filestore
 
