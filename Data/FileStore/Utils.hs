@@ -210,7 +210,7 @@ grepSearchRepo indexer repo query = do
 -- | we don't actually need the contents, just want to check that the directory exists and we have enough permissions
 withVerifyDir :: FilePath -> IO a -> IO a
 withVerifyDir d a =
-  catch (getDirectoryContents d >>= return . head >> a) $ \e ->
-    if "No such file or directory" `isInfixOf` (show e)
+  catch (liftM head (getDirectoryContents d) >> a) $ \e ->
+    if "No such file or directory" `isInfixOf` show e
        then throwIO NotFound
        else throwIO . UnknownError . show $ e
