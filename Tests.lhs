@@ -8,13 +8,12 @@ Invoke it with:
 > import Data.FileStore
 > import Data.List (sort, isInfixOf)
 > import Test.HUnit
-> import System.Directory (removeDirectoryRecursive)
+> import System.Directory (doesFileExist, removeDirectoryRecursive)
 > import Control.Monad (forM)
 > import Prelude hiding (catch)
 > import Control.Exception (catch)
 > import Data.DateTime
 > import Data.Maybe (mapMaybe)
-> import System.Directory (doesFileExist)
 > import System.FilePath
 > import System.Process
 > import Data.Algorithm.Diff (DI(..))
