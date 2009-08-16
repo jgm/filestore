@@ -152,7 +152,7 @@ darcsLatestRevId repo name = do
   ensureFileExists repo name
 #ifdef USE_MAXCOUNT
   (status, err, output) <- runDarcsCommand repo "changes" ["--xml-output", "--max-count=1", name]
-  when (status /= ExitSuccess && "unrecognized option" `isInfixOf` err) $ do
+  when (status /= ExitSuccess && "unrecognized option" `isInfixOf` err) $
     error $ "filestore was compiled with the maxcount flag, but your version of\n"
          ++ "darcs does not support the --max-count option.  You should either\n"
          ++ "upgrade to darcs >= 2.3.0 (recommended) or compile filestore without\n"
