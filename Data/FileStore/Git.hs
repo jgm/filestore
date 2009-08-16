@@ -202,7 +202,7 @@ gitSearch repo query = do
                                    concatMap (\term -> ["-e", escapeRegexSpecialChars term]) (queryPatterns query))
   if status == ExitSuccess
      then return $ map parseMatchLine $ lines $ toString output
-     else error $ "git grep returned error status.\n" ++ errOutput
+     else throwIO $ UnknownError $ "git grep returned error status.\n" ++ errOutput
 
 -- Auxiliary function for searchResults
 parseMatchLine :: String -> SearchMatch
