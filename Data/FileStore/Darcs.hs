@@ -17,7 +17,10 @@ module Data.FileStore.Darcs ( darcsFileStore ) where
 import Control.Exception (throwIO)
 import Control.Monad (unless, when)
 import Data.DateTime (toSqlString)
-import Data.List (sort, isPrefixOf, isInfixOf)
+import Data.List (sort, isPrefixOf)
+#ifdef USE_MAXCOUNT
+import Data.List (isInfixOf)
+#endif
 import System.Exit (ExitCode(..))
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
