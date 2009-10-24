@@ -1,4 +1,8 @@
-Version 0.3.2 released ??
+Version 0.3.2.1 released 24 Oct 2009
+
+* Convert pathname to UTF8 in withVerifyDir.
+
+Version 0.3.2 released 22 Aug 2009
 
 * Made maxcount default to True, as '--max-count' is supported by
   the latest released version of darcs (2.3.0). Print an informative
