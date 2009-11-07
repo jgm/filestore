@@ -120,7 +120,7 @@ gitRetrieve repo name revid = do
 
 -- | Delete a resource from the repository.
 gitDelete :: FilePath -> FilePath -> Author -> Description -> IO ()
-gitDelete repo name author logMsg = do
+gitDelete repo name author logMsg = withSanityCheck repo [".git"] name $ do
   (statusAdd, errRm, _) <- runGitCommand repo "rm" [name]
   if statusAdd == ExitSuccess
      then gitCommit repo [name] author logMsg
