@@ -6,10 +6,10 @@ Version 0.3.2.2 released 06 Nov 2009
   in the add/commit phase.  This introduced the risk of corrupting
   the repository or, worse, overwriting hooks.
 
-* Renamed isInsideRepo to isInsideDir and rearranged arguments for
-  better currying.
+* isInsideDir is no longer exported.
 
-* Added an argument for 'excludes' to checkAndWriteFile.
+* checkAndWriteFile has been replaced with withSanityCheck, to avoid
+  code duplication between create and rename functions.
 
 Version 0.3.2.1 released 24 Oct 2009
 
