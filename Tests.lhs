@@ -43,7 +43,7 @@ Invoke it with:
 >     , ("retrieve resource with non-ascii name", retrieveTest3)
 >     , ("retrieve subdirectory (should raise error)", retrieveTest4)
 >     , ("modify resource", modifyTest)
->     , ("delete resource", deleteTest)
+>     , ("delete resource", deleteTest fsName)
 >     , ("rename resource", renameTest)
 >     , ("test for matching IDs", matchTest)
 >     , ("history and revision", historyTest)
@@ -212,7 +212,7 @@ Invoke it with:
 
 *** Delete a resource:
 
-> deleteTest fs = TestCase $ do
+> deleteTest fsName fs = TestCase $ do
 
     Create a file and verify that it's there.
 
@@ -226,6 +226,16 @@ Invoke it with:
 >   delete fs toBeDeleted testAuthor "goodbye"
 >   ind <- index fs
 >   assertBool "index does not contain resource that was deleted" (toBeDeleted `notElem` ind)
+
+    Try to delete a file somewhere we shouldn't be able to delete
+
+>   let (realpath, special) = case fsName of
+>                             "Data.FileStore.Git"   -> ("tmp" </> "gitfs" </> ".git" </> "newfile", ".git/newfile")
+>                             "Data.FileStore.Darcs" -> ("tmp" </> "darcsfs" </> "_darcs" </> "newfile", "_darcs/newfile")
+>                             _                      -> error "Unknown filestore type!  Add a test case."
+>   catch (delete fs special testAuthor "description of change" >>
+>          (assertFailure  $ "did not return error from create " ++ special)) $
+>          \e -> assertEqual ("error from create " ++ special) IllegalResourceName e 
 
 *** Rename a resource:
 
