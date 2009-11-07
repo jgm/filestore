@@ -1,3 +1,7 @@
+Version 0.3.3 released 06 Nov 2009
+
+* isInsideDir is again exported.
+
 Version 0.3.2.2 released 06 Nov 2009
 
 * Raise an IllegalResourceName error if the user tries to create
