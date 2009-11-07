@@ -15,7 +15,7 @@
 module Data.FileStore.Darcs ( darcsFileStore ) where
 
 import Control.Exception (throwIO)
-import Control.Monad (unless, when)
+import Control.Monad (when)
 import Data.DateTime (toSqlString)
 import Data.List (sort, isPrefixOf)
 #ifdef USE_MAXCOUNT
@@ -23,14 +23,15 @@ import Data.List (isInfixOf)
 #endif
 import System.Exit (ExitCode(..))
 import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
-import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSeparator)
+import System.FilePath ((</>), dropFileName, addTrailingPathSeparator)
 
 import Data.FileStore.DarcsXml (parseDarcsXML)
 import Data.FileStore.Types
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideDir, runShellCommand, ensureFileExists, grepSearchRepo, withVerifyDir)
+import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, ensureFileExists, grepSearchRepo, withVerifyDir)
+import Codec.Binary.UTF8.String (encodeString)
 
 import Data.ByteString.Lazy.UTF8 (toString)
-import qualified Data.ByteString.Lazy as B (ByteString)
+import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
 
 -- | Return a filestore implemented using the Darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -75,7 +76,7 @@ darcsInit repo = do
 -- | Save changes (creating the file and directory if needed), add, and commit.
 darcsSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 darcsSave repo name author logMsg contents = do
-  checkAndWriteFile repo ["_darcs"] name contents
+  withSanityCheck repo ["_darcs"] name $ B.writeFile (repo </> encodeString name) $ toByteString contents
   -- Just in case it hasn't been added yet; we ignore failures since darcs will
   -- fail if the file doesn't exist *and* if the file exists but has been added already.
   runDarcsCommand repo "add" [name]
@@ -96,16 +97,12 @@ darcsCommit repo names author logMsg = do
 -- | Change the name of a resource.
 darcsMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 darcsMove repo oldName newName author logMsg = do
-  let newPath = repo </> newName
-  inside <- newPath `isInsideDir` repo
-  unless inside $ throwIO IllegalResourceName
-  -- create destination directory if missing
-  createDirectoryIfMissing True $ takeDirectory newPath
-  (statusAdd,_,_) <- runDarcsCommand repo "add" [dropFileName newName]
-  (statusAdd',_,_) <- runDarcsCommand repo "mv" [oldName, newName]
-  if statusAdd == ExitSuccess && statusAdd' == ExitSuccess
-     then darcsCommit repo [oldName, newName] author logMsg
-     else throwIO NotFound
+  withSanityCheck repo ["_darcs"] newName $ do
+    (statusAdd, _, _) <- runDarcsCommand repo "add" [dropFileName newName]
+    (statusAdd', _,_) <- runDarcsCommand repo "mv" [oldName, newName]
+    if statusAdd == ExitSuccess && statusAdd' == ExitSuccess
+       then darcsCommit repo [oldName, newName] author logMsg
+       else throwIO NotFound
 
 -- | Delete a resource from the repository.
 darcsDelete :: FilePath -> FilePath -> Author -> Description -> IO ()

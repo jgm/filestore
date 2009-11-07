@@ -14,14 +14,13 @@ module Data.FileStore.Utils (
           runShellCommand
         , mergeContents
         , hashsMatch
-        , isInsideDir
         , escapeRegexSpecialChars
         , parseMatchLine
         , splitEmailAuthor
         , ensureFileExists
         , regSearchFiles
         , regsSearchFile
-        , checkAndWriteFile
+        , withSanityCheck
         , grepSearchRepo 
         , withVerifyDir ) where
 
@@ -41,8 +40,7 @@ import System.Process (runProcess, waitForProcess)
 import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
 
-import Data.FileStore.Types (toByteString, Contents, SearchMatch(..), 
-                              FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
+import Data.FileStore.Types (SearchMatch(..), FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
@@ -173,22 +171,21 @@ ensureFileExists repo name = do
   isFile <- doesFileExist (repo </> encodeString name)
   unless isFile $ throwIO NotFound
 
--- | Write out a file with given contents. We do sanity checking first, making sure that the
---   filename/location is within the given repo, and not inside any of the (relative) paths
---   in @excludes@.
-checkAndWriteFile :: (Data.FileStore.Types.Contents a)
-                  => FilePath
-                  -> [FilePath]
-                  -> String
-                  -> a
-                  -> IO ()
-checkAndWriteFile repo excludes name contents = do
+-- | Check that the filename/location is within the given repo, and not inside
+-- any of the (relative) paths in @excludes@.  Create the directory if needed.
+-- If everything checks out, then perform the specified action.
+withSanityCheck :: FilePath
+                -> [FilePath]
+                -> FilePath
+                -> IO b 
+                -> IO b
+withSanityCheck repo excludes name action = do
   let filename = repo </> encodeString name
   insideRepo <- filename `isInsideDir` repo
   insideExcludes <- liftM or $ mapM (filename `isInsideDir`) $ map (repo </>) excludes
   when (insideExcludes || not insideRepo) $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
-  B.writeFile filename $ toByteString contents
+  action
 
 -- | Uses grep to search a file-based repository. Note that this calls out to grep; and so
 --   is generic over repos like git or darcs-based repos. (The git FileStore instance doesn't

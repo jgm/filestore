@@ -20,14 +20,14 @@ import Data.FileStore.Types
 import Data.Maybe (mapMaybe)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideDir, runShellCommand, escapeRegexSpecialChars, withVerifyDir) 
+import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, escapeRegexSpecialChars, withVerifyDir) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString, encodeString)
 import Data.Char (chr)
-import Control.Monad (liftM, unless, when)
-import System.FilePath ((</>), takeDirectory)
+import Control.Monad (liftM, when)
+import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
 import Text.Regex.Posix ((=~))
@@ -94,7 +94,7 @@ gitCommit repo names author logMsg = do
 -- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 gitSave repo name author logMsg contents = do
-  checkAndWriteFile repo [".git"] name contents
+  withSanityCheck repo [".git"] name $ B.writeFile (repo </> encodeString name) $ toByteString contents
   (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
   if statusAdd == ExitSuccess
      then gitCommit repo [name] author logMsg
@@ -130,12 +130,7 @@ gitDelete repo name author logMsg = do
 gitMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 gitMove repo oldName newName author logMsg = do
   gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
-  let newPath = repo </> encodeString newName
-  inside <- newPath `isInsideDir` repo
-  unless inside $ throwIO IllegalResourceName
-  -- create destination directory if missing
-  createDirectoryIfMissing True $ takeDirectory newPath
-  (statusAdd, err, _) <- runGitCommand repo "mv" [oldName, newName]
+  (statusAdd, err, _) <- withSanityCheck repo [".git"] newName $ runGitCommand repo "mv" [oldName, newName] 
   if statusAdd == ExitSuccess
      then gitCommit repo [oldName, newName] author logMsg
      else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
