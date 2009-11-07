@@ -106,7 +106,7 @@ darcsMove repo oldName newName author logMsg = do
 
 -- | Delete a resource from the repository.
 darcsDelete :: FilePath -> FilePath -> Author -> Description -> IO ()
-darcsDelete repo name author logMsg = do
+darcsDelete repo name author logMsg = withSanityCheck repo ["_darcs"] name $ do
   runShellCommand repo Nothing "rm" [name]
   darcsCommit repo [name] author logMsg
 
