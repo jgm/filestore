@@ -27,7 +27,7 @@ import System.FilePath ((</>), takeDirectory, dropFileName, addTrailingPathSepar
 
 import Data.FileStore.DarcsXml (parseDarcsXML)
 import Data.FileStore.Types
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, ensureFileExists, grepSearchRepo, withVerifyDir)
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideDir, runShellCommand, ensureFileExists, grepSearchRepo, withVerifyDir)
 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B (ByteString)
@@ -75,7 +75,7 @@ darcsInit repo = do
 -- | Save changes (creating the file and directory if needed), add, and commit.
 darcsSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 darcsSave repo name author logMsg contents = do
-  checkAndWriteFile repo name contents
+  checkAndWriteFile repo ["_darcs"] name contents
   -- Just in case it hasn't been added yet; we ignore failures since darcs will
   -- fail if the file doesn't exist *and* if the file exists but has been added already.
   runDarcsCommand repo "add" [name]
@@ -97,7 +97,7 @@ darcsCommit repo names author logMsg = do
 darcsMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 darcsMove repo oldName newName author logMsg = do
   let newPath = repo </> newName
-  inside <- isInsideRepo repo newPath
+  inside <- newPath `isInsideDir` repo
   unless inside $ throwIO IllegalResourceName
   -- create destination directory if missing
   createDirectoryIfMissing True $ takeDirectory newPath

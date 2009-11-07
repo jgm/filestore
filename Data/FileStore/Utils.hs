@@ -14,7 +14,7 @@ module Data.FileStore.Utils (
           runShellCommand
         , mergeContents
         , hashsMatch
-        , isInsideRepo
+        , isInsideDir
         , escapeRegexSpecialChars
         , parseMatchLine
         , splitEmailAuthor
@@ -27,7 +27,7 @@ module Data.FileStore.Utils (
 
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
-import Control.Monad (liftM, unless)
+import Control.Monad (liftM, when, unless)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.List (intersect, nub, isPrefixOf, isInfixOf)
@@ -119,14 +119,14 @@ escapeRegexSpecialChars = backslashEscape "?*+{}[]\\^$.()"
 hashsMatch :: (Eq a) => [a] -> [a] -> Bool
 hashsMatch r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 
--- | Inquire of a certain repository whether another file lies within its ambit.
---   This is basically asking whether the file is 'above' the repository in the filesystems's
+-- | Inquire of a certain directory whether another file lies within its ambit.
+--   This is basically asking whether the file is 'above' the directory in the filesystems's
 --   directory tree. Useful for checking the legality of a filename.
-isInsideRepo :: FilePath -> FilePath -> IO Bool
-isInsideRepo repo name = do
-  gitRepoPathCanon <- canonicalizePath repo
+isInsideDir :: FilePath -> FilePath -> IO Bool
+isInsideDir name dir = do
+  gitDirPathCanon <- canonicalizePath dir
   filenameCanon <- canonicalizePath name
-  return (gitRepoPathCanon `isPrefixOf` filenameCanon)
+  return (gitDirPathCanon `isPrefixOf` filenameCanon)
 
 -- | A parser function. This is intended for use on strings which are output by grep programs
 --   or programs which mimic the standard grep output - which uses colons as delimiters and has
@@ -173,13 +173,20 @@ ensureFileExists repo name = do
   isFile <- doesFileExist (repo </> encodeString name)
   unless isFile $ throwIO NotFound
 
--- | Write out a file with given contents. We do sanity checking first, and make sure that the
---   filename/location is within the given repo.
-checkAndWriteFile :: (Data.FileStore.Types.Contents a) =>FilePath -> String -> a -> IO ()
-checkAndWriteFile repo name contents = do
+-- | Write out a file with given contents. We do sanity checking first, making sure that the
+--   filename/location is within the given repo, and not inside any of the (relative) paths
+--   in @excludes@.
+checkAndWriteFile :: (Data.FileStore.Types.Contents a)
+                  => FilePath
+                  -> [FilePath]
+                  -> String
+                  -> a
+                  -> IO ()
+checkAndWriteFile repo excludes name contents = do
   let filename = repo </> encodeString name
-  inside <- isInsideRepo repo filename
-  unless inside $ throwIO IllegalResourceName
+  insideRepo <- filename `isInsideDir` repo
+  insideExcludes <- liftM or $ mapM (filename `isInsideDir`) $ map (repo </>) excludes
+  when (insideExcludes || not insideRepo) $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
   B.writeFile filename $ toByteString contents
 

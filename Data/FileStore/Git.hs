@@ -20,7 +20,7 @@ import Data.FileStore.Types
 import Data.Maybe (mapMaybe)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideRepo, runShellCommand, escapeRegexSpecialChars, withVerifyDir) 
+import Data.FileStore.Utils (checkAndWriteFile, hashsMatch, isInsideDir, runShellCommand, escapeRegexSpecialChars, withVerifyDir) 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -94,7 +94,7 @@ gitCommit repo names author logMsg = do
 -- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 gitSave repo name author logMsg contents = do
-  checkAndWriteFile repo name contents
+  checkAndWriteFile repo [".git"] name contents
   (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
   if statusAdd == ExitSuccess
      then gitCommit repo [name] author logMsg
@@ -131,7 +131,7 @@ gitMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 gitMove repo oldName newName author logMsg = do
   gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
   let newPath = repo </> encodeString newName
-  inside <- isInsideRepo repo newPath
+  inside <- newPath `isInsideDir` repo
   unless inside $ throwIO IllegalResourceName
   -- create destination directory if missing
   createDirectoryIfMissing True $ takeDirectory newPath

@@ -36,6 +36,7 @@ Invoke it with:
 >     , ("create resource in subdirectory", createTest2)
 >     , ("create resource with non-ascii name", createTest3)
 >     , ("try to create resource outside repo", createTest4)
+>     , ("try to create resource in special directory", createTest5 fsName)
 >     , ("directory", directoryTest)
 >     , ("retrieve resource", retrieveTest1)
 >     , ("retrieve resource in a subdirectory", retrieveTest2)
@@ -113,6 +114,19 @@ Invoke it with:
 >          \e -> assertEqual "error from create ../oops" IllegalResourceName e 
 >   exists <- doesFileExist "tmp/oops"
 >   assertBool "file ../oops was created outside repository" (not exists)
+
+*** Try to create a resource in special directory (should fail with an error and NOT write the file):
+
+> createTest5 fsName fs = TestCase $ do
+>   let (realpath, special) = case fsName of
+>                             "Data.FileStore.Git"   -> ("tmp" </> "gitfs" </> ".git" </> "newfile", ".git/newfile")
+>                             "Data.FileStore.Darcs" -> ("tmp" </> "darcsfs" </> "_darcs" </> "newfile", "_darcs/newfile")
+>                             _                      -> error "Unknown filestore type!  Add a test case."
+>   catch (create fs special testAuthor "description of change" testContents >>
+>          (assertFailure  $ "did not return error from create " ++ special)) $
+>          \e -> assertEqual ("error from create " ++ special) IllegalResourceName e 
+>   exists <- doesFileExist realpath
+>   assertBool ("file " ++ realpath ++ " was created outside repository") (not exists)
 
 *** Test directory
 

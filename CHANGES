@@ -1,3 +1,16 @@
+Version 0.3.2.2 released 06 Nov 2009
+
+* Raise an IllegalResourceName error if the user tries to create
+  a file inside the .git or _darcs subdirectory.  Previously the
+  file would be written (or overwritten) before the error was caught
+  in the add/commit phase.  This introduced the risk of corrupting
+  the repository or, worse, overwriting hooks.
+
+* Renamed isInsideRepo to isInsideDir and rearranged arguments for
+  better currying.
+
+* Added an argument for 'excludes' to checkAndWriteFile.
+
 Version 0.3.2.1 released 24 Oct 2009
 
 * Convert pathname to UTF8 in withVerifyDir.
