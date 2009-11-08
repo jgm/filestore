@@ -235,7 +235,7 @@ Invoke it with:
 >                             _                      -> error "Unknown filestore type!  Add a test case."
 >   catch (delete fs special testAuthor "description of change" >>
 >          (assertFailure  $ "did not return error from delete " ++ special)) $
->          \e -> assertEqual ("error from create " ++ special) IllegalResourceName e 
+>          \e -> assertEqual ("error from delete " ++ special) IllegalResourceName e 
 
 *** Rename a resource:
 
