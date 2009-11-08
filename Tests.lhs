@@ -263,6 +263,15 @@ Invoke it with:
 >       assertFailure "rename of nonexistent file did not throw error") $
 >       \e -> assertEqual "error status from rename of nonexistent file" NotFound e
 
+    Try to rename a file to a location we shouldn't be able to write in.
+
+>   let badName = "../eek"
+>   let cmd = "rename " ++ newName ++ " " ++ badName
+>   catch (rename fs newName badName testAuthor "description of change" >>
+>          (assertFailure  $ "did not return error from " ++ cmd)) $
+>          \e -> assertEqual ("error from " ++ cmd) IllegalResourceName e 
+
+
 *** Test history and revision
 
 > historyTest fs = TestCase $ do
