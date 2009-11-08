@@ -234,7 +234,7 @@ Invoke it with:
 >                             "Data.FileStore.Darcs" -> ("tmp" </> "darcsfs" </> "_darcs" </> "newfile", "_darcs/newfile")
 >                             _                      -> error "Unknown filestore type!  Add a test case."
 >   catch (delete fs special testAuthor "description of change" >>
->          (assertFailure  $ "did not return error from create " ++ special)) $
+>          (assertFailure  $ "did not return error from delete " ++ special)) $
 >          \e -> assertEqual ("error from create " ++ special) IllegalResourceName e 
 
 *** Rename a resource:
