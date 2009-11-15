@@ -195,9 +195,10 @@ gitSearch repo query = do
              ["--word-regexp" | queryWholeWords query]
   (status, errOutput, output) <- runGitCommand repo "grep" (opts ++
                                    concatMap (\term -> ["-e", escapeRegexSpecialChars term]) (queryPatterns query))
-  if status == ExitSuccess
-     then return $ map parseMatchLine $ lines $ toString output
-     else throwIO $ UnknownError $ "git grep returned error status.\n" ++ errOutput
+  case status of
+     ExitSuccess   -> return $ map parseMatchLine $ lines $ toString output
+     ExitFailure 1 -> return []  -- status of 1 means no matches in recent versions of git
+     ExitFailure _ -> throwIO $ UnknownError $ "git grep returned error status.\n" ++ errOutput
 
 -- Auxiliary function for searchResults
 parseMatchLine :: String -> SearchMatch
