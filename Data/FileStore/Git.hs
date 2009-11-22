@@ -26,7 +26,7 @@ import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
 import Codec.Binary.UTF8.String (decodeString, encodeString)
 import Data.Char (chr)
-import Control.Monad (liftM, when)
+import Control.Monad (when)
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
@@ -150,7 +150,7 @@ gitLatestRevId repo name = do
 -- | Get revision information for a particular revision ID, or latest revision.
 gitGetRevision :: FilePath -> RevisionId -> IO Revision
 gitGetRevision repo revid = do
-  (status, _, output) <- runGitCommand repo "whatchanged" ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n", "--max-count=1", revid]
+  (status, _, output) <- runGitCommand repo "whatchanged" ["--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
   if status == ExitSuccess
      then case P.parse parseGitLog "" (toString output) of
                  Left err'   -> throwIO $ UnknownError $ "error parsing git log: " ++ show err'
@@ -222,12 +222,15 @@ gitDiff repo name from to = do
           else throwIO $ UnknownError $ "git diff returned error:\n" ++ err'
 -}
 
+gitLogFormat :: String
+gitLogFormat = "%H%n%ct%n%an%n%ae%n%s%n%x00"
+
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
 gitLog :: FilePath -> [FilePath] -> TimeRange -> IO [Revision]
 gitLog repo names (TimeRange mbSince mbUntil) = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
-                           ["--pretty=format:%h%n%ct%n%an%n%ae%n%s%n"] ++
+                           ["--pretty=format:" ++ gitLogFormat] ++
                            (case mbSince of
                                  Just since   -> ["--since='" ++ show since ++ "'"]
                                  Nothing      -> []) ++
@@ -260,7 +263,7 @@ gitLogEntry = do
   date <- nonblankLine
   author <- wholeLine
   email <- wholeLine
-  subject <- liftM unlines (P.manyTill wholeLine (P.eof P.<|> (P.lookAhead (P.char ':') >> return ())))
+  subject <- P.manyTill P.anyChar (P.satisfy (=='\x00'))
   P.spaces
   changes <- P.many gitLogChange
   P.spaces
