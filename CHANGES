@@ -1,3 +1,15 @@
+Version 0.3.3.1 released 22 Nov 2009
+
+* Raise an IllegalResourceName error if the user tries to
+  delete a file inside .git or _darcs subdirectory.
+
+* Have gitSearch return no matches, instead of raising an error,
+  if error status = 1.  Recent versions of git-grep return 1 if
+  no matches found.
+
+* Fix git log parsing so that it allows log comments to start with ':'
+  Thanks to thorben for uncovering the bug.
+
 Version 0.3.3 released 06 Nov 2009
 
 * isInsideDir is again exported.
