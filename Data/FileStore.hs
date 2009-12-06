@@ -19,6 +19,7 @@ module Data.FileStore
            , module Data.FileStore.Generic
            , module Data.FileStore.Git
            , module Data.FileStore.Darcs
+           , module Data.FileStore.Mercurial
            )
 where
 
@@ -26,3 +27,4 @@ import Data.FileStore.Types
 import Data.FileStore.Generic
 import Data.FileStore.Git
 import Data.FileStore.Darcs
+import Data.FileStore.Mercurial

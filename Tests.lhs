@@ -21,6 +21,7 @@ Invoke it with:
 > main = do
 >   testFileStore (gitFileStore "tmp/gitfs") "Data.FileStore.Git"
 >   testFileStore (darcsFileStore "tmp/darcsfs") "Data.FileStore.Darcs"
+>   testFileStore (mercurialFileStore "tmp/mercurialfs") "Data.FileStore.Mercurial"
 >   removeDirectoryRecursive "tmp"
 
 
@@ -119,9 +120,10 @@ Invoke it with:
 
 > createTest5 fsName fs = TestCase $ do
 >   let (realpath, special) = case fsName of
->                             "Data.FileStore.Git"   -> ("tmp" </> "gitfs" </> ".git" </> "newfile", ".git/newfile")
->                             "Data.FileStore.Darcs" -> ("tmp" </> "darcsfs" </> "_darcs" </> "newfile", "_darcs/newfile")
->                             _                      -> error "Unknown filestore type!  Add a test case."
+>                             "Data.FileStore.Git"       -> ("tmp" </> "gitfs" </> ".git" </> "newfile", ".git/newfile")
+>                             "Data.FileStore.Darcs"     -> ("tmp" </> "darcsfs" </> "_darcs" </> "newfile", "_darcs/newfile")
+>                             "Data.FileStore.Mercurial" -> ("tmp" </> "mercurialfs" </> ".hg" </> "newfile", ".hg/newfile")
+>                             _                          -> error "Unknown filestore type!  Add a test case."
 >   catch (create fs special testAuthor "description of change" testContents >>
 >          (assertFailure  $ "did not return error from create " ++ special)) $
 >          \e -> assertEqual ("error from create " ++ special) IllegalResourceName e 
@@ -230,9 +232,10 @@ Invoke it with:
     Try to delete a file somewhere we shouldn't be able to delete
 
 >   let (realpath, special) = case fsName of
->                             "Data.FileStore.Git"   -> ("tmp" </> "gitfs" </> ".git" </> "newfile", ".git/newfile")
->                             "Data.FileStore.Darcs" -> ("tmp" </> "darcsfs" </> "_darcs" </> "newfile", "_darcs/newfile")
->                             _                      -> error "Unknown filestore type!  Add a test case."
+>                             "Data.FileStore.Git"       -> ("tmp" </> "gitfs" </> ".git" </> "newfile", ".git/newfile")
+>                             "Data.FileStore.Darcs"     -> ("tmp" </> "darcsfs" </> "_darcs" </> "newfile", "_darcs/newfile")
+>                             "Data.FileStore.Mercurial" -> ("tmp" </> "mercurialfs" </> ".hg" </> "newfile", ".hg/newfile")
+>                             _                          -> error "Unknown filestore type!  Add a test case."
 >   catch (delete fs special testAuthor "description of change" >>
 >          (assertFailure  $ "did not return error from delete " ++ special)) $
 >          \e -> assertEqual ("error from delete " ++ special) IllegalResourceName e 
