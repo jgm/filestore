@@ -36,6 +36,7 @@ Invoke it with:
 >     , ("create resource", createTest1)
 >     , ("create resource in subdirectory", createTest2)
 >     , ("create resource with non-ascii name", createTest3)
+>     , ("create resource with non-ascii subdirectory", createTest3a)
 >     , ("try to create resource outside repo", createTest4)
 >     , ("try to create resource in special directory", createTest5 fsName)
 >     , ("directory", directoryTest)
@@ -66,6 +67,9 @@ Invoke it with:
 
 > nonasciiTestTitle :: String
 > nonasciiTestTitle = "αβγ"
+
+> subdirNonasciiTestTitle :: String
+> subdirNonasciiTestTitle = "Fooé/bar"
 
 *** index and directory for noexisting repository should raise error:
 
@@ -109,6 +113,13 @@ Invoke it with:
 >   allfiles <- index fs
 >   assertBool "index contains file with nonascii name" (nonasciiTestTitle `elem` allfiles)
 
+> createTest3a fs = TestCase $ do
+>   create fs subdirNonasciiTestTitle testAuthor "description of change" testContents
+>   revid <- latest fs subdirNonasciiTestTitle
+>   assertBool "revision returns a revision after create" (not (null revid))
+>   allfiles <- index fs
+>   assertBool "index contains file with nonascii subdir" (subdirNonasciiTestTitle `elem` allfiles)
+
 *** Try to create a resource outside the repository (should fail with an error and NOT write the file):
 
 > createTest4 fs = TestCase $ do
@@ -139,7 +150,7 @@ Invoke it with:
     Get directory for top-level
 
 >   files <- directory fs ""
->   assertEqual "result of directory on top-level" (sort [FSDirectory "subdir", FSFile testTitle, FSFile nonasciiTestTitle]) (sort files)
+>   assertEqual "result of directory on top-level" (sort [FSDirectory (takeDirectory subdirTestTitle), FSFile testTitle, FSFile nonasciiTestTitle, FSDirectory (takeDirectory subdirNonasciiTestTitle)]) (sort files)
 
     Get contents of subdirectory
 
