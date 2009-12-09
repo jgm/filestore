@@ -138,8 +138,11 @@ gitMove repo oldName newName author logMsg = do
 -- | Return revision ID for latest commit for a resource.
 gitLatestRevId :: FilePath -> FilePath -> IO RevisionId
 gitLatestRevId repo name = do
-  (status, _, output) <- runGitCommand repo "rev-list" ["--max-count=1", "HEAD", "--", name]
-  if status == ExitSuccess
+  (revListStatus, _, output) <- runGitCommand repo "rev-list" ["--max-count=1", "HEAD", "--", name]
+  -- we need to check separately to make sure the resource hasn't been removed
+  -- from the repository:
+  (catStatus,_, _) <- runGitCommand repo "cat-file" ["-e", "HEAD:" ++ name]
+  if revListStatus == ExitSuccess && catStatus == ExitSuccess
      then do
        let result = takeWhile (`notElem` "\n\r \t") $ toString output
        if null result
