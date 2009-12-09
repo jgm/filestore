@@ -108,9 +108,9 @@ mercurialRetrieve repo name revid = do
   let revname = case revid of
                         Nothing  -> "tip"
                         Just rev -> rev
-  (statcheck, _, _) <- runMercurialCommand repo "locate" ["-r", revname, "path:" ++ name, "-X", "glob:" ++ name </> "*"]
+  (statcheck, _, _) <- runMercurialCommand repo "locate" ["-r", revname, "-X", "glob:" ++ name </> "*", "path:" ++ name]
   when (statcheck /= ExitSuccess) $ throwIO NotFound
-  (status, err, output) <- runMercurialCommand repo "cat" ["-r", revname, "path:" ++ name, "-X", "glob:" ++ name </> "*"]
+  (status, err, output) <- runMercurialCommand repo "cat" ["-r", revname, "-X", "glob:" ++ name </> "*", "path:" ++ name]
   if status == ExitSuccess
      then return $ fromByteString output
      else throwIO $ UnknownError $ "Error in mercurial cat:\n" ++ err
