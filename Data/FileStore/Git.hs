@@ -25,8 +25,7 @@ import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, escap
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
-import Codec.Binary.UTF8.String (decodeString, encodeString)
-import Data.Char (chr)
+import Codec.Binary.UTF8.String (encodeString)
 import Control.Monad (when)
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
@@ -154,7 +153,7 @@ gitLatestRevId repo name = do
 -- | Get revision information for a particular revision ID, or latest revision.
 gitGetRevision :: FilePath -> RevisionId -> IO Revision
 gitGetRevision repo revid = do
-  (status, _, output) <- runGitCommand repo "whatchanged" ["--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
+  (status, _, output) <- runGitCommand repo "whatchanged" ["-z","--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
   if status == ExitSuccess
      then case P.parse parseGitLog "" (toString output) of
                  Left err'   -> throwIO $ UnknownError $ "error parsing git log: " ++ show err'
@@ -231,7 +230,7 @@ gitLogFormat = "%H%n%ct%n%an%n%ae%n%s%n%x00"
 gitLog :: FilePath -> [FilePath] -> TimeRange -> IO [Revision]
 gitLog repo names (TimeRange mbSince mbUntil) = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
-                           ["--pretty=format:" ++ gitLogFormat] ++
+                           ["-z","--pretty=format:" ++ gitLogFormat] ++
                            (case mbSince of
                                  Just since   -> ["--since='" ++ show since ++ "'"]
                                  Nothing      -> []) ++
@@ -258,16 +257,18 @@ wholeLine = P.manyTill P.anyChar P.newline
 nonblankLine :: P.GenParser Char st String
 nonblankLine = P.notFollowedBy P.newline >> wholeLine
 
+nullChar :: P.GenParser Char st ()
+nullChar = P.satisfy (=='\0') >> return ()
+
 gitLogEntry :: P.Parser Revision
 gitLogEntry = do
   rev <- nonblankLine
   date <- nonblankLine
   author <- wholeLine
   email <- wholeLine
-  subject <- P.manyTill P.anyChar (P.satisfy (=='\x00'))
+  subject <- P.manyTill P.anyChar nullChar
   P.spaces
-  changes <- P.many gitLogChange
-  P.spaces
+  changes <- P.manyTill gitLogChange (P.eof P.<|> nullChar)
   let stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
   return Revision {
               revId          = rev
@@ -278,36 +279,12 @@ gitLogEntry = do
 
 gitLogChange :: P.Parser Change
 gitLogChange = do
-  P.char ':'
-  line <- nonblankLine
-  let (changeType : fileWords) = drop 4 $ words line
-  let file' = convertEncoded $ unwords fileWords
+  line <- P.manyTill P.anyChar nullChar
+  let changeType = take 1 $ reverse line
+  file' <- P.manyTill P.anyChar nullChar
   case changeType of
          "A"  -> return $ Added file'
          "M"  -> return $ Modified file'
          "D"  -> return $ Deleted file'
          _    -> return $ Modified file'
 
--- | git ls-files returns UTF-8 filenames in quotes, with characters octal-escaped.
--- like this: "\340\244\226.page"
--- This function decodes these.
-convertEncoded :: String -> String
-convertEncoded s =
-  case P.parse pEncodedString s s of
-    Left _    -> s
-    Right res -> res
-
-pEncodedString :: P.GenParser Char st String
-pEncodedString = do
-  P.char '"'
-  res <- P.many1 (pOctalChar P.<|> P.anyChar)
-  if last res == '"'
-     then return $ decodeString $ init res
-     else fail "No ending quotation mark."
-
-pOctalChar :: P.GenParser Char st Char
-pOctalChar = P.try $ do
-  P.char '\\'
-  ds <- P.count 3 (P.oneOf "01234567")
-  let num = read $ "0o" ++ ds
-  return $ chr num
