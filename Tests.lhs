@@ -104,8 +104,10 @@ Invoke it with:
 
 > createTest3 fs = TestCase $ do
 >   create fs nonasciiTestTitle testAuthor "description of change" testContents
->   revid <- latest fs testTitle
+>   revid <- latest fs nonasciiTestTitle
 >   assertBool "revision returns a revision after create" (not (null revid))
+>   allfiles <- index fs
+>   assertBool "index contains file with nonascii name" (nonasciiTestTitle `elem` allfiles)
 
 *** Try to create a resource outside the repository (should fail with an error and NOT write the file):
 
