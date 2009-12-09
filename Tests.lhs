@@ -242,6 +242,15 @@ Invoke it with:
 >   ind <- index fs
 >   assertBool "index does not contain resource that was deleted" (toBeDeleted `notElem` ind)
 
+    Now make sure you can create and delete it again.
+
+>   create fs toBeDeleted testAuthor "description of change" testContents
+>   ind <- index fs
+>   assertBool "index contains re-created resource" (toBeDeleted `elem` ind) 
+>   delete fs toBeDeleted testAuthor "goodbye"
+>   ind <- index fs
+>   assertBool "index does not contain resource that was deleted" (toBeDeleted `notElem` ind)
+
     Try to delete a file somewhere we shouldn't be able to delete
 
 >   let (realpath, special) = case fsName of
