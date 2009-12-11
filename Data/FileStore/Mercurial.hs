@@ -135,13 +135,13 @@ mercurialMove repo oldName newName author logMsg = do
 -- | Return revision ID for latest commit for a resource.
 mercurialLatestRevId :: FilePath -> FilePath -> IO RevisionId
 mercurialLatestRevId repo name = do
-  (status, _, output) <- runMercurialCommand repo "log" ["--template", "{node}\\n", "--limit", "1", "path:" ++ name]
+  (status, _, output) <- runMercurialCommand repo "log" ["--template", "{node}\\n{file_dels}\\n", "--limit", "1", "--removed", "path:" ++ name]
   if status == ExitSuccess
      then do
-       let result = takeWhile (`notElem` "\n\r \t") $ toString output
-       if null result
+       let result = lines $ toString output
+       if null result || name `elem` drop 1 result
           then throwIO NotFound
-          else return result
+          else return $ head result
      else throwIO NotFound
 
 -- | Get revision information for a particular revision ID, or latest revision.
