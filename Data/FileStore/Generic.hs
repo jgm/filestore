@@ -143,7 +143,7 @@ smartRetrieve fs exact name mrev = do
 richDirectory :: FileStore -> FilePath -> IO [(Resource, Either String Revision)]
 richDirectory fs fp = directory fs fp >>= mapM f
   where f r = Control.Exception.catch (g r) (\(e :: FileStoreError)-> return ( r, Left . show $ e ) )
-        g r@(FSDirectory _dir) = return (r,Left "richDirectory, we don't care about revision info for repos")
+        g r@(FSDirectory _dir) = return (r,Left "richDirectory, we don't care about revision info for directories")
         g res@(FSFile file) = do rev <- revision fs =<< latest fs ( fp </> file )
                                  return (res,Right rev)
 
