@@ -30,7 +30,6 @@ import Control.Monad (when)
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
-import Text.Regex.Posix ((=~))
 import Paths_filestore
 
 -- | Return a filestore implemented using the git distributed revision control system
@@ -129,7 +128,7 @@ gitDelete repo name author logMsg = withSanityCheck repo [".git"] name $ do
 -- | Change the name of a resource.
 gitMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 gitMove repo oldName newName author logMsg = do
-  gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
+  _ <- gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
   (statusAdd, err, _) <- withSanityCheck repo [".git"] newName $ runGitCommand repo "mv" [oldName, newName] 
   if statusAdd == ExitSuccess
      then gitCommit repo [oldName, newName] author logMsg
@@ -189,7 +188,7 @@ gitDirectory repo dir = withVerifyDir (repo </> dir) $ do
 -- is interpreted as an ordinary string.
 gitSearch :: FilePath -> SearchQuery -> IO [SearchMatch]
 gitSearch repo query = do
-  let opts = ["-I","-n"] ++
+  let opts = ["-I","-n","--null"] ++
              ["--ignore-case" | queryIgnoreCase query] ++
              ["--all-match" | queryMatchAll query] ++
              ["--word-regexp" | queryWholeWords query]
@@ -203,10 +202,18 @@ gitSearch repo query = do
 -- Auxiliary function for searchResults
 parseMatchLine :: String -> SearchMatch
 parseMatchLine str =
-  let (_,_,_,res) = str =~ "^(([^:]|:[^0-9])*):([0-9]*):(.*)$" :: (String, String, String, [String])
-  in case res of
-       [fname,_,ln,cont] -> SearchMatch{matchResourceName = fname, matchLineNumber = read ln, matchLine = cont}
-       e -> error $ "parseMatchLine: (str,e)" ++ show (str,e) -- give better error for failing tests
+  SearchMatch{ matchResourceName = fname
+             , matchLineNumber = if not (null ln)
+                                    then read ln
+                                    else error $ "parseMatchLine: " ++ str
+             , matchLine = cont}
+    where (fname,xs) = break (== '\NUL') str
+          rest = drop 1 xs 
+          -- for some reason, NUL is used after line number instead of
+          -- : when --match-all is passed to git-grep.
+          (ln,ys) = span (`elem` ['0'..'9']) rest
+          cont = drop 1 ys   -- drop : or NUL after line number
+
 {-
 -- | Uses git-diff to get a dif between two revisions.
 gitDiff :: FilePath -> FilePath -> RevisionId -> RevisionId -> IO String
