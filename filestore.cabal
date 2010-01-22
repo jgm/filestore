@@ -32,7 +32,7 @@ Flag maxcount
 
 Library
     Build-depends:       base >= 4 && < 5, bytestring, utf8-string, filepath, directory, datetime,
-                         parsec >= 2 && < 3, process, time, datetime, regex-posix, xml, split, Diff, old-locale
+                         parsec >= 2 && < 3, process, time, datetime, xml, split, Diff, old-locale
 
     Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs, Data.FileStore.Mercurial,
                          -- Data.FileStore.Sqlite3,

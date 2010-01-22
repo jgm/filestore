@@ -30,7 +30,6 @@ import Control.Monad (liftM, unless, when)
 import System.FilePath ((</>), takeDirectory)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
-import Text.Regex.Posix ((=~))
 import Database.HDBC
 import Paths_filestore
 

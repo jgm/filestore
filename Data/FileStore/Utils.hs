@@ -38,7 +38,6 @@ import System.Exit (ExitCode(..))
 import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
 import System.Process (runProcess, waitForProcess)
-import Text.Regex.Posix ((=~))
 import qualified Data.ByteString.Lazy as B
 
 import Data.FileStore.Types (SearchMatch(..), FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
@@ -146,10 +145,15 @@ parseMatchLine str =
 -- > splitEmailAuthor "foo bar baz@gmail.com" ~> (Nothing,"foo bar baz@gmail.com")
 -- > splitEmailAuthor "foo bar <baz@gmail.com>" ~> (Just "baz@gmail.com","foo bar")
 splitEmailAuthor :: String -> (Maybe String, String)
-splitEmailAuthor x = if '<' `elem` x then (Just (tail $ init c), reverse . dropWhile isSpace $ reverse b)
-                                     else (Nothing,x)
-    -- Will still need to trim the '<>' brackets in the email, and whitespace at the end of name
-    where (_,b,c) = x =~ "[^<]*" :: (String,String,String)
+splitEmailAuthor x = (mbEmail, trim name)
+  where (name, rest) = break (=='<') x
+        mbEmail = if null rest
+                     then Nothing
+                     else Just $ takeWhile (/='>') $ drop 1 rest
+
+-- | Trim leading and trailing spaces
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 -- | Search multiple files with a single regexp.
 --   This calls out to grep, and so supports the regular expressions grep does.
