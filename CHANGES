@@ -1,3 +1,18 @@
+Version 0.3.4.1 released 22 Jan 2010
+
+* Rewrote splitEmailAuthor with list fns not regexes.
+  Also removed regex-posix from cabal build-depends.
+
+* Corrected error message for richDirectory
+
+* Improved git search:
+  + Previously git search would fail in some cases, with an error
+    in parseMatchLine (for example, with unicode search term).
+  + We replaced the regex with a simpler match-line parser using
+    Preface functions.
+  + We also now use --null to force a NUL separator in git grep.
+  + The test case that previously failed now passes.
+
 Version 0.3.4 released 10 Dec 2009
 
 * Added Mercurial module and associated tests.
