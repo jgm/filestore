@@ -37,7 +37,7 @@ import Paths_filestore
 gitFileStore :: FilePath -> FileStore
 gitFileStore repo = FileStore {
     initialize        = gitInit repo
-  , save = gitSave repo 
+  , save              = gitSave repo 
   , retrieve          = gitRetrieve repo
   , delete            = gitDelete repo
   , rename            = gitMove repo
