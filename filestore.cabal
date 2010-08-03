@@ -42,6 +42,8 @@ Library
     if flag(maxcount) 
         cpp-options: -DUSE_MAXCOUNT
         extensions: CPP
-
-    Ghc-Options:         -Wall
+    if impl(ghc >= 6.12)
+      Ghc-Options:       -Wall -fno-warn-unused-do-bind
+    else
+      Ghc-Options:       -Wall
     Ghc-Prof-Options:    -auto-all
