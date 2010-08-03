@@ -1,3 +1,15 @@
+Version 0.3.4.2 released 03 Aug 2010
+
+* gitInit:  Set up repository to allow push to the current
+  branch.  This is needed for recent versions of git,
+  which don't allow a push to the master branch.  Resolves
+  Issue #104.
+
+* New version of runShellCommand that does not require
+  temp files, using runInteractiveProcess.
+
+* Suppress "unused do bind" warnings in build.
+
 Version 0.3.4.1 released 22 Jan 2010
 
 * Rewrote splitEmailAuthor with list fns not regexes.
