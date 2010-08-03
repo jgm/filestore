@@ -75,7 +75,11 @@ gitInit repo = do
        B.writeFile postupdate postupdatecontents
        perms <- getPermissions postupdate
        setPermissions postupdate (perms {executable = True})
-       return ()
+       -- Set up repo to allow push to current branch
+       (status', err', _) <- runGitCommand repo "config" ["receive.denyCurrentBranch","ignore"]
+       if status' == ExitSuccess
+          then return ()
+          else throwIO $ UnknownError $ "git config failed:\n" ++ err'
      else throwIO $ UnknownError $ "git-init failed:\n" ++ err 
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
