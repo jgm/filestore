@@ -35,7 +35,6 @@ import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.DateTime (DateTime)
 import Control.Exception (Exception)
 import Prelude hiding (catch)
-import System.FilePath (FilePath)
 
 type RevisionId   = String
 
