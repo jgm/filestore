@@ -1,3 +1,9 @@
+Version 0.3.4.3 released 26 Sep 2010
+
+* runShellCommand: reverted to older version with temp files.
+  The new version caused lazy-IO related problems with large
+  files. Thanks to Pavel Perikov diagnosing the problem.
+
 Version 0.3.4.2 released 03 Aug 2010
 
 * gitInit:  Set up repository to allow push to the current
