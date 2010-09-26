@@ -37,24 +37,28 @@ import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory,
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
-import System.Process (runInteractiveProcess, waitForProcess)
+import System.Process (runProcess, waitForProcess)
 import qualified Data.ByteString.Lazy as B
 
 import Data.FileStore.Types (SearchMatch(..), FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
 
--- | Run shell command and return error status, standard output, and error
--- output.  Assumes UTF-8 locale. Note that this does not go through \/bin\/sh!
+-- | Run shell command and return error status, standard output, and error output.  Assumes
+-- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
 runShellCommand :: FilePath                     -- ^ Working directory
                 -> Maybe [(String, String)]     -- ^ Environment
                 -> String                       -- ^ Command
                 -> [String]                     -- ^ Arguments
                 -> IO (ExitCode, B.ByteString, B.ByteString)
-runShellCommand wd env cmd args = do
-  (hInp, hOut, hErr, ph) <- runInteractiveProcess (encodeString cmd) (map encodeString args) (Just wd) env
-  hClose hInp
-  output <- B.hGetContents hOut
-  errorOutput <- B.hGetContents hErr
-  status <- waitForProcess ph
+runShellCommand workingDir environment command optionList = do
+  tempPath <- catch getTemporaryDirectory (\_ -> return ".")
+  (outputPath, hOut) <- openTempFile tempPath "out"
+  (errorPath, hErr) <- openTempFile tempPath "err"
+  hProcess <- runProcess (encodeString command) (map encodeString optionList) (Just workingDir) environment Nothing (Just hOut) (Just hErr)
+  status <- waitForProcess hProcess
+  errorOutput <- B.readFile errorPath
+  output <- B.readFile outputPath
+  removeFile errorPath
+  removeFile outputPath
   return (status, errorOutput, output)
 
 -- | Do a three way merge, using either git merge-file or RCS merge.  Assumes
