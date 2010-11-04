@@ -180,7 +180,7 @@ data FileStore = FileStore {
 
     -- | Get history for a list of named resources in a (possibly openended)
     -- time range. If the list is empty, history for all resources will
-    -- be returned.
+    -- be returned. If the TimeRange is 2 Nothings, history for all dates will be returned.
   , history        :: [FilePath]        -- List of resources to get history for
                                         -- or @[]@ for all.
                    -> TimeRange         -- Time range in which to get history.
