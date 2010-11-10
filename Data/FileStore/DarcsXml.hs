@@ -56,7 +56,8 @@ analyze s = map convert s
            | x == "added_lines"
               || x == "modify_file"
               || x == "removed_lines"
-              || x == "replaced_tokens" = Just (Modified b)
+              || x == "replaced_tokens"
+              || x == "move" = Just (Modified b)
            | otherwise = Nothing
              where  x = qName . elName $ a
                     b = takeWhile (/='\n') $ dropWhile isSpace $ strContent a
@@ -69,4 +70,5 @@ filterSummary = filterElementsName (\(QName {qName = x}) -> x == "add_file"
                                 || x == "modify_file"
                                 || x == "added_lines"
                                 || x == "removed_lines"
-                                || x == "replaced_tokens")
+                                || x == "replaced_tokens"
+                                || x == "move")
