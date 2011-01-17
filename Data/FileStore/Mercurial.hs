@@ -30,8 +30,7 @@ import System.FilePath ((</>), splitDirectories, takeFileName)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import Control.Exception (throwIO)
 import System.Locale (defaultTimeLocale)
-import Data.Time (parseTime)
-import Data.Time.Clock (UTCTime)
+import Data.Time (parseTime, formatTime)
 
 -- | Return a filestore implemented using the mercurial distributed revision control system
 -- (<http://mercurial.selenic.com/>).
@@ -217,9 +216,11 @@ mercurialLog repo names (TimeRange mbSince mbUntil) = do
                 Right parsed -> return parsed
      else throwIO $ UnknownError $ "mercurial log returned error status.\n" ++ err
  where revOpts Nothing Nothing   = []
-       revOpts Nothing (Just u)  = ["-d", "<" ++ show u]
-       revOpts (Just s) Nothing  = ["-d", ">" ++ show s]
-       revOpts (Just s) (Just u) = ["-d", show s ++ " to " ++ show u]
+       revOpts Nothing (Just u)  = ["-d", "<" ++ showTime u]
+       revOpts (Just s) Nothing  = ["-d", ">" ++ showTime s]
+       revOpts (Just s) (Just u) = ["-d", showTime s ++ " to " ++ showTime u]
+       showTime = formatTime defaultTimeLocale "%F %X"
+
 
 --
 -- Parsers to parse mercurial log into Revisions.

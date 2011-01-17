@@ -2,7 +2,8 @@ module Data.FileStore.DarcsXml (parseDarcsXML) where
 
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Char (isSpace)
-import Data.DateTime (parseDateTime)
+import Data.Time.Format (parseTime)
+import System.Locale (defaultTimeLocale)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Text.XML.Light
 
@@ -28,7 +29,7 @@ parseIntoRevision a = Revision { revId = hashXML a,
         -- This at least makes it easy for someone to filter out bad dates, as obviously no real DVCSs
         -- were in operation then. :)
         -- date :: Element -> UTCTime
-        date = fromMaybe (posixSecondsToUTCTime $ realToFrac (0::Int)) . parseDateTime "%c" . dateXML
+        date = fromMaybe (posixSecondsToUTCTime $ realToFrac (0::Int)) . parseTime defaultTimeLocale "%c" . dateXML
 
 authorXML, dateXML, descriptionXML, emailXML, hashXML :: Element -> String
 authorXML = snd . splitEmailAuthor . fromMaybe "" . findAttr (QName "author" Nothing Nothing)

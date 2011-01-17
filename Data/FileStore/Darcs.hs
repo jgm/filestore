@@ -16,7 +16,8 @@ module Data.FileStore.Darcs ( darcsFileStore ) where
 
 import Control.Exception (throwIO)
 import Control.Monad (when)
-import Data.DateTime (toSqlString)
+import Data.Time (formatTime)
+import System.Locale (defaultTimeLocale)
 import Data.List (sort, isPrefixOf)
 #ifdef USE_MAXCOUNT
 import Data.List (isInfixOf)
@@ -127,7 +128,7 @@ darcsLog repo names (TimeRange begin end) = do
             Just parsed -> return parsed
         else throwIO $ UnknownError $ "darcs changes returned error status.\n" ++ err
     where
-        timeOpts :: Maybe DateTime -> Maybe DateTime ->[String]
+        timeOpts :: Maybe UTCTime -> Maybe UTCTime ->[String]
         timeOpts b e = case (b,e) of
                 (Nothing,Nothing) -> []
                 (Just b', Just e') -> from b' ++ to e'
@@ -136,6 +137,7 @@ darcsLog repo names (TimeRange begin end) = do
                 where from z = ["--match=date \"after " ++ undate z ++ "\""]
                       to z = ["--to-match=date \"before " ++ undate z ++ "\""]
                       undate = toSqlString
+                      toSqlString = formatTime defaultTimeLocale "%FT%X"
 
 -- | Get revision information for a particular revision ID, or latest revision.
 darcsGetRevision :: FilePath -> RevisionId -> IO Revision

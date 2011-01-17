@@ -25,14 +25,14 @@ module Data.FileStore.Types
            , SearchMatch(..)
            , SearchQuery(..)
            , defaultSearchQuery
-           , DateTime
+           , UTCTime
            , FileStore (..) )
 
 where
 import Data.ByteString.Lazy (ByteString)
 import Data.Typeable
 import Data.ByteString.Lazy.UTF8 (toString, fromString)
-import Data.DateTime (DateTime)
+import Data.Time (UTCTime)
 import Control.Exception (Exception)
 import Prelude hiding (catch)
 
@@ -59,7 +59,7 @@ type Description = String
 data Revision =
   Revision {
     revId          :: RevisionId
-  , revDateTime    :: DateTime
+  , revDateTime    :: UTCTime
   , revAuthor      :: Author
   , revDescription :: Description
   , revChanges     :: [Change]
@@ -79,8 +79,8 @@ instance Contents String where
 
 data TimeRange =
   TimeRange {
-    timeFrom :: Maybe DateTime  -- ^ @Nothing@ means no lower bound
-  , timeTo   :: Maybe DateTime  -- ^ @Nothing@ means no upper bound
+    timeFrom :: Maybe UTCTime  -- ^ @Nothing@ means no lower bound
+  , timeTo   :: Maybe UTCTime  -- ^ @Nothing@ means no upper bound
   } deriving (Show, Read, Eq, Typeable)
 
 data MergeInfo =

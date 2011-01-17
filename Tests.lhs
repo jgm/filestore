@@ -12,7 +12,7 @@ Invoke it with:
 > import Control.Monad (forM)
 > import Prelude hiding (catch)
 > import Control.Exception (catch)
-> import Data.DateTime
+> import Data.Time
 > import Data.Maybe (mapMaybe)
 > import System.FilePath
 > import System.Process
@@ -313,7 +313,7 @@ Invoke it with:
 >   assertBool "revDescription non-null" (not (null (revDescription rev)))
 >   assertEqual "revChanges" [Modified testTitle] (revChanges rev)
 >   let revtime = revDateTime rev
->   histNow <- history fs [testTitle] (TimeRange (Just $ addMinutes (60 * 24) now) Nothing)
+>   histNow <- history fs [testTitle] (TimeRange (Just $ addUTCTime (60 * 60 * 24) now) Nothing)
 >   assertBool "history from now + 1 day onwards is empty" (null histNow)
 
 *** Test diff
