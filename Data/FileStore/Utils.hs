@@ -32,7 +32,7 @@ import Data.Char (isSpace)
 import Data.List (intersect, nub, isPrefixOf, isInfixOf)
 import Data.List.Split (splitWhen)
 import Data.Maybe (isJust)
-import System.Directory (canonicalizePath, doesFileExist, getTemporaryDirectory, removeFile, findExecutable, createDirectoryIfMissing, getDirectoryContents)
+import System.Directory (doesFileExist, getTemporaryDirectory, removeFile, findExecutable, createDirectoryIfMissing, getDirectoryContents)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
@@ -119,11 +119,12 @@ hashsMatch r1 r2 = r1 `isPrefixOf` r2 || r2 `isPrefixOf` r1
 -- | Inquire of a certain directory whether another file lies within its ambit.
 --   This is basically asking whether the file is 'above' the directory in the filesystems's
 --   directory tree. Useful for checking the legality of a filename.
-isInsideDir :: FilePath -> FilePath -> IO Bool
-isInsideDir name dir = do
-  gitDirPathCanon <- canonicalizePath dir
-  filenameCanon <- canonicalizePath name
-  return (gitDirPathCanon `isPrefixOf` filenameCanon)
+--   Note: due to changes in canonicalizePath in ghc 7, we no longer have
+--   a reliable way to do this; so isInsideDir is False whenever either
+--   the file or the directory contains "..".
+isInsideDir :: FilePath -> FilePath -> Bool
+isInsideDir name dir = dir `isPrefixOf` name
+  && not (".." `isInfixOf` dir) && not (".." `isInfixOf` name)
 
 -- | A parser function. This is intended for use on strings which are output by grep programs
 --   or programs which mimic the standard grep output - which uses colons as delimiters and has
@@ -185,9 +186,11 @@ withSanityCheck :: FilePath
                 -> IO b
 withSanityCheck repo excludes name action = do
   let filename = repo </> encodeString name
-  insideRepo <- filename `isInsideDir` repo
-  insideExcludes <- liftM or $ mapM (filename `isInsideDir`) $ map (repo </>) excludes
-  when (insideExcludes || not insideRepo) $ throwIO IllegalResourceName
+  let insideRepo = filename `isInsideDir` repo
+  let insideExcludes = or $ map (filename `isInsideDir`)
+                          $ map (repo </>) excludes
+  when (insideExcludes || not insideRepo)
+    $ throwIO IllegalResourceName
   createDirectoryIfMissing True $ takeDirectory filename
   action
 
