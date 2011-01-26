@@ -14,7 +14,6 @@ module Data.FileStore.Utils (
           runShellCommand
         , mergeContents
         , hashsMatch
-        , isInsideDir
         , escapeRegexSpecialChars
         , parseMatchLine
         , splitEmailAuthor
