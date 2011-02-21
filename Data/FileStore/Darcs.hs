@@ -32,7 +32,7 @@ import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, ensur
 import Codec.Binary.UTF8.String (encodeString)
 
 import Data.ByteString.Lazy.UTF8 (toString)
-import qualified Data.ByteString.Lazy as B (ByteString, writeFile)
+import qualified Data.ByteString.Lazy as B (ByteString, writeFile, null)
 
 -- | Return a filestore implemented using the Darcs distributed revision control system
 -- (<http://darcs.net/>).
@@ -170,21 +170,29 @@ darcsRetrieve :: Contents a
             -> Maybe RevisionId    -- ^ @Just@ revision ID, or @Nothing@ for latest
             -> IO a
 darcsRetrieve repo name mbId = do
-  ensureFileExists repo name
   let opts = case mbId of
               Nothing    -> ["contents", name]
               Just revid -> ["contents", "--match=hash " ++ revid, name]
   (status, err, output) <- runDarcsCommand repo "query" opts
+  if B.null output
+     then do
+       (_, _, out) <- runDarcsCommand repo "query" (["files", "--no-directories"] ++ opts)
+       if B.null out || null (filter (== name) . getNames $ output)
+         then throwIO NotFound else return ()
+         else return ()
   if status == ExitSuccess
      then return $ fromByteString output
      else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
+          
+getNames :: B.ByteString -> [String]
+getNames = map (drop 2) . lines . toString
 
 -- | Get a list of all known files inside and managed by a repository.
 darcsIndex :: FilePath ->IO [FilePath]
 darcsIndex repo = withVerifyDir repo $ do
   (status, _errOutput, output) <- runDarcsCommand repo "query"  ["files","--no-directories"]
   if status == ExitSuccess
-     then return $ map (drop 2) . lines . toString $ output
+     then return . getNames $ output
      else return []   -- return empty list if invalid path (see gitIndex)
 
 -- | Get a list of all resources inside a directory in the repository.
