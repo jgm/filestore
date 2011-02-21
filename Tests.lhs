@@ -46,6 +46,7 @@ Invoke it with:
 >     , ("retrieve subdirectory (should raise error)", retrieveTest4)
 >     , ("modify resource", modifyTest)
 >     , ("delete resource", deleteTest fsName)
+>     , ("retrieve deleted file", retrieveTest5)
 >     , ("rename resource", renameTest)
 >     , ("test for matching IDs", matchTest)
 >     , ("history and revision", historyTest)
@@ -261,6 +262,15 @@ Invoke it with:
 >   catch (delete fs special testAuthor "description of change" >>
 >          (assertFailure  $ "did not return error from delete " ++ special)) $
 >          \e -> assertEqual ("error from delete " ++ special) IllegalResourceName e 
+
+*** Retrieve earlier version of deleted file:
+
+> retrieveTest5 fs = TestCase $ do
+>   hist <- history fs ["Aaack!"] (TimeRange Nothing Nothing)
+>   assertBool "history is nonempty" (not (null hist))
+>   let deletedId = revId $ last hist
+>   contents <- retrieve fs "Aaack!" (Just deletedId) :: IO String
+>   assertEqual "contents returned by retrieve" testContents contents
 
 *** Rename a resource:
 
