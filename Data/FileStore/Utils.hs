@@ -38,6 +38,7 @@ import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
 import System.Process (runProcess, waitForProcess)
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString as S
 
 import Data.FileStore.Types (SearchMatch(..), FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
 
@@ -54,11 +55,11 @@ runShellCommand workingDir environment command optionList = do
   (errorPath, hErr) <- openTempFile tempPath "err"
   hProcess <- runProcess (encodeString command) (map encodeString optionList) (Just workingDir) environment Nothing (Just hOut) (Just hErr)
   status <- waitForProcess hProcess
-  errorOutput <- B.readFile errorPath
-  output <- B.readFile outputPath
+  errorOutput <- S.readFile errorPath
+  output <- S.readFile outputPath
   removeFile errorPath
   removeFile outputPath
-  return (status, errorOutput, output)
+  return (status, B.fromChunks [errorOutput], B.fromChunks [output])
 
 -- | Do a three way merge, using either git merge-file or RCS merge.  Assumes
 -- that either @git@ or @merge@ is in the system path.  Assumes UTF-8 locale.
