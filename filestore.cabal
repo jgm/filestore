@@ -33,6 +33,7 @@ Flag maxcount
 Library
     Build-depends:       base >= 4 && < 5,
                          bytestring >= 0.9 && < 1.0,
+                         containers >= 0.3 && < 0.5,
                          utf8-string >= 0.3 && < 0.4,
                          filepath >= 1.1 && < 1.3,
                          directory >= 1.0 && < 1.2,
@@ -47,7 +48,9 @@ Library
     Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs, Data.FileStore.Mercurial,
                          -- Data.FileStore.Sqlite3,
                          Data.FileStore.Utils, Data.FileStore.Generic
-    Other-modules:       Paths_filestore, Data.FileStore.DarcsXml
+    Other-modules:       Paths_filestore,
+                         Data.FileStore.DarcsXml,
+                         Data.FileStore.MercurialCommandServer
 
     if flag(maxcount) 
         cpp-options: -DUSE_MAXCOUNT

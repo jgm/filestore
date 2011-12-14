@@ -19,7 +19,8 @@ where
 import Data.FileStore.Types
 import Data.Maybe (fromJust)
 import System.Exit
-import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, withVerifyDir, grepSearchRepo) 
+import Data.FileStore.Utils (withSanityCheck, hashsMatch, withVerifyDir, grepSearchRepo)
+import Data.FileStore.MercurialCommandServer
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
@@ -50,20 +51,13 @@ mercurialFileStore repo = FileStore {
   , idsMatch          = const hashsMatch repo
   }
 
--- | Run a mercurial command and return error status, error output, standard output.  The repository
--- is used as working directory.
-runMercurialCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
-runMercurialCommand repo command args = do
-  (status, err, out) <- runShellCommand repo Nothing "hg" (command : args)
-  return (status, toString err, out)
-
 -- | Initialize a repository, creating the directory if needed.
 mercurialInit :: FilePath -> IO ()
 mercurialInit repo = do
   exists <- doesDirectoryExist repo
   when exists $ withVerifyDir repo $ throwIO RepositoryExists
   createDirectoryIfMissing True repo
-  (status, err, _) <- runMercurialCommand repo "init" []
+  (status, err, _) <- rawRunMercurialCommand repo "init" []
   if status == ExitSuccess
      then
        -- Add a hook so that changes made remotely via hg will be reflected in
