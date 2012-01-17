@@ -51,6 +51,7 @@ Library
     Other-modules:       Paths_filestore,
                          Data.FileStore.DarcsXml,
                          Data.FileStore.MercurialCommandServer
+    extensions:          FlexibleInstances
 
     if flag(maxcount) 
         cpp-options: -DUSE_MAXCOUNT
