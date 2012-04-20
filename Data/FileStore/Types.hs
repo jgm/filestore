@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types, TypeSynonymInstances, DeriveDataTypeable #-}
+{-# LANGUAGE Rank2Types, TypeSynonymInstances, DeriveDataTypeable, FlexibleInstances #-}
 {- |
    Module      : Data.FileStore.Types
    Copyright   : Copyright (C) 2009 John MacFarlane
