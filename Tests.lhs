@@ -1,9 +1,6 @@
 #!/usr/bin/env runghc
 
 This program runs tests for the filestore modules.
-Invoke it with:
-
-    runghc -idist/build/autogen Tests.lhs
 
 > import Data.FileStore
 > import Data.List (sort, isInfixOf)

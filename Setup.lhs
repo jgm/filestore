@@ -7,5 +7,5 @@
 
 Run test suite.
 
-> runTestSuite _ _ _ _ = runCommand "runghc -idist/build/autogen Tests.lhs" >>= waitForProcess >>= exitWith
+> runTestSuite _ _ _ _ = runCommand "test-filestore" >>= waitForProcess >>= exitWith
 
