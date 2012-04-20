@@ -7,5 +7,5 @@
 
 Run test suite.
 
-> runTestSuite _ _ _ _ = runCommand "test-filestore" >>= waitForProcess >>= exitWith
+> runTestSuite _ _ _ _ = runCommand "./dist/build/test-filestore/test-filestore" >>= waitForProcess >>= exitWith
 
