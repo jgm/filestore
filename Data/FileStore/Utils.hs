@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {- |
    Module      : Data.FileStore.Utils
    Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Branwen
@@ -25,7 +26,6 @@ module Data.FileStore.Utils (
         , withVerifyDir
         , encodeArg ) where
 
-import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
 import Control.Monad (liftM, when, unless)
 import Data.ByteString.Lazy.UTF8 (toString)
@@ -40,12 +40,20 @@ import System.IO (openTempFile, hClose)
 import System.Process (runProcess, waitForProcess)
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString as S
+#if MIN_VERSION_base(4,5,0)
+#else
+import Codec.Binary.UTF8.String (encodeString)
+#endif
 
 import Data.FileStore.Types (SearchMatch(..), FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
 
 -- | Encode argument for raw command.
 encodeArg :: String -> String
+#if MIN_VERSION_base(4,5,0)
+encodeArg = id
+#else
 encodeArg = encodeString
+#endif
 
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
