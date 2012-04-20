@@ -22,7 +22,8 @@ module Data.FileStore.Utils (
         , regsSearchFile
         , withSanityCheck
         , grepSearchRepo 
-        , withVerifyDir ) where
+        , withVerifyDir
+        , encodeArg ) where
 
 import Codec.Binary.UTF8.String (encodeString)
 import Control.Exception (throwIO)
@@ -42,6 +43,10 @@ import qualified Data.ByteString as S
 
 import Data.FileStore.Types (SearchMatch(..), FileStoreError(IllegalResourceName, NotFound, UnknownError), SearchQuery(..))
 
+-- | Encode argument for raw command.
+encodeArg :: String -> String
+encodeArg = encodeString
+
 -- | Run shell command and return error status, standard output, and error output.  Assumes
 -- UTF-8 locale. Note that this does not actually go through \/bin\/sh!
 runShellCommand :: FilePath                     -- ^ Working directory
@@ -53,7 +58,7 @@ runShellCommand workingDir environment command optionList = do
   tempPath <- catch getTemporaryDirectory (\_ -> return ".")
   (outputPath, hOut) <- openTempFile tempPath "out"
   (errorPath, hErr) <- openTempFile tempPath "err"
-  hProcess <- runProcess (encodeString command) (map encodeString optionList) (Just workingDir) environment Nothing (Just hOut) (Just hErr)
+  hProcess <- runProcess (encodeArg command) (map encodeArg optionList) (Just workingDir) environment Nothing (Just hOut) (Just hErr)
   status <- waitForProcess hProcess
   errorOutput <- S.readFile errorPath
   output <- S.readFile outputPath
@@ -174,7 +179,7 @@ regsSearchFile os repo patterns file = do res <- mapM (run file) patterns
 -- | If name doesn't exist in repo or is not a file, throw 'NotFound' exception.
 ensureFileExists :: FilePath -> FilePath -> IO ()
 ensureFileExists repo name = do
-  isFile <- doesFileExist (repo </> encodeString name)
+  isFile <- doesFileExist (repo </> encodeArg name)
   unless isFile $ throwIO NotFound
 
 -- | Check that the filename/location is within the given repo, and not inside
@@ -186,7 +191,7 @@ withSanityCheck :: FilePath
                 -> IO b 
                 -> IO b
 withSanityCheck repo excludes name action = do
-  let filename = repo </> encodeString name
+  let filename = repo </> encodeArg name
   let insideRepo = filename `isInsideDir` repo
   let insideExcludes = or $ map (filename `isInsideDir`)
                           $ map (repo </>) excludes
@@ -222,7 +227,7 @@ grepSearchRepo indexer repo query = do
 -- | we don't actually need the contents, just want to check that the directory exists and we have enough permissions
 withVerifyDir :: FilePath -> IO a -> IO a
 withVerifyDir d a =
-  catch (liftM head (getDirectoryContents $ encodeString d) >> a) $ \e ->
+  catch (liftM head (getDirectoryContents $ encodeArg d) >> a) $ \e ->
     if "No such file or directory" `isInfixOf` show e
        then throwIO NotFound
        else throwIO . UnknownError . show $ e

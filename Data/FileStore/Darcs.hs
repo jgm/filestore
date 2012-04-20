@@ -28,8 +28,7 @@ import System.FilePath ((</>), dropFileName, addTrailingPathSeparator)
 
 import Data.FileStore.DarcsXml (parseDarcsXML)
 import Data.FileStore.Types
-import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, ensureFileExists, grepSearchRepo, withVerifyDir)
-import Codec.Binary.UTF8.String (encodeString)
+import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, ensureFileExists, grepSearchRepo, withVerifyDir, encodeArg)
 
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B (ByteString, writeFile, null)
@@ -77,7 +76,7 @@ darcsInit repo = do
 -- | Save changes (creating the file and directory if needed), add, and commit.
 darcsSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 darcsSave repo name author logMsg contents = do
-  withSanityCheck repo ["_darcs"] name $ B.writeFile (repo </> encodeString name) $ toByteString contents
+  withSanityCheck repo ["_darcs"] name $ B.writeFile (repo </> encodeArg name) $ toByteString contents
   -- Just in case it hasn't been added yet; we ignore failures since darcs will
   -- fail if the file doesn't exist *and* if the file exists but has been added already.
   runDarcsCommand repo "add" [name]

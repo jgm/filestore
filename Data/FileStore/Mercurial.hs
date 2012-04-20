@@ -19,12 +19,11 @@ where
 import Data.FileStore.Types
 import Data.Maybe (fromJust)
 import System.Exit
-import Data.FileStore.Utils (withSanityCheck, hashsMatch, withVerifyDir, grepSearchRepo)
+import Data.FileStore.Utils (withSanityCheck, hashsMatch, withVerifyDir, grepSearchRepo, encodeArg)
 import Data.FileStore.MercurialCommandServer
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
-import Codec.Binary.UTF8.String (encodeString)
 import Data.List (nub)
 import Control.Monad (when, liftM, unless)
 import System.FilePath ((</>), splitDirectories, takeFileName)
@@ -84,7 +83,7 @@ mercurialCommit repo names author logMsg = do
 -- | Save changes (creating file and directory if needed), add, and commit.
 mercurialSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 mercurialSave repo name author logMsg contents = do
-  withSanityCheck repo [".hg"] name $ B.writeFile (repo </> encodeString name) $ toByteString contents
+  withSanityCheck repo [".hg"] name $ B.writeFile (repo </> encodeArg name) $ toByteString contents
   (statusAdd, errAdd, _) <- runMercurialCommand repo "add" ["path:" ++ name]
   if statusAdd == ExitSuccess
      then mercurialCommit repo [name] author logMsg

@@ -24,7 +24,6 @@ import Data.FileStore.Utils (hashsMatch, isInsideRepo, runShellCommand)
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
-import Codec.Binary.UTF8.String (encodeString)
 import Data.Char (chr)
 import Control.Monad (liftM, unless, when)
 import System.FilePath ((</>), takeDirectory)

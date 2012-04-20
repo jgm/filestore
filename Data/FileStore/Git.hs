@@ -21,11 +21,10 @@ import Data.Maybe (mapMaybe)
 import Data.List.Split (endByOneOf)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, escapeRegexSpecialChars, withVerifyDir) 
+import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, escapeRegexSpecialChars, withVerifyDir, encodeArg)
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy as B
 import qualified Text.ParserCombinators.Parsec as P
-import Codec.Binary.UTF8.String (encodeString)
 import Control.Monad (when)
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
@@ -97,7 +96,7 @@ gitCommit repo names author logMsg = do
 -- | Save changes (creating file and directory if needed), add, and commit.
 gitSave :: Contents a => FilePath -> FilePath -> Author -> Description -> a -> IO ()
 gitSave repo name author logMsg contents = do
-  withSanityCheck repo [".git"] name $ B.writeFile (repo </> encodeString name) $ toByteString contents
+  withSanityCheck repo [".git"] name $ B.writeFile (repo </> encodeArg name) $ toByteString contents
   (statusAdd, errAdd, _) <- runGitCommand repo "add" [name]
   if statusAdd == ExitSuccess
      then gitCommit repo [name] author logMsg
