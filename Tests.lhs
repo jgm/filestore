@@ -263,7 +263,7 @@ This program runs tests for the filestore modules.
 *** Retrieve earlier version of deleted file:
 
 > retrieveTest5 fs = TestCase $ do
->   hist <- history fs ["Aaack!"] (TimeRange Nothing Nothing)
+>   hist <- history fs ["Aaack!"] (TimeRange Nothing Nothing) Nothing
 >   assertBool "history is nonempty" (not (null hist))
 >   let deletedId = revId $ last hist
 >   contents <- retrieve fs "Aaack!" (Just deletedId) :: IO String
@@ -310,7 +310,7 @@ This program runs tests for the filestore modules.
 
     Get history for three files
 
->   hist <- history fs [testTitle, subdirTestTitle, nonasciiTestTitle] (TimeRange Nothing Nothing)
+>   hist <- history fs [testTitle, subdirTestTitle, nonasciiTestTitle] (TimeRange Nothing Nothing) Nothing
 >   assertBool "history is nonempty" (not (null hist))
 >   now <- getCurrentTime
 >   rev <- latest fs testTitle >>= revision fs  -- get latest revision
@@ -320,8 +320,10 @@ This program runs tests for the filestore modules.
 >   assertBool "revDescription non-null" (not (null (revDescription rev)))
 >   assertEqual "revChanges" [Modified testTitle] (revChanges rev)
 >   let revtime = revDateTime rev
->   histNow <- history fs [testTitle] (TimeRange (Just $ addUTCTime (60 * 60 * 24) now) Nothing)
+>   histNow <- history fs [testTitle] (TimeRange (Just $ addUTCTime (60 * 60 * 24) now) Nothing) Nothing
 >   assertBool "history from now + 1 day onwards is empty" (null histNow)
+>   histOne <- history fs [testTitle] (TimeRange Nothing Nothing) (Just 1)
+>   assertBool "history with limit = 1 contains one item" (length histOne == 1)
 
 *** Test diff
 
@@ -333,7 +335,7 @@ This program runs tests for the filestore modules.
 >   create fs diffTitle testAuthor "description of change" testContents
 >   save fs diffTitle testAuthor "removed a line" (unlines . init . lines $ testContents)
 
->   [secondrev, firstrev] <- history fs [diffTitle] (TimeRange Nothing Nothing)
+>   [secondrev, firstrev] <- history fs [diffTitle] (TimeRange Nothing Nothing) Nothing
 >   diff' <- diff fs diffTitle (Just $ revId firstrev) (Just $ revId secondrev)
 >   let subtracted' = mapMaybe (\(d,s) -> if d == F then Just s else Nothing) diff'
 >   assertEqual "subtracted lines" [[last (lines testContents)]] subtracted'

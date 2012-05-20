@@ -237,8 +237,8 @@ gitLogFormat = "%H%n%ct%n%an%n%ae%n%B%n%x00"
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-gitLog :: FilePath -> [FilePath] -> TimeRange -> IO [Revision]
-gitLog repo names (TimeRange mbSince mbUntil) = do
+gitLog :: FilePath -> [FilePath] -> TimeRange -> Maybe Int -> IO [Revision]
+gitLog repo names (TimeRange mbSince mbUntil) mblimit = do
   (status, err, output) <- runGitCommand repo "whatchanged" $
                            ["-z","--pretty=format:" ++ gitLogFormat] ++
                            (case mbSince of
@@ -247,7 +247,10 @@ gitLog repo names (TimeRange mbSince mbUntil) = do
                            (case mbUntil of
                                  Just til   -> ["--until='" ++ show til ++ "'"]
                                  Nothing      -> []) ++
-                           ["--"] ++ names 
+                           (case mblimit of
+                                 Just lim   -> ["-n", show lim]
+                                 Nothing    -> []) ++
+                           ["--"] ++ names
   if status == ExitSuccess
      then case P.parse parseGitLog "" (toString output) of
                 Left err'    -> throwIO $ UnknownError $ "Error parsing git log.\n" ++ show err'

@@ -117,16 +117,23 @@ darcsDelete repo name author logMsg = withSanityCheck repo ["_darcs"] name $ do
 
 -- | Return list of log entries for the list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-darcsLog :: FilePath -> [FilePath] -> TimeRange -> IO [Revision]
-darcsLog repo names (TimeRange begin end) = do
-    let opts = timeOpts begin end
-    do (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names ++ opts
+darcsLog :: FilePath -> [FilePath] -> TimeRange -> Maybe Int -> IO [Revision]
+darcsLog repo names (TimeRange begin end) mblimit = do
+       (status, err, output) <- runDarcsCommand repo "changes" $ ["--xml-output", "--summary"] ++ names ++ opts
        if status == ExitSuccess
         then case parseDarcsXML $ toString output of
             Nothing      -> throwIO ResourceExists
             Just parsed -> return parsed
         else throwIO $ UnknownError $ "darcs changes returned error status.\n" ++ err
     where
+        opts = timeOpts begin end ++ limit
+        limit = case mblimit of
+#ifdef USE_MAXCOUNT
+                    Just lim  -> ["--max-count",show lim]
+#else
+                    Just _    -> []
+#endif
+                    Nothing   -> []
         timeOpts :: Maybe UTCTime -> Maybe UTCTime ->[String]
         timeOpts b e = case (b,e) of
                 (Nothing,Nothing) -> []

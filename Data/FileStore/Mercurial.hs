@@ -200,9 +200,9 @@ mercurialLogFormat = "{node}\\n{date|rfc822date}\\n{author|person}\\n{author|ema
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
-mercurialLog :: FilePath -> [FilePath] -> TimeRange -> IO [Revision]
-mercurialLog repo names (TimeRange mbSince mbUntil) = do
-  (status, err, output) <- runMercurialCommand repo "log" $ ["--template", mercurialLogFormat] ++ revOpts mbSince mbUntil ++ names
+mercurialLog :: FilePath -> [FilePath] -> TimeRange -> Maybe Int -> IO [Revision]
+mercurialLog repo names (TimeRange mbSince mbUntil) mblimit = do
+  (status, err, output) <- runMercurialCommand repo "log" $ ["--template", mercurialLogFormat] ++ revOpts mbSince mbUntil ++ limit ++ names
   if status == ExitSuccess
      then case P.parse parseMercurialLog "" (toString output) of
                 Left err'    -> throwIO $ UnknownError $ "Error parsing mercurial log.\n" ++ show err'
@@ -213,6 +213,9 @@ mercurialLog repo names (TimeRange mbSince mbUntil) = do
        revOpts (Just s) Nothing  = ["-d", ">" ++ showTime s]
        revOpts (Just s) (Just u) = ["-d", showTime s ++ " to " ++ showTime u]
        showTime = formatTime defaultTimeLocale "%F %X"
+       limit = case mblimit of
+                    Just lim  -> ["--limit", show lim]
+                    Nothing   -> []
 
 
 --

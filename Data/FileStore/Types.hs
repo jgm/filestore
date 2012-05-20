@@ -184,6 +184,7 @@ data FileStore = FileStore {
   , history        :: [FilePath]        -- List of resources to get history for
                                         -- or @[]@ for all.
                    -> TimeRange         -- Time range in which to get history.
+                   -> Maybe Int         -- Maybe max number of entries.
                    -> IO [Revision]
 
     -- | Return the revision ID of the latest change for a resource.

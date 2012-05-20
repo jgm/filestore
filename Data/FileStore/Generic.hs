@@ -104,7 +104,7 @@ searchRevisions repo exact name desc = do
   let matcher = if exact
                 then (== desc)
                 else (desc `isInfixOf`)
-  revs <- history repo [name] (TimeRange Nothing Nothing)
+  revs <- history repo [name] (TimeRange Nothing Nothing) Nothing
   return $ Prelude.filter (matcher . revDescription) revs
 
 -- | Try to retrieve a resource from the repository by name and possibly a
