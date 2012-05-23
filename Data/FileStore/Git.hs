@@ -23,8 +23,7 @@ import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, escapeRegexSpecialChars, withVerifyDir, encodeArg)
 import Data.ByteString.Lazy.UTF8 (toString)
-import qualified Data.ByteString.Lazy as B
-import qualified Text.ParserCombinators.Parsec as P
+import qualified Data.ByteString.Lazy.Char8 as B
 import Control.Monad (when)
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
@@ -157,11 +156,7 @@ gitGetRevision :: FilePath -> RevisionId -> IO Revision
 gitGetRevision repo revid = do
   (status, _, output) <- runGitCommand repo "whatchanged" ["-z","--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
   if status == ExitSuccess
-     then case P.parse parseGitLog "" (toString output) of
-                 Left err'   -> throwIO $ UnknownError $ "error parsing git log: " ++ show err'
-                 Right [r]   -> return r
-                 Right []    -> throwIO NotFound
-                 Right xs    -> throwIO $ UnknownError $ "git rev-list returned more than one result: " ++ show xs
+     then parseLogEntry output
      else throwIO NotFound
 
 -- | Get a list of all known files inside and managed by a repository.
@@ -233,7 +228,7 @@ gitDiff repo name from to = do
 -}
 
 gitLogFormat :: String
-gitLogFormat = "%H%n%ct%n%an%n%ae%n%B%n%x00"
+gitLogFormat = "%x01%H%x00%ct%x00%an%x00%ae%x00%B%n%x00"
 
 -- | Return list of log entries for the given time frame and list of resources.
 -- If list of resources is empty, log entries for all resources are returned.
@@ -252,52 +247,51 @@ gitLog repo names (TimeRange mbSince mbUntil) mblimit = do
                                  Nothing    -> []) ++
                            ["--"] ++ names
   if status == ExitSuccess
-     then case P.parse parseGitLog "" (toString output) of
-                Left err'    -> throwIO $ UnknownError $ "Error parsing git log.\n" ++ show err'
-                Right parsed -> return parsed
+     then parseGitLog output
      else throwIO $ UnknownError $ "git whatchanged returned error status.\n" ++ err
 
 --
 -- Parsers to parse git log into Revisions.
 --
 
-parseGitLog :: P.Parser [Revision]
-parseGitLog = P.manyTill gitLogEntry P.eof
+parseGitLog :: B.ByteString -> IO [Revision]
+parseGitLog = mapM parseLogEntry . splitEntries
 
-wholeLine :: P.GenParser Char st String
-wholeLine = P.manyTill P.anyChar P.newline
+splitEntries :: B.ByteString -> [B.ByteString]
+splitEntries = dropWhile B.null . B.split '\1' -- occurs just before each hash
 
-nonblankLine :: P.GenParser Char st String
-nonblankLine = P.notFollowedBy P.newline >> wholeLine
-
-nullChar :: P.GenParser Char st ()
-nullChar = P.satisfy (=='\0') >> return ()
-
-gitLogEntry :: P.Parser Revision
-gitLogEntry = do
-  rev <- nonblankLine
-  date <- nonblankLine
-  author <- wholeLine
-  email <- wholeLine
-  subject <- P.manyTill P.anyChar nullChar
-  P.spaces
-  changes <- P.manyTill gitLogChange (P.eof P.<|> nullChar)
-  let stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
+parseLogEntry :: B.ByteString -> IO Revision
+parseLogEntry entry = do
+  let (rev : date' : author : email : subject : rest) = B.split '\0' entry
+  date <- case B.readInteger date' of
+               Just (x,_) -> return x
+               Nothing    -> throwIO $ UnknownError $ "Could not read date"
+  changes <- parseChanges $ takeWhile (not . B.null) rest
   return Revision {
-              revId          = rev
-            , revDateTime    = posixSecondsToUTCTime $ realToFrac (read date :: Integer)
-            , revAuthor      = Author { authorName = author, authorEmail = email }
-            , revDescription = stripTrailingNewlines subject
+              revId          = toString rev
+            , revDateTime    = posixSecondsToUTCTime $ realToFrac date
+            , revAuthor      = Author{ authorName = toString author
+                                     , authorEmail = toString email }
+            , revDescription = toString $ stripTrailingNewlines subject
             , revChanges     = changes }
 
-gitLogChange :: P.Parser Change
-gitLogChange = do
-  line <- P.manyTill P.anyChar nullChar
-  let changeType = take 1 $ reverse line
-  file' <- P.manyTill P.anyChar nullChar
-  case changeType of
-         "A"  -> return $ Added file'
-         "M"  -> return $ Modified file'
-         "D"  -> return $ Deleted file'
-         _    -> return $ Modified file'
+stripTrailingNewlines :: B.ByteString -> B.ByteString
+stripTrailingNewlines = B.reverse . B.dropWhile (=='\n') . B.reverse
+
+parseChanges :: [B.ByteString] -> IO [Change]
+parseChanges (x:y:zs) = do
+  when (B.null x) $
+     throwIO $ UnknownError "parseChanges found empty change description"
+  let changeType = B.last x
+  let file' = toString y
+  let next = case changeType of
+           'A'  -> Added file'
+           'M'  -> Modified file'
+           'D'  -> Deleted file'
+           _    -> Modified file'
+  rest <- parseChanges zs
+  return (next:rest)
+parseChanges [_] =
+  throwIO $ UnknownError $ "parseChanges encountered odd number of fields"
+parseChanges [] = return []
 
