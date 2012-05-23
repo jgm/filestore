@@ -123,7 +123,14 @@ darcsLog repo names (TimeRange begin end) mblimit = do
        if status == ExitSuccess
         then case parseDarcsXML $ toString output of
             Nothing      -> throwIO ResourceExists
-            Just parsed -> return parsed
+            Just parsed -> return $
+#ifdef USE_MAXCOUNT
+                              parsed
+#else
+                              case mblimit of
+                                   Just lim -> take lim parsed
+                                   Nothing  -> parsed
+#endif
         else throwIO $ UnknownError $ "darcs changes returned error status.\n" ++ err
     where
         opts = timeOpts begin end ++ limit
@@ -167,7 +174,8 @@ darcsLatestRevId repo name = do
   let patchs = parseDarcsXML $ toString output
   case patchs of
       Nothing -> throwIO NotFound
-      Just as -> if null as then throwIO NotFound else return $ revId $ head as
+      Just [] -> throwIO NotFound
+      Just (x:_) -> return $ revId x
 
 -- | Retrieve the contents of a resource.
 darcsRetrieve :: Contents a
