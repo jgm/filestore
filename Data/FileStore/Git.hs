@@ -156,7 +156,7 @@ gitGetRevision :: FilePath -> RevisionId -> IO Revision
 gitGetRevision repo revid = do
   (status, _, output) <- runGitCommand repo "whatchanged" ["-z","--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
   if status == ExitSuccess
-     then parseLogEntry output
+     then parseLogEntry $ B.drop 1 output  -- drop initial \1
      else throwIO NotFound
 
 -- | Get a list of all known files inside and managed by a repository.
