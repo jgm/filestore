@@ -1,3 +1,13 @@
+Version 0.5 released 30 Apr 2012
+
+* Added 'limit' parameter to 'history', so that in large repositories
+  you don't need to generate and parse the entire log.
+
+* Revised the git log parser, so it is faster and lazy.  This is
+  helpful for applications where we may not need to parse the whole
+  history.  It would be good to make similar modifications to the hg
+  and darcs log parsers in the future.
+
 Version 0.3.4.3 released 26 Sep 2010
 
 * runShellCommand: reverted to older version with temp files.
