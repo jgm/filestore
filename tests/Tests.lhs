@@ -12,7 +12,6 @@ This program runs tests for the filestore modules.
 > import Data.Time
 > import Data.Maybe (mapMaybe)
 > import System.FilePath
-> import System.Process
 > import Data.Algorithm.Diff (DI(..))
 
 > main = do
