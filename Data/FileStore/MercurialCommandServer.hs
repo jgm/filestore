@@ -42,6 +42,7 @@ import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.UTF8 as LUTF8
 import qualified Data.Map as M
+import qualified System.Info as SI
 
 -- | Maximum number of servers to keep around
 maxPoolSize :: Int
@@ -217,12 +218,24 @@ putServer repo h = do
       Left  () -> return ()
 
 -- | Check if the mercurial version supports servers
+--   On windows, don't even try because talking to hg over a pipe does not
+--   currently work correctly.
 checkVersion :: IO Bool
-checkVersion = do
-    (status,_,out) <- runShellCommand "." Nothing "hg" ["version", "-q"]
-    case status of
-      ExitFailure _ -> return False
-      ExitSuccess   -> return $ parseVersion (LUTF8.toString out) >= [2,0]
+checkVersion
+    | isOperatingSystem "mingw32" = return False
+    | otherwise                   = do
+        (status,_,out) <- runShellCommand "." Nothing "hg" ["version", "-q"]
+        case status of
+          ExitFailure _ -> return False
+          ExitSuccess   -> return $ parseVersion (LUTF8.toString out) >= [2,0]
+
+-- | Helps to find out what operating system we are on
+--   Example usage:
+--      isOperatingSystem "mingw32" (on windows)
+--      isOperatingSystem "darwin"
+--      isOperatingSystem "linux"
+isOperatingSystem :: String -> Bool
+isOperatingSystem sys = SI.os == sys
 
 -- | hg version -q returns something like "Mercurial Distributed SCM (version 1.9.1)"
 --   This function returns the list [1,9,1]
