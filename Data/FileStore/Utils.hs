@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, ScopedTypeVariables #-}
 {- |
    Module      : Data.FileStore.Utils
    Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Branwen
@@ -40,6 +40,7 @@ import System.IO (openTempFile, hClose)
 import System.Process (runProcess, waitForProcess)
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString as S
+import qualified Control.Exception as E
 #if MIN_VERSION_base(4,5,0)
 #else
 import Codec.Binary.UTF8.String (encodeString)
@@ -63,7 +64,7 @@ runShellCommand :: FilePath                     -- ^ Working directory
                 -> [String]                     -- ^ Arguments
                 -> IO (ExitCode, B.ByteString, B.ByteString)
 runShellCommand workingDir environment command optionList = do
-  tempPath <- catch getTemporaryDirectory (\_ -> return ".")
+  tempPath <- E.catch getTemporaryDirectory (\(_ :: E.SomeException) -> return ".")
   (outputPath, hOut) <- openTempFile tempPath "out"
   (errorPath, hErr) <- openTempFile tempPath "err"
   hProcess <- runProcess (encodeArg command) (map encodeArg optionList) (Just workingDir) environment Nothing (Just hOut) (Just hErr)
@@ -81,7 +82,7 @@ mergeContents :: (String, B.ByteString)     -- ^ (label, contents) of edited ver
               -> (String, B.ByteString)     -- ^ (label, contents) of latest version
               -> IO (Bool, String)          -- ^ (were there conflicts?, merged contents)
 mergeContents (newLabel, newContents) (originalLabel, originalContents) (latestLabel, latestContents) = do
-  tempPath <- catch getTemporaryDirectory (\_ -> return ".")
+  tempPath <- E.catch getTemporaryDirectory (\(_ :: E.SomeException) -> return ".")
   (originalPath, hOriginal) <- openTempFile tempPath "orig"
   (latestPath, hLatest)     <- openTempFile tempPath "latest"
   (newPath, hNew)           <- openTempFile tempPath "new"
@@ -235,7 +236,7 @@ grepSearchRepo indexer repo query = do
 -- | we don't actually need the contents, just want to check that the directory exists and we have enough permissions
 withVerifyDir :: FilePath -> IO a -> IO a
 withVerifyDir d a =
-  catch (liftM head (getDirectoryContents $ encodeArg d) >> a) $ \e ->
+  E.catch (liftM head (getDirectoryContents $ encodeArg d) >> a) $ \(e :: E.SomeException) ->
     if "No such file or directory" `isInfixOf` show e
        then throwIO NotFound
        else throwIO . UnknownError . show $ e
