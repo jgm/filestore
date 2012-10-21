@@ -37,6 +37,7 @@ import System.Directory (doesFileExist, getTemporaryDirectory, removeFile, findE
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
+import System.IO.Error (isDoesNotExistError)
 import System.Process (runProcess, waitForProcess)
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString as S
@@ -236,7 +237,7 @@ grepSearchRepo indexer repo query = do
 -- | we don't actually need the contents, just want to check that the directory exists and we have enough permissions
 withVerifyDir :: FilePath -> IO a -> IO a
 withVerifyDir d a =
-  E.catch (liftM head (getDirectoryContents $ encodeArg d) >> a) $ \(e :: E.SomeException) ->
-    if "No such file or directory" `isInfixOf` show e
+  E.catch (liftM head (getDirectoryContents $ encodeArg d) >> a) $ \(e :: E.IOException) ->
+    if isDoesNotExistError e
        then throwIO NotFound
        else throwIO . UnknownError . show $ e
