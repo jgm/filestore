@@ -1,3 +1,9 @@
+Version 0.5.0.1 released 21 Oct 2012
+
+* Bumped version limits on dependencies.
+
+* Upgraded Utils to use Control.Exception.
+
 Version 0.5 released 30 Apr 2012
 
 * Added 'limit' parameter to 'history', so that in large repositories
