@@ -306,6 +306,8 @@ This program runs tests for the filestore modules.
 *** Test history and revision
 
 > historyTest fs = TestCase $ do
+>   let testDescription = "history test message"
+>   save fs testTitle testAuthor testDescription testContents
 
     Get history for three files
 
@@ -316,7 +318,7 @@ This program runs tests for the filestore modules.
 >   assertBool "history contains latest revision" (rev `elem` hist)
 >   assertEqual "revAuthor" testAuthor (revAuthor rev)
 >   assertBool "revId non-null" (not (null (revId rev)))
->   assertBool "revDescription non-null" (not (null (revDescription rev)))
+>   assertEqual "revDescription" testDescription (revDescription rev)
 >   assertEqual "revChanges" [Modified testTitle] (revChanges rev)
 >   let revtime = revDateTime rev
 >   histNow <- history fs [testTitle] (TimeRange (Just $ addUTCTime (60 * 60 * 24) now) Nothing) Nothing
