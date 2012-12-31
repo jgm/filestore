@@ -1,3 +1,13 @@
+Version 0.6 released 31 Dec 2012
+
+* Updated to use Diff 0.2.  This involves an API change:
+  diff now returns [Diff [String]] rather than [(DI, String)].
+  Thanks to markwright for the patch.
+
+* Test revDescription more thoroughly (Ben Millwood).
+
+* Fixed error handling in withVerifyDir.
+
 Version 0.5.0.1 released 21 Oct 2012
 
 * Bumped version limits on dependencies.
