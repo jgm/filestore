@@ -1,5 +1,5 @@
 Name:                filestore
-Version:             0.5.0.1
+Version:             0.6
 Cabal-version:       >= 1.8
 Build-type:          Custom
 Synopsis:            Interface for versioning file stores.
@@ -43,7 +43,7 @@ Library
                          time >= 1.1 && < 1.5,
                          xml >= 1.3 && < 1.4,
                          split >= 0.1 && < 0.3,
-                         Diff >= 0.1.2 && < 0.2,
+                         Diff >= 0.2 && < 0.3,
                          old-locale >= 1.0 && < 1.1
 
     Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs, Data.FileStore.Mercurial,

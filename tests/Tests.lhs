@@ -12,7 +12,7 @@ This program runs tests for the filestore modules.
 > import Data.Time
 > import Data.Maybe (mapMaybe)
 > import System.FilePath
-> import Data.Algorithm.Diff (DI(..))
+> import Data.Algorithm.Diff (Diff(..))
 
 > main = do
 >   testFileStore (gitFileStore "tmp/gitfs") "Data.FileStore.Git"
@@ -338,13 +338,13 @@ This program runs tests for the filestore modules.
 
 >   [secondrev, firstrev] <- history fs [diffTitle] (TimeRange Nothing Nothing) Nothing
 >   diff' <- diff fs diffTitle (Just $ revId firstrev) (Just $ revId secondrev)
->   let subtracted' = mapMaybe (\(d,s) -> if d == F then Just s else Nothing) diff'
+>   let subtracted' = [s | First s <- diff']
 >   assertEqual "subtracted lines" [[last (lines testContents)]] subtracted'
 
     Diff from Nothing should be diff from empty document.
 
 >   diff'' <- diff fs diffTitle Nothing (Just $ revId firstrev)
->   let added'' = mapMaybe (\(d,s) -> if d == S then Just s else Nothing) diff''
+>   let added'' = [s | Second s <- diff']
 >   assertEqual "added lines from empty document to first revision" [lines testContents] added''
 
     Diff to Nothing should be diff to latest.

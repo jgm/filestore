@@ -14,7 +14,7 @@
 module Data.FileStore.Generic
            ( modify
            , create
-           , DI(..)
+           , Diff(..)
            , diff
            , searchRevisions
            , smartRetrieve
@@ -27,7 +27,7 @@ import Data.FileStore.Types
 import Control.Exception (throwIO, catch, SomeException, try)
 import Data.FileStore.Utils
 import Data.List (isInfixOf)
-import Data.Algorithm.Diff (DI(..), getGroupedDiff)
+import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
 import System.FilePath ((</>))
 import Prelude hiding (catch)
 
@@ -73,7 +73,7 @@ modify fs name originalRevId author msg contents = do
        return $ Left (MergeInfo latestRev conflicts mergedText)
 
 -- | Return a unified diff of two revisions of a named resource.
--- Format of the diff is a list @[(DI, [String])]@, where
+-- Format of the diff is a list @[(Diff, [String])]@, where
 -- @DI@ is @F@ (in first document only), @S@ (in second only),
 -- or @B@ (in both), and the list is a list of lines (without
 -- newlines at the end).
@@ -81,10 +81,10 @@ diff :: FileStore
      -> FilePath      -- ^ Resource name to get diff for.
      -> Maybe RevisionId  -- ^ @Just@ old revision ID, or @Nothing@ for empty.
      -> Maybe RevisionId  -- ^ @Just@ oew revision ID, or @Nothing@ for latest.
-     -> IO [(DI, [String])]
+     -> IO [Diff [String]]
 diff fs name Nothing id2 = do
   contents2 <- retrieve fs name id2
-  return [(S, lines contents2)]   -- no need to run getGroupedDiff here - diff vs empty document 
+  return [Second (lines contents2) ]   -- no need to run getGroupedDiff here - diff vs empty document 
 diff fs name id1 id2 = do
   contents1 <- retrieve fs name id1
   contents2 <- retrieve fs name id2
