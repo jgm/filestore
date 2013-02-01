@@ -74,7 +74,7 @@ Executable test-filestore
                     HUnit >= 1.2 && < 1.3,
                     mtl,
                     time,
-                    Diff,
+                    Diff >= 0.2,
                     filepath >= 1.1 && < 1.4,
                     directory >= 1.1 && < 1.3,
                     filestore
