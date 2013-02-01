@@ -35,6 +35,7 @@ import System.Exit (ExitCode(..))
 import System.IO (Handle, hClose, hPutStr, hFlush)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (runInteractiveProcess)
+import System.Environment (getEnvironment)
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UTF8
@@ -61,7 +62,9 @@ runMercurialCommand repo command args = do
 -- | Run a mercurial command directly without using the server.
 rawRunMercurialCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, BL.ByteString)
 rawRunMercurialCommand repo command args = do
-   (status, err, out) <- runShellCommand repo Nothing "hg" (command : args)
+   env <- getEnvironment
+   let env' = ("HGENCODING","utf8"):env
+   (status, err, out) <- runShellCommand repo (Just env') "hg" (command : args)
    return (status, LUTF8.toString err, out)
 
 -- | Create a new command server for the given repository
