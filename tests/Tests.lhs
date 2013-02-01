@@ -344,8 +344,8 @@ This program runs tests for the filestore modules.
     Diff from Nothing should be diff from empty document.
 
 >   diff'' <- diff fs diffTitle Nothing (Just $ revId firstrev)
->   let added'' = [s | Second s <- diff']
->   assertEqual "added lines from empty document to first revision" [lines testContents] added''
+>   let added'' = concat [x | Second x <- diff'']
+>   assertEqual "added lines from empty document to first revision" (lines testContents) added''
 
     Diff to Nothing should be diff to latest.
 
