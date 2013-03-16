@@ -27,7 +27,8 @@ module Data.FileStore.Utils (
         , encodeArg ) where
 
 import Control.Exception (throwIO)
-import Control.Monad (liftM, when, unless)
+import Control.Applicative ((<$>))
+import Control.Monad (liftM, liftM2, when, unless)
 import Data.ByteString.Lazy.UTF8 (toString)
 import Data.Char (isSpace)
 import Data.List (intersect, nub, isPrefixOf, isInfixOf)
@@ -39,6 +40,7 @@ import System.FilePath ((</>), takeDirectory)
 import System.IO (openTempFile, hClose)
 import System.IO.Error (isDoesNotExistError)
 import System.Process (runProcess, waitForProcess)
+import System.Environment (getEnvironment)
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString as S
 import qualified Control.Exception as E
@@ -68,7 +70,8 @@ runShellCommand workingDir environment command optionList = do
   tempPath <- E.catch getTemporaryDirectory (\(_ :: E.SomeException) -> return ".")
   (outputPath, hOut) <- openTempFile tempPath "out"
   (errorPath, hErr) <- openTempFile tempPath "err"
-  hProcess <- runProcess (encodeArg command) (map encodeArg optionList) (Just workingDir) environment Nothing (Just hOut) (Just hErr)
+  env <- liftM2 (++) environment . Just <$> getEnvironment
+  hProcess <- runProcess (encodeArg command) (map encodeArg optionList) (Just workingDir) env Nothing (Just hOut) (Just hErr)
   status <- waitForProcess hProcess
   errorOutput <- S.readFile errorPath
   output <- S.readFile outputPath
