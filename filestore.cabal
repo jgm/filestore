@@ -1,5 +1,5 @@
 Name:                filestore
-Version:             0.6
+Version:             0.6.0.1
 Cabal-Version:       >= 1.10
 Build-type:          Custom
 Synopsis:            Interface for versioning file stores.
