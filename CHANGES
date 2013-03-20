@@ -1,3 +1,16 @@
+Version 0.6.0.1 released 20 Mar 2013
+
+* runProcess now allows access to the current environment, instead of
+  running in a bare environment.  This fixes problems for those who have
+  git in a nonstandard path. (Jochen Keil)
+
+* Allow latest Diff.
+
+* Reconfigured cabal file to use new Cabal test framework.  Run tests with
+  `cabal configure --enable-tests && cabal build &&  cabal test`.
+
+* Set environment variable HGENCODING for mercurial.  Closes #6.
+
 Version 0.6 released 31 Dec 2012
 
 * Updated to use Diff 0.2.  This involves an API change:
