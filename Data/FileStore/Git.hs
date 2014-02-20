@@ -172,7 +172,7 @@ gitIndex repo = withVerifyDir repo $ do
 
 -- | Get list of resources in one directory of the repository.
 gitDirectory :: FilePath -> FilePath -> IO [Resource]
-gitDirectory repo dir = withVerifyDir (repo </> dir) $ do
+gitDirectory repo dir = withVerifyDir repo $ do
   (status, _err, output) <- runGitCommand repo "ls-tree" ["-z","HEAD:" ++ dir]
   if status == ExitSuccess
      then return $ map (lineToResource . words) $ endByOneOf ['\0'] $ toString output
