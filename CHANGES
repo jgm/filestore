@@ -1,3 +1,11 @@
+Version 0.6.0.3 released 26 Jul 2014
+
+* Disable the broken mercurial command server on Windows, falling back
+  on direct running of each command (Alan Brooks).
+
+* Added a script demonstrating use of filestore to query darcs repositories
+  (gwern).
+
 Version 0.6.0.2 released 08 Apr 2014
 
 * Bumped version for process so it will compile with GHC 7.8.1.
