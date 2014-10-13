@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {- |
    Module      : Data.FileStore.Git
    Copyright   : Copyright (C) 2009 John MacFarlane
@@ -17,7 +19,7 @@ module Data.FileStore.Git
            )
 where
 import Data.FileStore.Types
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, mapMaybe)
 import Data.List.Split (endByOneOf)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -25,10 +27,11 @@ import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, escap
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Control.Monad (when)
-import System.FilePath ((</>))
+import System.FilePath ((</>), splitFileName)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
 import Paths_filestore
+import qualified Control.Exception as E
 
 -- | Return a filestore implemented using the git distributed revision control system
 -- (<http://git-scm.com/>).
@@ -101,6 +104,21 @@ gitSave repo name author logMsg contents = do
      then gitCommit repo [name] author logMsg
      else throwIO $ UnknownError $ "Could not git add '" ++ name ++ "'\n" ++ errAdd
 
+isSymlink :: FilePath -> FilePath -> Maybe RevisionId -> IO Bool
+isSymlink repo name revid = do
+  (_, _, out) <- runGitCommand repo "ls-tree" [fromMaybe "HEAD" revid, name]
+  -- see http://stackoverflow.com/questions/737673
+  return $ (take 6 $ B.unpack out) == "120000"
+
+targetContents :: Contents a => FilePath -> FilePath -> a -> IO (Maybe a)
+targetContents repo linkName linkContent = do
+  let (dirName, _) = splitFileName linkName
+      targetName   = repo </> dirName </> (B.unpack $ toByteString linkContent)
+  result <- E.try $ B.readFile targetName
+  case result of
+    Left (_ :: E.SomeException) -> return Nothing
+    Right contents -> return $ Just (fromByteString contents)
+
 -- | Retrieve contents from resource.
 gitRetrieve :: Contents a
             => FilePath
@@ -116,7 +134,21 @@ gitRetrieve repo name revid = do
   when (take 4 (toString output) /= "blob") $ throwIO NotFound
   (status', err', output') <- runGitCommand repo "cat-file" ["-p", objectName]
   if status' == ExitSuccess
-     then return $ fromByteString output'
+     then do
+       isLink <- isSymlink repo name revid
+       if isLink
+        then do
+          contents <- targetContents repo name output'
+          case contents of
+            -- ideal output on Nothing would be something like
+            -- "broken symlink: <output'>", but I couldn't figure
+            -- out the bytestring types to do that.
+            -- also didn't bother trying to get the browser
+            -- to display the error as text if the symlink is to some
+            -- other format.
+            Nothing -> return $ fromByteString output'
+            Just bs -> return $ fromByteString bs
+        else return $ fromByteString output'
      else throwIO $ UnknownError $ "Error in git cat-file:\n" ++ err'
 
 -- | Delete a resource from the repository.
