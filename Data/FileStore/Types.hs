@@ -34,7 +34,6 @@ import Data.Typeable
 import Data.ByteString.Lazy.UTF8 (toString, fromString)
 import Data.Time (UTCTime)
 import Control.Exception (Exception)
-import Prelude hiding (catch)
 
 type RevisionId   = String
 

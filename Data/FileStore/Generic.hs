@@ -24,15 +24,14 @@ module Data.FileStore.Generic
 where
 import Data.FileStore.Types
 
-import Control.Exception (throwIO, catch, SomeException, try)
+import Control.Exception as E
 import Data.FileStore.Utils
 import Data.List (isInfixOf)
 import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
 import System.FilePath ((</>))
-import Prelude hiding (catch)
 
-handleUnknownError :: SomeException -> IO a
-handleUnknownError = throwIO . UnknownError . show
+handleUnknownError :: E.SomeException -> IO a
+handleUnknownError = E.throwIO . UnknownError . show
 
 -- | Like save, but first verify that the resource name is new.  If not, throws a 'ResourceExists'
 -- error.
@@ -43,10 +42,10 @@ create :: Contents a
        -> Description       -- ^ Description of change.
        -> a                 -- ^ Contents of resource.
        -> IO ()
-create fs name author logMsg contents = catch (latest fs name >> throwIO ResourceExists)
+create fs name author logMsg contents = E.catch (latest fs name >> E.throwIO ResourceExists)
                                                 (\e -> if e == NotFound
                                                  then save fs name author logMsg contents
-                                                 else throwIO e)
+                                                 else E.throwIO e)
 
 -- | Modify a named resource in the filestore.  Like save, except that a revision ID
 -- must be specified.  If the resource has been modified since the specified revision,
@@ -67,7 +66,7 @@ modify fs name originalRevId author msg contents = do
      else do
        latestContents <- retrieve fs name (Just latestRevId)
        originalContents <- retrieve fs name (Just originalRevId)
-       (conflicts, mergedText) <- catch 
+       (conflicts, mergedText) <- E.catch
                                   (mergeContents ("edited", toByteString contents) (originalRevId, originalContents) (latestRevId, latestContents))
                                   handleUnknownError
        return $ Left (MergeInfo latestRev conflicts mergedText)
@@ -119,14 +118,14 @@ smartRetrieve
   -> Maybe String    -- ^ @Just@ revision ID or description, or @Nothing@ for empty.
   -> IO a
 smartRetrieve fs exact name mrev = do
-  edoc <- try (retrieve fs name mrev)
+  edoc <- E.try (retrieve fs name mrev)
   case (edoc, mrev) of
     
     -- Regular retrieval using revision identifier succeeded, use this doc.
     (Right doc, _) -> return doc
 
     -- Retrieval of latest revision failed, nothing we can do about this.
-    (Left e, Nothing) -> throwIO (e :: FileStoreError)
+    (Left e, Nothing) -> E.throwIO (e :: FileStoreError)
 
     -- Retrieval failed, we can try fetching a revision by the description.
     (Left _, Just rev) -> do
@@ -134,7 +133,7 @@ smartRetrieve fs exact name mrev = do
       if Prelude.null revs
 
         -- No revisions containing this description.
-        then throwIO NotFound
+        then E.throwIO NotFound
 
         -- Retrieve resource for latest matching revision.
         else retrieve fs name (Just $ revId $ Prelude.head revs)
@@ -142,7 +141,7 @@ smartRetrieve fs exact name mrev = do
 -- | Like 'directory', but returns information about the latest revision.
 richDirectory :: FileStore -> FilePath -> IO [(Resource, Either String Revision)]
 richDirectory fs fp = directory fs fp >>= mapM f
-  where f r = Control.Exception.catch (g r) (\(e :: FileStoreError)-> return ( r, Left . show $ e ) )
+  where f r = E.catch (g r) (\(e :: FileStoreError)-> return ( r, Left . show $ e ) )
         g r@(FSDirectory _dir) = return (r,Left "richDirectory, we don't care about revision info for directories")
         g res@(FSFile file) = do rev <- revision fs =<< latest fs ( fp </> file )
                                  return (res,Right rev)
