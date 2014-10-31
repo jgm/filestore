@@ -1,3 +1,7 @@
+Version 0.6.0.4 released 31 Oct 2014
+
+* Fixed test suite so that it returns error status if tests fail (#16).
+
 Version 0.6.0.3 released 26 Jul 2014
 
 * Disable the broken mercurial command server on Windows, falling back
