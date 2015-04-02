@@ -14,6 +14,8 @@ before_install:
  - travis_retry sudo apt-get update
  - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER darcs mercurial git
  - export PATH=/opt/ghc/$GHCVER/bin:$PATH
+ - git config --global user.email "jgm@berkeley.edu"
+ - git config --global user.name "John MacFarlane"
 
 install:
  - cabal-$CABALVER update
