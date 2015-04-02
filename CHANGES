@@ -1,3 +1,10 @@
+Version 0.6.0.5 released 2 April 2014
+
+* Mark post-update as a bash script (not a generic shell script).
+  Closes Debian #72323.
+
+* Bump version bounds for dependencies.
+
 Version 0.6.0.4 released 31 Oct 2014
 
 * Fixed test suite so that it returns error status if tests fail (#16).
