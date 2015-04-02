@@ -1,5 +1,5 @@
 Name:                filestore
-Version:             0.6.0.5
+Version:             0.6.0.6
 Cabal-Version:       >= 1.10
 Build-type:          Custom
 Synopsis:            Interface for versioning file stores.
@@ -32,7 +32,7 @@ Library
                          bytestring >= 0.9 && < 1.0,
                          containers >= 0.3 && < 0.6,
                          utf8-string >= 0.3 && < 1.1,
-                         filepath >= 1.1 && < 1.4,
+                         filepath >= 1.1 && < 1.5,
                          directory >= 1.0 && < 1.3,
                          parsec >= 2 && < 3.2,
                          process >= 1.0 && < 1.3,
@@ -47,7 +47,8 @@ Library
                          Data.FileStore.Utils, Data.FileStore.Generic
     Other-modules:       Paths_filestore,
                          Data.FileStore.DarcsXml,
-                         Data.FileStore.MercurialCommandServer
+                         Data.FileStore.MercurialCommandServer,
+                         Data.FileStore.Compat.Locale
     Default-Extensions:  FlexibleInstances, CPP
     Default-Language:    Haskell98
     if flag(maxcount) 
