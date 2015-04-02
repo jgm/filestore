@@ -1,7 +1,6 @@
 Version 0.6.0.5 released 2 April 2014
 
 * Mark post-update as a bash script (not a generic shell script).
-  Closes Debian #72323.
 
 * Bump version bounds for dependencies.
 
