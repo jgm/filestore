@@ -17,7 +17,7 @@ before_install:
 
 install:
  - cabal-$CABALVER update
- - cabal install packdeps
+ - cabal-$CABALVER install packdeps
  - cabal-$CABALVER install --only-dependencies --enable-tests
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
