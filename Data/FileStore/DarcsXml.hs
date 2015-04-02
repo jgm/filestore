@@ -3,7 +3,7 @@ module Data.FileStore.DarcsXml (parseDarcsXML) where
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Char (isSpace)
 import Data.Time.Format (parseTime)
-import System.Locale (defaultTimeLocale)
+import Data.FileStore.Compat.Locale (defaultTimeLocale)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Text.XML.Light
 

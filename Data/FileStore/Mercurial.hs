@@ -29,7 +29,7 @@ import Control.Monad (when, liftM, unless)
 import System.FilePath ((</>), splitDirectories, takeFileName)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import Control.Exception (throwIO)
-import System.Locale (defaultTimeLocale)
+import Data.FileStore.Compat.Locale (defaultTimeLocale)
 import Data.Time (parseTime, formatTime)
 
 -- | Return a filestore implemented using the mercurial distributed revision control system

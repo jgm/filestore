@@ -17,7 +17,7 @@ module Data.FileStore.Darcs ( darcsFileStore ) where
 import Control.Exception (throwIO)
 import Control.Monad (when)
 import Data.Time (formatTime)
-import System.Locale (defaultTimeLocale)
+import Data.FileStore.Compat.Locale (defaultTimeLocale)
 import Data.List (sort, isPrefixOf)
 #ifdef USE_MAXCOUNT
 import Data.List (isInfixOf)
