@@ -1,9 +1,9 @@
-Version 0.6.0.6 released 2 April 2014
+Version 0.6.0.6 released 2 April 2015
 
 * Added compatibility module Data.FileStore.Compat.Locale
   so that filestore will compile against time 1.5.
 
-Version 0.6.0.5 released 2 April 2014
+Version 0.6.0.5 released 2 April 2015
 
 * Mark post-update as a bash script (not a generic shell script).
 
