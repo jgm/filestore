@@ -1,3 +1,12 @@
+Version 0.6.1 released 27 July 2015
+
+* Create `.git/hooks` directory if missing on initialize
+  (jgm/gitit#505).
+
+* Set git username, email.
+
+* Added preliminary symlink handling (Jeffrey David Johnson).
+
 Version 0.6.0.6 released 2 April 2015
 
 * Added compatibility module Data.FileStore.Compat.Locale
