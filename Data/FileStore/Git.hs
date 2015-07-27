@@ -72,7 +72,9 @@ gitInit repo = do
        -- will be reflected in the working directory.
        postupdatepath <- getDataFileName $ "extra" </> "post-update"
        postupdatecontents <- B.readFile postupdatepath
-       let postupdate = repo </> ".git" </> "hooks" </> "post-update"
+       let postupdatedir = repo </> ".git" </> "hooks"
+       createDirectoryIfMissing True postupdatedir
+       let postupdate = postupdatedir </> "post-update"
        B.writeFile postupdate postupdatecontents
        perms <- getPermissions postupdate
        setPermissions postupdate (perms {executable = True})
