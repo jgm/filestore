@@ -54,8 +54,13 @@ gitFileStore repo = FileStore {
 -- | Run a git command and return error status, error output, standard output.  The repository
 -- is used as working directory.
 runGitCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
-runGitCommand repo command args = do
-  let env = Just [("GIT_DIFF_OPTS","-u100000")]
+runGitCommand = runGitCommandWithEnv []
+
+-- | Run a git command with the given environment and return error status, error output, standard
+-- output.  The repository is used as working directory.
+runGitCommandWithEnv :: [(String, String)] -> FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
+runGitCommandWithEnv givenEnv repo command args = do
+  let env = Just ([("GIT_DIFF_OPTS", "-u100000")] ++ givenEnv)
   (status, err, out) <- runShellCommand repo env "git" (command : args)
   return (status, toString err, out)
 
@@ -89,7 +94,9 @@ gitInit repo = do
 -- no changes.
 gitCommit :: FilePath -> [FilePath] -> Author -> String -> IO ()
 gitCommit repo names author logMsg = do
-  (statusCommit, errCommit, _) <- runGitCommand repo "commit" $ ["--author", authorName author ++ " <" ++
+  let env = [("GIT_COMMITTER_NAME", authorName author),
+             ("GIT_COMMITTER_EMAIL", authorEmail author)]
+  (statusCommit, errCommit, _) <- runGitCommandWithEnv env repo "commit" $ ["--author", authorName author ++ " <" ++
                                     authorEmail author ++ ">", "-m", logMsg] ++ names
   if statusCommit == ExitSuccess
      then return ()
