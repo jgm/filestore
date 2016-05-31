@@ -1,0 +1,6 @@
+flags:
+  filestore:
+      maxcount: true
+packages:
+- '.'
+extra-deps: []
