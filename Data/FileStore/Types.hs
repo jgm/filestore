@@ -150,7 +150,7 @@ data FileStore = FileStore {
     initialize     :: IO ()
 
     -- | Save contents in the filestore.
-  , save           :: Contents a
+  , save           :: forall a . Contents a
                    => FilePath          -- Resource to save.
                    -> Author            --  Author of change.
                    -> Description       --  Description of change.
@@ -158,7 +158,7 @@ data FileStore = FileStore {
                    -> IO ()
 
     -- | Retrieve the contents of the named resource.
-  , retrieve       :: Contents a
+  , retrieve       :: forall a . Contents a
                    => FilePath          -- Resource to retrieve.
                    -> Maybe RevisionId  -- @Just@ a particular revision ID,
                                         -- or @Nothing@ for latest
