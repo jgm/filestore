@@ -1,5 +1,5 @@
 Name:                filestore
-Version:             0.6.1
+Version:             0.6.2
 Cabal-Version:       >= 1.10
 Build-type:          Custom
 Synopsis:            Interface for versioning file stores.
@@ -57,7 +57,7 @@ Library
       Ghc-Options:       -Wall -fno-warn-unused-do-bind
     else
       Ghc-Options:       -Wall
-    Ghc-Prof-Options:    -auto-all
+    Ghc-Prof-Options:    -fprof-auto-exported
 
 Test-suite test-filestore
     Type:           exitcode-stdio-1.0
