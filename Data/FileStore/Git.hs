@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 {- |
    Module      : Data.FileStore.Git
@@ -195,7 +196,7 @@ gitLatestRevId repo name = do
 -- | Get revision information for a particular revision ID, or latest revision.
 gitGetRevision :: FilePath -> RevisionId -> IO Revision
 gitGetRevision repo revid = do
-  (status, _, output) <- runGitCommand repo "whatchanged" ["-z","--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
+  (status, _, output) <- runGitCommand repo "log" ["-z","--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
   if status == ExitSuccess
      then parseLogEntry $ B.drop 1 output  -- drop initial \1
      else throwIO NotFound
@@ -319,20 +320,49 @@ parseLogEntry entry = do
 stripTrailingNewlines :: B.ByteString -> B.ByteString
 stripTrailingNewlines = B.reverse . B.dropWhile (=='\n') . B.reverse
 
+-- | This function converts the git "log" %B (raw body) format into a
+-- list of Change items (e.g. `Added FilePath`, `Modified FilePath`,
+-- or `Deleted FilePath`).  The raw body format is normally pairs of
+-- ByteStrings, like:
+--
+--    ":000000 100644 0000000... 9cf8bba... A", "path/to/file.foo"
+--
+-- where the last letter of the first element is the type of change.
+-- Git can track renames however, and those are noted by a triple of
+-- ByteStrings; for example:
+--
+--   ":100644 100644 6c2c6e2... d333ad0... R063",
+--   "old/file/path/name.foo",
+--   "new/file/path/newname.bar"
+--
+-- Since filestore does not track renames, these are converted to
+-- a remove of the first file and an add of the second.
+--
+-- n.b. without reading git sources, it's not clear what the raw body
+-- format details are; specifically, the three digits following the R
+-- are ignored.
 parseChanges :: [B.ByteString] -> IO [Change]
 parseChanges (x:y:zs) = do
-  when (B.null x) $
-     throwIO $ UnknownError "parseChanges found empty change description"
-  let changeType = B.last x
+  when (B.null x) $ pcErr "found empty change description"
+  let changeType = B.head $ last $ B.words x
   let file' = toString y
-  let next = case changeType of
-           'A'  -> Added file'
-           'M'  -> Modified file'
-           'D'  -> Deleted file'
-           _    -> Modified file'
-  rest <- parseChanges zs
-  return (next:rest)
+  if changeType == 'R'
+  then parseChanges (tail zs) >>=
+       return . (++) (Deleted file' : Added (toString $ head zs) : [])
+  else
+      do next <- case changeType of
+                   'A'  -> return $ Added file'
+                   'M'  -> return $ Modified file'
+                   'D'  -> return $ Deleted file'
+                   _    -> pcErr ("found unknown changeType '" ++
+                                  (show changeType) ++
+                                  "' in: " ++ (show x) ++
+                                  " on " ++ (show y))
+         rest <- parseChanges zs
+         return (next:rest)
 parseChanges [_] =
-  throwIO $ UnknownError $ "parseChanges encountered odd number of fields"
+  pcErr "encountered odd number of fields"
 parseChanges [] = return []
 
+pcErr :: forall a. String -> IO a
+pcErr = throwIO . UnknownError . (++) "filestore parseChanges "
