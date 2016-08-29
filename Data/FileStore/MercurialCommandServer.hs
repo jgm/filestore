@@ -144,7 +144,7 @@ hReadWord32be :: Handle -> IO Int
 hReadWord32be h = do
     s <- B.hGet h 4
     when (B.length s /= 4) $
-    	throwIO $ MercurialServerException "unable to read int"
+      throwIO $ MercurialServerException "unable to read int"
     return $ bsReadWord32be s
 
 -- | Read a 32-bit big-endian from a bytestring into an Int
