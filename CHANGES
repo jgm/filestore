@@ -1,6 +1,8 @@
 Version 0.6.3.1 released 13 Feb 2017
 
 * Bump to 0.6.3.1, raise directory upper bound.
+* Fix false-positive on travis.
+* Fix bug in 'revision' for git (changes were not obtained).
 
 Version 0.6.3 released 23 Jan 2017
 
