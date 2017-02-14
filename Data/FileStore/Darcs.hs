@@ -49,7 +49,7 @@ darcsFileStore repo = FileStore {
   , directory       = darcsDirectory repo
   , search          = darcsSearch repo
   , idsMatch        = const hashsMatch repo }
-                   
+
 -- | Run a darcs command and return error status, error output, standard output.  The repository
 -- is used as working directory.
 runDarcsCommand :: FilePath -> String -> [String] -> IO (ExitCode, String, B.ByteString)
@@ -187,13 +187,14 @@ darcsRetrieve repo name mbId = do
   let opts = case mbId of
               Nothing    -> ["contents", name]
               Just revid -> ["contents", "--match=hash " ++ revid, name]
-  (status, err, output) <- runDarcsCommand repo "query" opts
+  (status, err, output) <- runDarcsCommand repo "show" opts
   if B.null output
      then do
-       (_, _, out) <- runDarcsCommand repo "query" (["files", "--no-directories"] ++ opts)
+       (_, _, out) <- runDarcsCommand repo "show" (["files", "--no-directories"] ++ opts)
        if B.null out || null (filter (== name) . getNames $ output)
-         then throwIO NotFound else return ()
-         else return ()
+          then throwIO NotFound
+          else return ()
+     else return ()
   if status == ExitSuccess
      then return $ fromByteString output
      else throwIO $ UnknownError $ "Error in darcs query contents:\n" ++ err
