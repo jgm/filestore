@@ -35,8 +35,8 @@ Library
                          filepath >= 1.1 && < 1.5,
                          directory >= 1.0 && < 1.4,
                          parsec >= 2 && < 3.2,
-                         process >= 1.0 && < 1.5,
-                         time >= 1.1 && < 1.7,
+                         process >= 1.0 && < 1.7,
+                         time >= 1.1 && < 1.10,
                          xml >= 1.3 && < 1.4,
                          split >= 0.1 && < 0.3,
                          Diff >= 0.2 && < 0.4,
@@ -65,11 +65,11 @@ Test-suite test-filestore
     Main-is:        Tests.hs
     Default-Language:  Haskell98
     Build-depends:  base >= 4 && < 5,
-                    HUnit >= 1.2 && < 1.4,
+                    HUnit >= 1.2 && < 1.7,
                     mtl,
                     time,
                     Diff >= 0.2 && < 0.4,
                     filepath >= 1.1 && < 1.5,
-                    directory >= 1.1 && < 1.3,
+                    directory >= 1.1 && < 1.4,
                     filestore
 
