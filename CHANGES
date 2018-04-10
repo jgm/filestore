@@ -1,3 +1,10 @@
+Version 0.6.3.2 released 10 Apr 2018
+
+* Update version bounds for dependencies.
+* Tweaked tests.  We no longer run darcs tests; they seem to
+  depend too much on the details of the system and the darcs
+  version.
+
 Version 0.6.3.1 released 13 Feb 2017
 
 * Bump to 0.6.3.1, raise directory upper bound.
