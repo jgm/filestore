@@ -72,7 +72,7 @@ nonasciiTestTitle :: String
 nonasciiTestTitle = "αβγ"
 
 subdirNonasciiTestTitle :: String
-subdirNonasciiTestTitle = "Fooé/bar"
+subdirNonasciiTestTitle = "α/bar"
 
 -- index and directory for noexisting repository should raise error:
 
