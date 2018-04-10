@@ -15,13 +15,14 @@ data FileStoreType = Darcs | Git | Mercurial deriving (Show, Eq)
 
 main = do
   gc <- testFileStore (gitFileStore "tmp/gitfs") Git
-  dc <- testFileStore (darcsFileStore "tmp/darcsfs") Darcs
+  -- dc <- testFileStore (darcsFileStore "tmp/darcsfs") Darcs
   mc <- testFileStore (mercurialFileStore "tmp/mercurialfs") Mercurial
   removeDirectoryRecursive "tmp"
-  let counts = Counts{ cases = cases gc  + cases dc + cases mc,
-                       tried = tried gc + tried dc + tried mc,
-                       failures = failures gc + failures dc + failures mc,
-                       errors = errors gc + errors dc + errors mc }
+  let counts = Counts{ cases = cases gc {- + cases dc -} + cases mc,
+                       tried = tried gc {- + tried dc -} + tried mc,
+                       failures = failures gc {- + failures dc -}
+                                    + failures mc,
+                       errors = errors gc {- + errors dc -} + errors mc }
   let errorCode = failures counts + errors counts
   putStrLn $ "Total " ++ showCounts counts
   exitWith $ if errorCode == 0
