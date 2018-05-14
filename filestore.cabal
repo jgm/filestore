@@ -1,7 +1,7 @@
 Name:                filestore
 Version:             0.6.3.2
 Cabal-Version:       >= 1.10
-Build-type:          Custom
+Build-type:          Simple
 Synopsis:            Interface for versioning file stores.
 Description:         The filestore library provides an abstract interface for a versioning
                      file store, and modules that instantiate this interface.  Currently
