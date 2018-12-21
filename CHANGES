@@ -1,3 +1,9 @@
+Version 0.6.3.4 released 21 Dec 2018
+
+* Document git version requirement (#4).
+* Fix test suite failure when git not configured (#16).
+* Relax containers version bounds to support 0.6.* (Phil Ruffwind).
+
 Version 0.6.3.3 released 14 May 2018
 
 * Use build-type Simple (hvr).
