@@ -10,10 +10,13 @@ import Data.Maybe (mapMaybe)
 import System.FilePath
 import Data.Algorithm.Diff (Diff(..))
 import System.Exit
+import System.Environment (setEnv)
 
 data FileStoreType = Darcs | Git | Mercurial deriving (Show, Eq)
 
 main = do
+  setEnv "GIT_AUTHOR_NAME" "Fake Name"
+  setEnv "GIT_AUTHOR_EMAIL" "fake.email@example.com"
   gc <- testFileStore (gitFileStore "tmp/gitfs") Git
   -- dc <- testFileStore (darcsFileStore "tmp/darcsfs") Darcs
   mc <- testFileStore (mercurialFileStore "tmp/mercurialfs") Mercurial
