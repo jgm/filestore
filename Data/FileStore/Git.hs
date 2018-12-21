@@ -13,6 +13,9 @@
    A versioned filestore implemented using git.
    Normally this module should not be imported: import
    "Data.FileStore" instead.
+
+   It is assumed that git >= 1.7.2 is available on
+   the system path.
 -}
 
 module Data.FileStore.Git
