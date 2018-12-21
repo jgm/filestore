@@ -64,7 +64,7 @@ Test-suite test-filestore
     Hs-source-dirs: tests
     Main-is:        Tests.hs
     Default-Language:  Haskell98
-    Build-depends:  base >= 4 && < 5,
+    Build-depends:  base >= 4.7 && < 5,
                     HUnit >= 1.2 && < 1.7,
                     mtl,
                     time,
