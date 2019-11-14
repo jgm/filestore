@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, CPP #-}
 {- |
    Module      : Data.FileStore.Generic
    Copyright   : Copyright (C) 2009 John MacFarlane, Gwern Branwen, Sebastiaan Visser
@@ -14,7 +14,7 @@
 module Data.FileStore.Generic
            ( modify
            , create
-           , Diff(..)
+           , Diff
            , diff
            , searchRevisions
            , smartRetrieve
@@ -27,7 +27,11 @@ import Data.FileStore.Types
 import Control.Exception as E
 import Data.FileStore.Utils
 import Data.List (isInfixOf)
-import Data.Algorithm.Diff (Diff(..), getGroupedDiff)
+import Data.Algorithm.Diff (Diff
+#if MIN_VERSION_Diff(0,4,0)
+  , PolyDiff
+#endif
+  (..), getGroupedDiff)
 import System.FilePath ((</>))
 
 handleUnknownError :: E.SomeException -> IO a

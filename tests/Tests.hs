@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 import Data.FileStore
 import Data.List (sort, isInfixOf)
 import Test.HUnit
@@ -8,7 +9,11 @@ import Control.Exception (catch)
 import Data.Time
 import Data.Maybe (mapMaybe)
 import System.FilePath
-import Data.Algorithm.Diff (Diff(..))
+import Data.Algorithm.Diff (Diff
+#if MIN_VERSION_Diff(0,4,0)
+  , PolyDiff
+#endif
+  (..))
 import System.Exit
 import System.Environment (setEnv)
 
