@@ -30,7 +30,7 @@ import System.FilePath ((</>), splitDirectories, takeFileName)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import Control.Exception (throwIO)
 import Data.FileStore.Compat.Locale (defaultTimeLocale)
-import Data.Time (parseTime, formatTime)
+import Data.Time (parseTimeM, formatTime)
 
 -- | Return a filestore implemented using the mercurial distributed revision control system
 -- (<http://mercurial.selenic.com/>).
@@ -251,7 +251,7 @@ mercurialLogEntry = do
   let stripTrailingNewlines = reverse . dropWhile (=='\n') . reverse
   return Revision {
               revId          = rev
-            , revDateTime    = fromJust (parseTime defaultTimeLocale "%a, %d %b %Y %H:%M:%S %z" date :: Maybe UTCTime)
+            , revDateTime    = fromJust (parseTimeM True defaultTimeLocale "%a, %d %b %Y %H:%M:%S %z" date :: Maybe UTCTime)
             , revAuthor      = Author { authorName = author, authorEmail = email }
             , revDescription = stripTrailingNewlines subject
             , revChanges     = file_add ++ file_mod ++ file_del 
