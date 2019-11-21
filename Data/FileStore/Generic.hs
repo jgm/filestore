@@ -15,6 +15,7 @@ module Data.FileStore.Generic
            ( modify
            , create
            , Diff
+           , PolyDiff(..)
            , diff
            , searchRevisions
            , smartRetrieve
@@ -27,11 +28,7 @@ import Data.FileStore.Types
 import Control.Exception as E
 import Data.FileStore.Utils
 import Data.List (isInfixOf)
-import Data.Algorithm.Diff (Diff
-#if MIN_VERSION_Diff(0,4,0)
-  , PolyDiff
-#endif
-  (..), getGroupedDiff)
+import Data.Algorithm.Diff (Diff, PolyDiff (..), getGroupedDiff)
 import System.FilePath ((</>))
 
 handleUnknownError :: E.SomeException -> IO a

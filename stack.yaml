@@ -3,5 +3,6 @@ flags:
       maxcount: true
 packages:
 - '.'
-extra-deps: []
+extra-deps:
+- Diff-0.4.0
 resolver: lts-14.14
