@@ -1,3 +1,8 @@
+Version 0.6.4 released 21 Nov 2019
+
+* Data.File.Generic now exports PolyDiff(..) as well as Diff,
+  and we require Diff >= 0.4.  Fixes jgm/gitit#637.
+
 Version 0.6.3.5 released 16 Nov 2019
 
 * Compatibility with Diff-0.4.0 (Galen Huntington).
