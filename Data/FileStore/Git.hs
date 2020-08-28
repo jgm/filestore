@@ -28,13 +28,13 @@ import Data.List.Split (endByOneOf)
 import System.Exit
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.FileStore.Utils (withSanityCheck, hashsMatch, runShellCommand, escapeRegexSpecialChars, withVerifyDir, encodeArg)
+import qualified Data.FileStore.ExtraData as ExtraData
 import Data.ByteString.Lazy.UTF8 (toString)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Control.Monad (when)
 import System.FilePath ((</>), splitFileName)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
-import Paths_filestore
 import qualified Control.Exception as E
 
 -- | Return a filestore implemented using the git distributed revision control system
@@ -79,12 +79,10 @@ gitInit repo = do
      then do
        -- Add the post-update hook, so that changes made remotely via git
        -- will be reflected in the working directory.
-       postupdatepath <- getDataFileName $ "extra" </> "post-update"
-       postupdatecontents <- B.readFile postupdatepath
        let postupdatedir = repo </> ".git" </> "hooks"
        createDirectoryIfMissing True postupdatedir
        let postupdate = postupdatedir </> "post-update"
-       B.writeFile postupdate postupdatecontents
+       B.writeFile postupdate ExtraData.postUpdate
        perms <- getPermissions postupdate
        setPermissions postupdate (perms {executable = True})
        -- Set up repo to allow push to current branch
