@@ -15,7 +15,7 @@ Author:              John MacFarlane, Gwern Branwen, Sebastiaan Visser
 Maintainer:          jgm@berkeley.edu
 Bug-Reports:         https://github.com/jgm/filestore/issues
 
-Data-Files:          CHANGES
+Extra-Source-Files:  CHANGES
 
 Source-repository head
   type:          git
