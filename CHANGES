@@ -1,3 +1,10 @@
+Version 0.6.5 released 28 Aug 2020
+
+* Removed data files in extra.
+* Add git post-update script as a ByteString literal in
+  Data.FileStore.Git (Justus Adam).  This will facilitate
+  making gitit independent of data files.
+
 Version 0.6.4 released 21 Nov 2019
 
 * Data.File.Generic now exports PolyDiff(..) as well as Diff,
