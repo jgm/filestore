@@ -30,7 +30,6 @@ import System.FilePath ((</>), takeDirectory)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, executable, getPermissions, setPermissions)
 import Control.Exception (throwIO)
 import Database.HDBC
-import Paths_filestore
 
 -- | Return a filestore implemented using the sqlite3 distributed revision control system
 -- (<http://sqlite3-scm.com/>).

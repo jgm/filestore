@@ -15,7 +15,7 @@ Author:              John MacFarlane, Gwern Branwen, Sebastiaan Visser
 Maintainer:          jgm@berkeley.edu
 Bug-Reports:         https://github.com/jgm/filestore/issues
 
-Data-Files:          extra/post-update, CHANGES
+Data-Files:          CHANGES
 
 Source-repository head
   type:          git
@@ -45,11 +45,11 @@ Library
     Exposed-modules:     Data.FileStore, Data.FileStore.Types, Data.FileStore.Git, Data.FileStore.Darcs, Data.FileStore.Mercurial,
                          -- Data.FileStore.Sqlite3,
                          Data.FileStore.Utils, Data.FileStore.Generic
-    Other-modules:       Paths_filestore,
-                         Data.FileStore.DarcsXml,
+    Other-modules:       Data.FileStore.DarcsXml,
                          Data.FileStore.MercurialCommandServer,
-                         Data.FileStore.Compat.Locale
-    Default-Extensions:  FlexibleInstances, CPP
+                         Data.FileStore.Compat.Locale,
+                         Data.FileStore.ExtraData
+    Default-Extensions:  FlexibleInstances
     Default-Language:    Haskell98
     if flag(maxcount) 
         cpp-options: -DUSE_MAXCOUNT
