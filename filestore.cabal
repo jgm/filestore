@@ -19,7 +19,7 @@ Extra-Source-Files:  CHANGES
 
 Source-repository head
   type:          git
-  location:      git://github.com/jgm/filestore.git
+  location:      https://github.com/jgm/filestore.git
 
 Flag maxcount
     default:     True
