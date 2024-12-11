@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
   linux:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
