@@ -1,0 +1,41 @@
+name: CI tests
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        versions:
+          - ghc: '8.10'
+            cabal: '3.2'
+          - ghc: '9.0'
+            cabal: '3.4'
+          - ghc: '9.2'
+            cabal: '3.6'
+          - ghc: '9.4'
+            cabal: 'latest'
+          - ghc: '9.6'
+            cabal: 'latest'
+          - ghc: '9.8'
+            cabal: 'latest'
+          - ghc: '9.10'
+            cabal: 'latest'
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install cabal/ghc
+      run: |
+        ghcup install ghc --set ${{ matrix.versions.ghc }}
+        ghcup install cabal --set ${{ matrix.versions.cabal }}
+
+    - name: Install mercurial and darcs for tests
+      run: sudo apt-get update && apt-get install darcs mercurial
+
+     - name: Build and test
+      run: |
+          cabal v2-update
+          cabal v2-test
+
