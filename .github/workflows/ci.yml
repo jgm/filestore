@@ -36,7 +36,7 @@ jobs:
         sudo apt-get install darcs mercurial
 
      - name: Build and test
-      run: |
+       run: |
           cabal v2-update
           cabal v2-test
 
