@@ -30,7 +30,7 @@ Flag maxcount
 Library
     Build-depends:       base >= 4 && < 5,
                          bytestring >= 0.9 && < 1.0,
-                         containers >= 0.3 && < 0.7,
+                         containers >= 0.3 && < 0.8,
                          utf8-string >= 0.3 && < 1.1,
                          filepath >= 1.1 && < 1.5,
                          directory >= 1.0 && < 1.4,
