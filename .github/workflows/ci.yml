@@ -32,6 +32,7 @@ jobs:
 
     - name: Install mercurial and darcs for tests
       run: |
+        sudo apt-add-repository universe
         sudo apt-get update
         sudo apt-get install darcs mercurial
 
