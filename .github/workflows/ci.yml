@@ -30,11 +30,12 @@ jobs:
         ghcup install ghc --set ${{ matrix.versions.ghc }}
         ghcup install cabal --set ${{ matrix.versions.cabal }}
 
-    - name: Install mercurial and darcs for tests
+    # Note that darcs is no longer installable on Ubuntu 24
+    - name: Install mercurial for tests
       run: |
         sudo apt-add-repository universe
         sudo apt-get update
-        sudo apt-get install darcs mercurial
+        sudo apt-get install mercurial
 
     - name: Build and test
       run: |
