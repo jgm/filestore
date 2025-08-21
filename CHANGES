@@ -1,3 +1,8 @@
+Version ?.?.? released ?? ??? ????
+
+* Call `git log --raw` instead of `git whatchanged`, as the latter
+  will be removed from git in a future release.
+
 Version 0.6.5 released 28 Aug 2020
 
 * Removed data files in extra.

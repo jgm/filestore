@@ -41,7 +41,7 @@ import qualified Control.Exception as E
 gitFileStore :: FilePath -> FileStore
 gitFileStore repo = FileStore {
     initialize        = gitInit repo
-  , save              = gitSave repo 
+  , save              = gitSave repo
   , retrieve          = gitRetrieve repo
   , delete            = gitDelete repo
   , rename            = gitMove repo
@@ -50,7 +50,7 @@ gitFileStore repo = FileStore {
   , revision          = gitGetRevision repo
   , index             = gitIndex repo
   , directory         = gitDirectory repo
-  , search            = gitSearch repo 
+  , search            = gitSearch repo
   , idsMatch          = const hashsMatch repo
   }
 
@@ -89,7 +89,7 @@ gitInit repo = do
        if status' == ExitSuccess
           then return ()
           else throwIO $ UnknownError $ "git config failed:\n" ++ err'
-     else throwIO $ UnknownError $ "git-init failed:\n" ++ err 
+     else throwIO $ UnknownError $ "git-init failed:\n" ++ err
 
 -- | Commit changes to a resource.  Raise 'Unchanged' exception if there were
 -- no changes.
@@ -173,7 +173,7 @@ gitDelete repo name author logMsg = withSanityCheck repo [".git"] name $ do
 gitMove :: FilePath -> FilePath -> FilePath -> Author -> Description -> IO ()
 gitMove repo oldName newName author logMsg = do
   _ <- gitLatestRevId repo oldName   -- will throw a NotFound error if oldName doesn't exist
-  (statusAdd, err, _) <- withSanityCheck repo [".git"] newName $ runGitCommand repo "mv" [oldName, newName] 
+  (statusAdd, err, _) <- withSanityCheck repo [".git"] newName $ runGitCommand repo "mv" [oldName, newName]
   if statusAdd == ExitSuccess
      then gitCommit repo [oldName, newName] author logMsg
      else throwIO $ UnknownError $ "Could not git mv " ++ oldName ++ " " ++ newName ++ "\n" ++ err
@@ -196,7 +196,7 @@ gitLatestRevId repo name = do
 -- | Get revision information for a particular revision ID, or latest revision.
 gitGetRevision :: FilePath -> RevisionId -> IO Revision
 gitGetRevision repo revid = do
-  (status, _, output) <- runGitCommand repo "whatchanged" ["-z","--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
+  (status, _, output) <- runGitCommand repo "log" ["--raw","-z","--pretty=format:" ++ gitLogFormat, "--max-count=1", revid]
   if status == ExitSuccess
      then parseLogEntry $ B.drop 1 output -- drop initial \1
      else throwIO NotFound
@@ -248,7 +248,7 @@ parseMatchLine str =
                                     else error $ "parseMatchLine: " ++ str
              , matchLine = cont}
     where (fname,xs) = break (== '\NUL') str
-          rest = drop 1 xs 
+          rest = drop 1 xs
           -- for some reason, NUL is used after line number instead of
           -- : when --match-all is passed to git-grep.
           (ln,ys) = span (`elem` ['0'..'9']) rest
@@ -276,8 +276,8 @@ gitLogFormat = "%x01%H%x00%ct%x00%an%x00%ae%x00%B%n%x00"
 -- If list of resources is empty, log entries for all resources are returned.
 gitLog :: FilePath -> [FilePath] -> TimeRange -> Maybe Int -> IO [Revision]
 gitLog repo names (TimeRange mbSince mbUntil) mblimit = do
-  (status, err, output) <- runGitCommand repo "whatchanged" $
-                           ["-z","--pretty=format:" ++ gitLogFormat] ++
+  (status, err, output) <- runGitCommand repo "log" $
+                           ["--raw","-z","--pretty=format:" ++ gitLogFormat] ++
                            (case mbSince of
                                  Just since   -> ["--since='" ++ show since ++ "'"]
                                  Nothing      -> []) ++
@@ -290,7 +290,7 @@ gitLog repo names (TimeRange mbSince mbUntil) mblimit = do
                            ["--"] ++ names
   if status == ExitSuccess
      then parseGitLog output
-     else throwIO $ UnknownError $ "git whatchanged returned error status.\n" ++ err
+     else throwIO $ UnknownError $ "git log --raw returned error status.\n" ++ err
 
 --
 -- Parsers to parse git log into Revisions.
@@ -369,7 +369,7 @@ pcErr = throwIO . UnknownError . (++) "filestore parseChanges "
 
 postUpdate :: B.ByteString
 postUpdate =
-  B.pack 
+  B.pack
     "#!/bin/bash\n\
     \#\n\
     \# This hook does two things:\n\
@@ -455,4 +455,3 @@ postUpdate =
     \        fi\n\
     \    done\n\
     \fi"
-
