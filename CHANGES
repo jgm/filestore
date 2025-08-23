@@ -1,7 +1,12 @@
-Version ?.?.? released ?? ??? ????
+Version 0.6.5.1 released 23 Aug 2025
 
 * Call `git log --raw` instead of `git whatchanged`, as the latter
-  will be removed from git in a future release.
+  will be removed from git in a future release (Jack Kelly).
+* Raise bounds for `filepath` and `time` (Jack Kelly).
+* Raise `Diff` upper bound (kokobd).
+* Support containers 0.7 (kokobd).
+* Fix darcs arguments for file and directory listings (tauli).
+* Update GitHub repository URL to use https (Felix Yan).
 
 Version 0.6.5 released 28 Aug 2020
 
